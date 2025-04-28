@@ -42,10 +42,10 @@ class NestoraButton extends StatelessWidget {
   final VoidCallback onPressed;
 
   const NestoraButton({
-    Key? key,
+    super.key,
     required this.text,
     required this.onPressed,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

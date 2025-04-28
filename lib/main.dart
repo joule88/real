@@ -12,10 +12,10 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Nestora',
+      title: 'Livora',
       theme: AppTheme.lightTheme,
       debugShowCheckedModeBanner: false,
-      home: LoginScreen(), // tampilkan halaman login sebagai halaman awal
+      home: LoginScreen()
     );
   }
 }
