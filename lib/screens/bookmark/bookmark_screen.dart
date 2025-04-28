@@ -5,7 +5,7 @@ import 'package:real/widgets/property_list_item.dart'; // Import widget list ite
 
 class BookmarkScreen extends StatefulWidget {
   // Hapus const jika stateful
-   BookmarkScreen({super.key});
+   const BookmarkScreen({super.key});
 
   @override
   State<BookmarkScreen> createState() => _BookmarkScreenState();

@@ -4,7 +4,7 @@ import 'package:real/screens/post_ad/post_ad_screen.dart'; // Import halaman Pas
 
 class ProfileScreen extends StatelessWidget {
   // Hapus const jika ingin menambahkan data dinamis nanti
-  ProfileScreen({super.key});
+  const ProfileScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
