@@ -3,10 +3,7 @@ import 'package:real/screens/home/home_screen.dart';
 import 'package:real/screens/search/search_screen.dart';
 import 'package:real/screens/bookmark/bookmark_screen.dart';
 import 'package:real/screens/profile/profile_screen.dart';
-// Import halaman lain nanti (Search, Saved, Profile)
-// import 'package:real/screens/search/search_screen.dart';
-// import 'package:real/screens/saved/saved_screen.dart';
-// import 'package:real/screens/profile/profile_screen.dart';
+import 'package:real/widgets/navbar.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -18,15 +15,14 @@ class MainScreen extends StatefulWidget {
 class _MainScreenState extends State<MainScreen> {
   int _selectedIndex = 0;
 
-  // Daftar halaman
-  static final List<Widget> _widgetOptions = <Widget>[
+  final List<Widget> _pages = [
     HomeScreen(),
     SearchScreen(),
     BookmarkScreen(),
     ProfileScreen(),
   ];
 
-  void _onItemTapped(int index) {
+  void _onTap(int index) {
     setState(() {
       _selectedIndex = index;
     });
@@ -35,44 +31,25 @@ class _MainScreenState extends State<MainScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Center(
-        child: _widgetOptions.elementAt(_selectedIndex),
-      ),
-      bottomNavigationBar: BottomNavigationBar(
-        items: const <BottomNavigationBarItem>[
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home_outlined),
-            activeIcon: Icon(Icons.home),
-            label: 'Home',
+      backgroundColor: Colors.transparent,
+      extendBody: true,
+      body: Stack(
+        children: [
+          IndexedStack(
+            index: _selectedIndex,
+            children: _pages,
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.search_outlined),
-            activeIcon: Icon(Icons.search),
-            label: 'Search',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.bookmark_border),
-            activeIcon: Icon(Icons.bookmark),
-            label: 'Saved',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person_outline),
-            activeIcon: Icon(Icons.person),
-            label: 'Profile',
+          // Navbar mengambang
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            child: CustomNavBar(
+              selectedIndex: _selectedIndex,
+              onItemTapped: _onTap,
+            ),
           ),
         ],
-        currentIndex: _selectedIndex,
-
-        //Styling Navbar
-        selectedItemColor: const Color(0xFF205295),
-        unselectedItemColor: Colors.grey,
-        showSelectedLabels: false,
-        showUnselectedLabels: false,
-        type: BottomNavigationBarType.fixed,
-        backgroundColor: Colors.white,
-        elevation: 5,
-        // ------------------------------------
-        onTap: _onItemTapped,
       ),
     );
   }

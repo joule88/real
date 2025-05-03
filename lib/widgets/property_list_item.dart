@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:real/models/property.dart'; // Import model
+import 'bookmark_button.dart'; // Import BookmarkButton
 
 class PropertyListItem extends StatelessWidget {
   final Property property;
@@ -13,7 +14,8 @@ class PropertyListItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final currencyFormatter = NumberFormat.currency(locale: 'en_US', symbol: '\$', decimalDigits: 2);
+    final currencyFormatter =
+        NumberFormat.currency(locale: 'en_US', symbol: '\$', decimalDigits: 2);
     const double imageSize = 80.0;
 
     return Container(
@@ -43,19 +45,26 @@ class PropertyListItem extends StatelessWidget {
               height: imageSize,
               fit: BoxFit.cover,
               errorBuilder: (context, error, stackTrace) => Container(
-                  width: imageSize, height: imageSize, color: Colors.grey[300],
-                  child: const Center(child: Icon(Icons.broken_image, size: 30, color: Colors.grey))
-              ),
-               loadingBuilder: (BuildContext context, Widget child, ImageChunkEvent? loadingProgress) {
+                  width: imageSize,
+                  height: imageSize,
+                  color: Colors.grey[300],
+                  child: const Center(
+                      child: Icon(Icons.broken_image,
+                          size: 30, color: Colors.grey))),
+              loadingBuilder: (BuildContext context, Widget child,
+                  ImageChunkEvent? loadingProgress) {
                 if (loadingProgress == null) return child;
                 return Container(
-                  width: imageSize, height: imageSize, color: Colors.grey[300],
+                  width: imageSize,
+                  height: imageSize,
+                  color: Colors.grey[300],
                   child: Center(
                     child: CircularProgressIndicator(
                       value: loadingProgress.expectedTotalBytes != null
-                          ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
+                          ? loadingProgress.cumulativeBytesLoaded /
+                              loadingProgress.expectedTotalBytes!
                           : null,
-                       strokeWidth: 2,
+                      strokeWidth: 2,
                     ),
                   ),
                 );
@@ -65,20 +74,33 @@ class PropertyListItem extends StatelessWidget {
           const SizedBox(width: 12),
 
           // 2. Detail Teks (Kolom Kanan)
-          Expanded( // Agar teks mengisi sisa ruang
+          Expanded(
+            // Agar teks mengisi sisa ruang
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // Harga
-                Text(
-                  currencyFormatter.format(property.price),
-                  style: GoogleFonts.poppins(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      currencyFormatter.format(property.price),
+                      style: GoogleFonts.poppins(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    // Ikon Bookmark dengan animasi
+                    BookmarkButton(
+                      isBookmarked: property.isFavorite,
+                      onPressed: () {
+                        property.toggleFavorite(); // Mengubah status bookmark
+                      },
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 4),
 
@@ -89,38 +111,33 @@ class PropertyListItem extends StatelessWidget {
                     fontSize: 11, // Lebih kecil
                     color: Colors.grey[700],
                   ),
-                   maxLines: 1,
-                   overflow: TextOverflow.ellipsis,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 6),
 
                 // Detail Kamar/Luas (Mirip PropertyCard tapi mungkin lebih kecil)
                 Row(
                   children: [
-                     _buildDetailItem(Icons.king_bed_outlined, '${property.bathrooms} KM'), // Singkat
+                    _buildDetailItem(Icons.king_bed_outlined,
+                        ' ${property.bedrooms}'), // Singkat
                     const SizedBox(width: 8), // Jarak antar detail
-                     _buildDetailItem(Icons.bathtub_outlined, '${property.bedrooms} KT'), // Singkat
+                    _buildDetailItem(Icons.bathtub_outlined,
+                        ' ${property.bathrooms}'), // Singkat
                     const SizedBox(width: 8),
-                    _buildDetailItem(Icons.straighten_outlined, '${property.areaSqft.toStringAsFixed(0)} sqft'),
+                    _buildDetailItem(Icons.straighten_outlined,
+                        '${property.areaSqft.toStringAsFixed(0)} sqft'),
                   ],
                 ),
               ],
             ),
           ),
-          const SizedBox(width: 8),
-
-          // 3. Ikon Bookmark (Kanan)
-          Icon(
-             property.isFavorite ? Icons.bookmark : Icons.bookmark_border,
-             color: property.isFavorite ? Theme.of(context).primaryColor : Colors.grey[400],
-             size: 22,
-           ),
         ],
       ),
     );
   }
 
-    // Helper widget kecil untuk item detail (ikon + teks) - bisa disamakan/diambil dari property_card
+  // Helper widget kecil untuk item detail (ikon + teks) - bisa disamakan/diambil dari property_card
   Widget _buildDetailItem(IconData icon, String text) {
     return Row(
       children: [
@@ -131,7 +148,7 @@ class PropertyListItem extends StatelessWidget {
           style: GoogleFonts.poppins(
             fontSize: 9, // Font lebih kecil
             color: Colors.grey[700],
-             fontWeight: FontWeight.w500,
+            fontWeight: FontWeight.w500,
           ),
         ),
       ],

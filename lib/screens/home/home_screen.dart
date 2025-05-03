@@ -5,16 +5,87 @@ import 'package:real/widgets/property_card.dart'; // Import widget card
 
 class HomeScreen extends StatelessWidget {
   // --- CONTOH DATA PROPERTY (Ganti dengan data asli Anda nanti) ---
-  final List<Property> featuredProperties = [
-     Property(id: '1', imageUrl: 'https://images.pexels.com/photos/106399/pexels-photo-106399.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1', price: 842000, address: '8502 Preston Rd', city: 'Inglewood', stateZip: 'Maine 98380', bedrooms: 5, bathrooms: 4, areaSqft: 2135, isFavorite: false),
-     Property(id: '2', imageUrl: 'https://images.pexels.com/photos/1396122/pexels-photo-1396122.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1', price: 720000, address: '6391 Elgin St.', city: 'Celina', stateZip: 'California 98380', bedrooms: 4, bathrooms: 4, areaSqft: 2000, isFavorite: true),
-     Property(id: '3', imageUrl: 'https://images.pexels.com/photos/259588/pexels-photo-259588.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1', price: 1212000, address: '123 Main St', city: 'Anytown', stateZip: 'USA 12345', bedrooms: 6, bathrooms: 5, areaSqft: 3000, isFavorite: false),
-  ];
+final List<Property> featuredProperties = [
+  Property(
+    id: '1',
+    title: 'Modern Family Home',
+    description: 'Properti ini terletak di lokasi strategis, cocok untuk keluarga modern dengan fasilitas lengkap.',
+    uploader: 'Johan Pratama',
+    imageUrl: 'https://images.pexels.com/photos/106399/pexels-photo-106399.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1',
+    price: 842000,
+    address: '8502 Preston Rd',
+    city: 'Inglewood',
+    stateZip: 'Maine 98380',
+    bedrooms: 5,
+    bathrooms: 4,
+    areaSqft: 2135,
+    isFavorite: false,
+  ),
+  Property(
+    id: '2',
+    title: 'Elegant Urban House',
+    description: 'Hunian elegan dengan desain kontemporer dan lokasi premium di tengah kota.',
+    uploader: 'Aldo Santosa',
+    imageUrl: 'https://images.pexels.com/photos/1396122/pexels-photo-1396122.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1',
+    price: 720000,
+    address: '6391 Elgin St.',
+    city: 'Celina',
+    stateZip: 'California 98380',
+    bedrooms: 4,
+    bathrooms: 4,
+    areaSqft: 2000,
+    isFavorite: true,
+  ),
+  Property(
+    id: '3',
+    title: 'Luxury Classic Estate',
+    description: 'Rumah mewah dengan gaya klasik, taman luas, dan kolam renang pribadi.',
+    uploader: 'Siti Rahmawati',
+    imageUrl: 'https://images.pexels.com/photos/259588/pexels-photo-259588.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1',
+    price: 1212000,
+    address: '123 Main St',
+    city: 'Anytown',
+    stateZip: 'USA 12345',
+    bedrooms: 6,
+    bathrooms: 5,
+    areaSqft: 3000,
+    isFavorite: false,
+  ),
+];
 
-  final List<Property> forYouProperties = [
-      Property(id: '4', imageUrl: 'https://images.pexels.com/photos/209296/pexels-photo-209296.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1', price: 842000, address: '8502 Redwood Ln', city: 'Inglewood', stateZip: 'California 98380', bedrooms: 5, bathrooms: 4, areaSqft: 2135, isFavorite: false),
-      Property(id: '5', imageUrl: 'https://images.pexels.com/photos/276724/pexels-photo-276724.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1', price: 1212000, address: '6391 Maple Ave', city: 'Celina', stateZip: 'California 98380', bedrooms: 4, bathrooms: 4, areaSqft: 2135, isFavorite: false),
-  ];
+final List<Property> forYouProperties = [
+  Property(
+    id: '4',
+    title: 'Comfortable Family Home',
+    description: 'Rumah nyaman dengan lingkungan tenang, cocok untuk keluarga dengan anak-anak.',
+    uploader: 'Rina Marlina',
+    imageUrl: 'https://images.pexels.com/photos/209296/pexels-photo-209296.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1',
+    price: 842000,
+    address: '8502 Redwood Ln',
+    city: 'Inglewood',
+    stateZip: 'California 98380',
+    bedrooms: 5,
+    bathrooms: 4,
+    areaSqft: 2135,
+    isFavorite: false,
+  ),
+  Property(
+    id: '5',
+    title: 'Spacious Modern House',
+    description: 'Hunian luas dengan desain modern dan pencahayaan alami optimal.',
+    uploader: 'Bagus Permana',
+    imageUrl: 'https://images.pexels.com/photos/276724/pexels-photo-276724.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1',
+    price: 1212000,
+    address: '6391 Maple Ave',
+    city: 'Celina',
+    stateZip: 'California 98380',
+    bedrooms: 4,
+    bathrooms: 4,
+    areaSqft: 2135,
+    isFavorite: false,
+  ),
+];
+
 
 
   HomeScreen({super.key});
@@ -99,7 +170,7 @@ class HomeScreen extends StatelessWidget {
                itemBuilder: (context, index){
                   return PropertyCard(
                      property: forYouProperties[index],
-                     isHorizontalVariant: false,
+                     isHorizontalVariant: true,
                   );
                }
             )

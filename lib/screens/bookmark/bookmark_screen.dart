@@ -14,10 +14,39 @@ class BookmarkScreen extends StatefulWidget {
 class _BookmarkScreenState extends State<BookmarkScreen> {
   // --- CONTOH DATA BOOKMARK (Ganti dengan logika data asli Anda) ---
   // Simulasi daftar bookmark. Coba ubah list ini jadi kosong [] untuk melihat empty state
-  List<Property> bookmarkedProperties = [
-    Property(id: '2', imageUrl: 'https://images.pexels.com/photos/1396122/pexels-photo-1396122.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1', price: 720000, address: '6391 Elgin St.', city: 'Celina', stateZip: 'California 98380', bedrooms: 4, bathrooms: 4, areaSqft: 2000, isFavorite: true),
-    Property(id: '5', imageUrl: 'https://images.pexels.com/photos/276724/pexels-photo-276724.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1', price: 1212000, address: '6391 Maple Ave', city: 'Celina', stateZip: 'California 98380', bedrooms: 4, bathrooms: 4, areaSqft: 2135, isFavorite: true),
-  ];
+List<Property> bookmarkedProperties = [
+  Property(
+    id: '2',
+    title: 'Elegant Urban House',
+    description: 'Hunian elegan dengan desain kontemporer dan lokasi premium di tengah kota.',
+    uploader: 'Aldo Santosa',
+    imageUrl: 'https://images.pexels.com/photos/1396122/pexels-photo-1396122.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1',
+    price: 720000,
+    address: '6391 Elgin St.',
+    city: 'Celina',
+    stateZip: 'California 98380',
+    bedrooms: 4,
+    bathrooms: 4,
+    areaSqft: 2000,
+    isFavorite: true,
+  ),
+  Property(
+    id: '5',
+    title: 'Spacious Modern House',
+    description: 'Hunian luas dengan desain modern dan pencahayaan alami optimal.',
+    uploader: 'Bagus Permana',
+    imageUrl: 'https://images.pexels.com/photos/276724/pexels-photo-276724.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1',
+    price: 1212000,
+    address: '6391 Maple Ave',
+    city: 'Celina',
+    stateZip: 'California 98380',
+    bedrooms: 4,
+    bathrooms: 4,
+    areaSqft: 2135,
+    isFavorite: true,
+  ),
+];
+
 
   bool isLoading = false; // Nanti bisa dipakai untuk loading indicator
 

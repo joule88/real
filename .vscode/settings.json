@@ -1,3 +1,9 @@
+// filepath: c:\projectflutter\mobile_real_estate\real\.vscode\settings.json
 {
-  "java.configuration.updateBuildConfiguration": "interactive"
+  "java.configuration.updateBuildConfiguration": "interactive",
+  "dart.flutterHotReloadOnSave": "all",
+  "[dart]": {
+    "editor.defaultFormatter": "Dart-Code.dart-code"
+  },
+  "editor.formatOnSave": true
 }
