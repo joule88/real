@@ -86,13 +86,6 @@ class PropertyDetailPage extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(20),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black12,
-                        blurRadius: 10,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -133,14 +126,17 @@ class PropertyDetailPage extends StatelessWidget {
 
                       // Detail Properti (3 kolom)
                       Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        mainAxisAlignment: MainAxisAlignment.start, // Diubah agar rata kiri
                         children: [
                           _buildDetailItem(Icons.king_bed_outlined, '${property.bedrooms} Kamar Tidur'),
+                          const SizedBox(width: 20), // Tambahkan jarak antar item
                           _buildDetailItem(Icons.bathtub_outlined, '${property.bathrooms} Kamar Mandi'),
+                          const SizedBox(width: 20),
                           _buildDetailItem(Icons.straighten_outlined, '${property.areaSqft.toStringAsFixed(0)} sqft'),
                         ],
                       ),
                       const SizedBox(height: 20),
+
 
                       // Deskripsi (Opsional)
                       Text(

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:real/widgets/textfield_login.dart';
+import 'package:provider/provider.dart';
+import '../../provider/auth_provider.dart';
+import '../../widgets/textfield_login.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -10,10 +12,16 @@ class RegisterScreen extends StatefulWidget {
 }
 
 class _RegisterScreenState extends State<RegisterScreen> {
-  // final bool _obscurePassword = true;
+  final TextEditingController nameCtrl = TextEditingController();
+  final TextEditingController emailCtrl = TextEditingController();
+  final TextEditingController passCtrl = TextEditingController();
+  final TextEditingController phoneCtrl = TextEditingController();
+  bool isLoading = false;
 
   @override
   Widget build(BuildContext context) {
+    final authProvider = Provider.of<AuthProvider>(context);
+
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -42,27 +50,39 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   const SizedBox(height: 24),
 
                   // Input Username
-                  const CustomTextField(
+                  CustomTextField(
+                    controller: nameCtrl,
                     label: "Username",
-                    hintText: "Username",
+                    hintText: "Enter your username",
                     icon: Icons.person_outline,
                   ),
                   const SizedBox(height: 16),
 
                   // Input Email
-                  const CustomTextField(
+                  CustomTextField(
+                    controller: emailCtrl,
                     label: "Email",
-                    hintText: "Email",
+                    hintText: "Enter your email",
                     icon: Icons.email_outlined,
-                  ), //
+                  ),
                   const SizedBox(height: 16),
 
                   // Input Password
-                  const CustomTextField(
+                  CustomTextField(
+                    controller: passCtrl,
                     label: "Password",
-                    hintText: "Password",
+                    hintText: "Enter your password",
                     icon: Icons.lock_outline,
                     isPassword: true,
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Input Phone
+                  CustomTextField(
+                    controller: phoneCtrl,
+                    label: "Phone",
+                    hintText: "Enter your phone number",
+                    icon: Icons.phone_outlined,
                   ),
                   const SizedBox(height: 24),
 
@@ -70,27 +90,48 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
-                      onPressed: () {
-                        // TODO: logika registrasi di sini
-                        print("Register button pressed");
-                      },
+                      onPressed: isLoading
+                          ? null
+                          : () async {
+                              setState(() => isLoading = true);
+                              bool success = await authProvider.register(
+                                name: nameCtrl.text,
+                                email: emailCtrl.text,
+                                password: passCtrl.text,
+                                phone: phoneCtrl.text,
+                              );
+                              setState(() => isLoading = false);
+
+                              if (success) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('Register Berhasil')),
+                                );
+                                Navigator.pushReplacementNamed(context, '/home');
+                              } else {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('Register Gagal')),
+                                );
+                              }
+                            },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFFDAF365),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(70),
                         ),
                       ),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 14.0),
-                        child: Text(
-                          "Register",
-                          style: GoogleFonts.poppins(
-                            fontSize: 17,
-                            fontWeight: FontWeight.w600,
-                            color: const Color(0xFF182420),
-                          ),
-                        ),
-                      ),
+                      child: isLoading
+                          ? const CircularProgressIndicator(color: Colors.white)
+                          : Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 14.0),
+                              child: Text(
+                                "Register",
+                                style: GoogleFonts.poppins(
+                                  fontSize: 17,
+                                  fontWeight: FontWeight.w600,
+                                  color: const Color(0xFF182420),
+                                ),
+                              ),
+                            ),
                     ),
                   ),
                 ],

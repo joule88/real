@@ -6,6 +6,7 @@ class CustomTextField extends StatefulWidget {
   final String hintText;
   final IconData icon;
   final bool isPassword;
+  final TextEditingController? controller; // Tambahkan controller
 
   const CustomTextField({
     super.key,
@@ -13,6 +14,7 @@ class CustomTextField extends StatefulWidget {
     required this.hintText,
     required this.icon,
     this.isPassword = false,
+    this.controller, // Tambahkan controller
   });
 
   @override
@@ -50,6 +52,7 @@ class _CustomTextFieldState extends State<CustomTextField> {
               const SizedBox(width: 12),
               Expanded(
                 child: TextField(
+                  controller: widget.controller, // Gunakan controller
                   obscureText: widget.isPassword ? _obscure : false,
                   style: GoogleFonts.poppins(
                     fontSize: 15,

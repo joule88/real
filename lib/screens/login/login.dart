@@ -3,6 +3,8 @@ import 'package:real/widgets/textfield_login.dart';
 import 'package:real/controllers/login_controller.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:real/screens/login/register.dart';
+import 'package:provider/provider.dart';
+import 'package:real/provider/auth_provider.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -12,108 +14,104 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  // Buat instance dari LoginController
-  final LoginController controller = LoginController();
+  final emailController = TextEditingController();
+  final passwordController = TextEditingController();
+  bool isLoading = false;
 
   @override
   Widget build(BuildContext context) {
+    final authProvider = Provider.of<AuthProvider>(context);
+
     return Scaffold(
-      backgroundColor: Colors.white, // Latar belakang putih
+      backgroundColor: Colors.white,
       body: SafeArea(
-        // Menghindari area status bar/notch
         child: Center(
-          // Pusatkan konten
           child: SingleChildScrollView(
-            // Agar bisa discroll jika layar kecil
-            padding: const EdgeInsets.all(24.0), // Padding di sekitar konten
+            padding: const EdgeInsets.all(24.0),
             child: ConstrainedBox(
-              // Batasi lebar maksimum konten
               constraints: const BoxConstraints(
                 maxWidth: 500,
               ),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start, // Rata kiri
-                mainAxisSize: MainAxisSize.min, // Ukuran kolom seperlunya
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  // Judul Halaman
                   Text(
                     "Sign In",
-                    style: Theme.of(context)
-                        .textTheme
-                        .displayLarge, // Ambil style dari tema
+                    style: Theme.of(context).textTheme.displayLarge,
                   ),
-                  const SizedBox(height: 24), // Jarak vertikal
-
-                  // Input Username
-                  const CustomTextField(
+                  const SizedBox(height: 24),
+                  CustomTextField(
+                    controller: emailController,
                     label: "Username",
                     hintText: "Username",
                     icon: Icons.person_outline,
-                  ), //
-                  const SizedBox(height: 16), // Jarak vertikal
-
-                  // Input Password
-                  const CustomTextField(
+                  ),
+                  const SizedBox(height: 16),
+                  CustomTextField(
+                    controller: passwordController,
                     label: "Password",
                     hintText: "Password",
                     icon: Icons.lock_outline,
-                    isPassword: true, // Aktifkan mode password
-                  ), //
-                  const SizedBox(height: 24), // Jarak vertikal
-
-                  // Tombol Sign In
+                    isPassword: true,
+                  ),
+                  const SizedBox(height: 24),
                   SizedBox(
-                    width: double.infinity, // Lebar tombol penuh
+                    width: double.infinity,
                     child: ElevatedButton(
-                      // Panggil controller.login DENGAN context saat ditekan
-                      onPressed: () {
-                        controller.login(context);
-                      },
+                      onPressed: isLoading
+                          ? null
+                          : () async {
+                              setState(() => isLoading = true);
+                              final success = await authProvider.login(
+                                emailController.text,
+                                passwordController.text,
+                              );
+                              setState(() => isLoading = false);
+                              if (success) {
+                                Navigator.pushReplacementNamed(context, '/home');
+                              } else {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('Login gagal')),
+                                );
+                              }
+                            },
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(
-                            0xFFDAF365), // Warna tombol hijau (sesuai prototype/register)
+                        backgroundColor: const Color(0xFFDAF365),
                         shape: RoundedRectangleBorder(
-                          borderRadius:
-                              BorderRadius.circular(70), // Border radius besar
+                          borderRadius: BorderRadius.circular(70),
                         ),
                       ),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                            vertical: 14.0), // Padding vertikal dalam tombol
-                        child: Text(
-                          "Sign In",
-                          style: GoogleFonts.poppins(
-                            // Font Poppins
-                            fontSize: 17,
-                            fontWeight: FontWeight.w600,
-                            color: const Color(0xFF182420), // Warna teks tombol
-                          ),
-                        ),
-                      ),
+                      child: isLoading
+                          ? const CircularProgressIndicator(color: Colors.white)
+                          : Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 14.0),
+                              child: Text(
+                                "Sign In",
+                                style: GoogleFonts.poppins(
+                                  fontSize: 17,
+                                  fontWeight: FontWeight.w600,
+                                  color: const Color(0xFF182420),
+                                ),
+                              ),
+                            ),
                     ),
                   ),
-
-                  const SizedBox(height: 24), // Jarak vertikal
-
-                  // Tautan ke Halaman Daftar
+                  const SizedBox(height: 24),
                   Center(
                     child: Row(
-                      mainAxisAlignment:
-                          MainAxisAlignment.center, // Pusatkan teks dalam baris
+                      mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Text(
                           "Belum punya akun? ",
                           style: GoogleFonts.poppins(
-                            // Font Poppins
                             fontSize: 14,
-                            color: const Color(0xFF182420), // Warna teks
+                            color: const Color(0xFF182420),
                             fontWeight: FontWeight.w500,
                           ),
                         ),
                         GestureDetector(
-                          // Widget agar teks bisa di-tap
                           onTap: () {
-                            // Navigasi ke RegisterScreen saat di-tap
                             Navigator.push(
                               context,
                               MaterialPageRoute(
@@ -124,11 +122,9 @@ class _LoginScreenState extends State<LoginScreen> {
                           child: Text(
                             "Daftar disini",
                             style: GoogleFonts.poppins(
-                              // Font Poppins
                               fontSize: 14,
-                              color: const Color(
-                                  0xFFDAF365), // Warna teks link hijau (sesuai tombol)
-                              fontWeight: FontWeight.w600, // Sedikit tebal
+                              color: const Color(0xFFDAF365),
+                              fontWeight: FontWeight.w600,
                             ),
                           ),
                         ),
