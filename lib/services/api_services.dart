@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 class ApiService {
-  static const String baseUrl = 'http://192.168.1.7:8000/api'; // Ganti jika bukan emulator
+  static const String baseUrl = 'http://10.10.183.4:8000/api'; // Ganti jika bukan emulator
 
   static Future<Map<String, dynamic>> registerUser({
     required String name,

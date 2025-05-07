@@ -6,10 +6,10 @@ class BookmarkButton extends StatefulWidget {
   final VoidCallback onPressed;
 
   const BookmarkButton({
-    Key? key,
+    super.key,
     required this.isBookmarked,
     required this.onPressed,
-  }) : super(key: key);
+  });
 
   @override
   State<BookmarkButton> createState() => _BookmarkButtonState();

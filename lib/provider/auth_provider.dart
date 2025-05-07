@@ -12,7 +12,7 @@ class AuthProvider with ChangeNotifier {
 
   Future<bool> login(String email, String password) async {
     final response = await http.post(
-      Uri.parse('http://192.168.1.7:8000/api/login'), // Ganti dengan IP server backend
+      Uri.parse('http://10.10.183.4:8000/api/login'), // Ganti dengan IP server backend
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({'email': email, 'password': password}),
     );

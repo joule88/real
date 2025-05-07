@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:real/widgets/textfield_login.dart';
-import 'package:real/controllers/login_controller.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:real/screens/login/register.dart';
 import 'package:provider/provider.dart';
@@ -43,8 +42,8 @@ class _LoginScreenState extends State<LoginScreen> {
                   const SizedBox(height: 24),
                   CustomTextField(
                     controller: emailController,
-                    label: "Username",
-                    hintText: "Username",
+                    label: "Email",
+                    hintText: "user@gmail.com",
                     icon: Icons.person_outline,
                   ),
                   const SizedBox(height: 16),
