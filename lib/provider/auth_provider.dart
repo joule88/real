@@ -12,7 +12,8 @@ class AuthProvider with ChangeNotifier {
 
   Future<bool> login(String email, String password) async {
     final response = await http.post(
-      Uri.parse('http://10.10.183.4:8000/api/login'), // Ganti dengan IP server backend
+      Uri.parse(
+          'http://127.0.0.1:8000/api/login'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({'email': email, 'password': password}),
     );
@@ -41,7 +42,7 @@ class AuthProvider with ChangeNotifier {
     notifyListeners();
   }
 
-    Future<bool> register({
+  Future<bool> register({
     required String name,
     required String email,
     required String password,
@@ -62,7 +63,4 @@ class AuthProvider with ChangeNotifier {
 
     return false;
   }
-
 }
-
-

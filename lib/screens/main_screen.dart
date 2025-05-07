@@ -4,7 +4,6 @@ import 'package:real/screens/search/search_screen.dart';
 import 'package:real/screens/bookmark/bookmark_screen.dart';
 import 'package:real/screens/profile/profile_screen.dart';
 import 'package:real/widgets/navbar.dart';
-import 'package:real/screens/my_drafts/my_drafts_screen.dart'; // Impor sudah benar
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});

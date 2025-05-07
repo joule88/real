@@ -2,7 +2,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:real/models/property.dart';
-import 'package:real/widgets/property_list_item.dart'; // Atau widget card draft
 import 'package:real/screens/my_drafts/add_property_form_screen.dart'; // Halaman form
 
 class MyDraftsScreen extends StatefulWidget {
