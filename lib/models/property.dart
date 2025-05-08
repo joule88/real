@@ -1,46 +1,50 @@
+// lib/models/property.dart
 import 'package:flutter/foundation.dart';
 
-// Enum status properti
+// Enum status properti (pastikan sudah ada)
 enum PropertyStatus {
-  draft, // Baru dibuat atau sedang diedit oleh pengguna
-  pendingVerification, // Diajukan oleh pengguna, menunggu review admin
-  approved, // Diverifikasi admin, tayang di publik
-  rejected, // Ditolak oleh admin
-  sold,
-  archived // Diarsipkan oleh pengguna (opsional)
+  draft,
+  pendingVerification,
+  approved,
+  rejected,
+  sold, // Opsional
+  archived // Opsional
 }
 
 class Property extends ChangeNotifier {
   final String id;
-  final String title;
-  final String description;
-  final String uploader; // User ID atau nama pengunggah
-  // Tambahkan List<String> untuk imageUrls jika ingin multiple images
-  // Untuk saat ini kita masih pakai satu imageUrl utama
-  final String imageUrl; // Atau List<String> imageUrls jika multiple
-  final List<String> additionalImageUrls; // Untuk foto-foto tambahan
-  final double price;
-  final String address;
-  final String city;
-  final String stateZip; // Bisa juga nama provinsi atau kode pos saja
-  final int bedrooms;
-  final int bathrooms;
-  final double areaSqft;
-  final String propertyType; // Cth: Rumah, Apartemen, Villa
-  final String furnishings; // Cth: Full Furnished, Semi, Unfurnished
-  PropertyStatus status; // Status properti saat ini
+  String title; // Bisa diubah jika properti diedit
+  String description; // Bisa diubah
+  final String uploader;
+  String imageUrl; // Bisa diubah
+  List<String> additionalImageUrls; // Bisa diubah
+  double price; // Bisa diubah
+  String address; // Bisa diubah
+  String city; // Bisa diubah
+  String stateZip; // Bisa diubah
+  int bedrooms; // Bisa diubah
+  int bathrooms; // Bisa diubah
+  double areaSqft; // Bisa diubah
+  String propertyType; // Bisa diubah
+  String furnishings; // Bisa diubah
+  PropertyStatus status;
   bool _isFavorite;
-  String? rejectionReason; // Alasan penolakan oleh admin (jika status rejected)
-  DateTime? submissionDate; // Tanggal pengajuan (opsional)
-  DateTime? approvalDate; // Tanggal approval (opsional)
+  String? rejectionReason;
+  DateTime? submissionDate;
+  DateTime? approvalDate;
+
+  // Field baru untuk statistik
+  int bookmarkCount;
+  int viewsCount;
+  int inquiriesCount;
 
   Property({
     required this.id,
     required this.title,
     required this.description,
     required this.uploader,
-    required this.imageUrl, // Gambar utama
-    this.additionalImageUrls = const [], // Defaultnya list kosong
+    required this.imageUrl,
+    this.additionalImageUrls = const [],
     required this.price,
     required this.address,
     required this.city,
@@ -50,11 +54,14 @@ class Property extends ChangeNotifier {
     required this.areaSqft,
     required this.propertyType,
     required this.furnishings,
-    this.status = PropertyStatus.draft, // Default status adalah draft
+    this.status = PropertyStatus.draft,
     bool isFavorite = false,
     this.rejectionReason,
     this.submissionDate,
     this.approvalDate,
+    this.bookmarkCount = 0, // Inisialisasi nilai default
+    this.viewsCount = 0,    // Inisialisasi nilai default
+    this.inquiriesCount = 0, // Inisialisasi nilai default
   }) : _isFavorite = isFavorite;
 
   bool get isFavorite => _isFavorite;
@@ -64,20 +71,52 @@ class Property extends ChangeNotifier {
     notifyListeners();
   }
 
-  // Helper untuk mengubah status (nantinya bisa dipanggil setelah interaksi API)
   void updateStatus(PropertyStatus newStatus, {String? reason}) {
     status = newStatus;
     if (newStatus == PropertyStatus.rejected) {
       rejectionReason = reason;
     }
     if (newStatus == PropertyStatus.pendingVerification) {
-      submissionDate = DateTime.now();
+      submissionDate = DateTime.now(); // Set tanggal saat diajukan
     }
     if (newStatus == PropertyStatus.approved) {
-      approvalDate = DateTime.now();
+      approvalDate = DateTime.now(); // Set tanggal saat disetujui
     }
     notifyListeners();
   }
 
-  // Tambahkan factory constructor atau method lain jika perlu untuk parsing dari/ke JSON (MongoDB)
+  // Jika Anda ingin data properti bisa diupdate dari form edit dan tercermin
+  // di seluruh aplikasi (jika menggunakan ChangeNotifier untuk list global),
+  // Anda bisa menambahkan method seperti ini:
+  void updateDetails({
+    required String title,
+    required String description,
+    required String imageUrl,
+    required List<String> additionalImageUrls,
+    required double price,
+    required String address,
+    required String city,
+    required String stateZip,
+    required int bedrooms,
+    required int bathrooms,
+    required double areaSqft,
+    required String propertyType,
+    required String furnishings,
+    // jangan update status dari sini, gunakan updateStatus()
+  }) {
+    this.title = title;
+    this.description = description;
+    this.imageUrl = imageUrl;
+    this.additionalImageUrls = additionalImageUrls;
+    this.price = price;
+    this.address = address;
+    this.city = city;
+    this.stateZip = stateZip;
+    this.bedrooms = bedrooms;
+    this.bathrooms = bathrooms;
+    this.areaSqft = areaSqft;
+    this.propertyType = propertyType;
+    this.furnishings = furnishings;
+    notifyListeners();
+  }
 }

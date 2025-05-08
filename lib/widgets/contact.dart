@@ -17,7 +17,7 @@ class ContactAgentWidget extends StatelessWidget {
       child: Row(
         children: [
           const CircleAvatar(
-            backgroundImage: AssetImage('assets/girl.png'), // Ubah jika perlu
+            backgroundImage: AssetImage('girl.jpg'), // Ubah jika perlu
             radius: 20,
           ),
           const SizedBox(width: 12),
