@@ -204,7 +204,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         final property = _myApprovedProperties[index];
                         return Padding(
                           padding: const EdgeInsets.only(bottom: 15.0),
-                          child: PropertyCard(
+                          child: PropertyCardProfile(
                             property: property,
                             isHorizontalVariant: false,
                             showEditIcon: false, // Tetap false di Profile list

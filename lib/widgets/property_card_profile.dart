@@ -10,14 +10,14 @@ import 'package:eva_icons_flutter/eva_icons_flutter.dart';
 // Import halaman edit jika ikon edit ingin langsung navigasi
 // import 'package:real/screens/my_drafts/add_property_form_screen.dart';
 
-class PropertyCard extends StatelessWidget {
+class PropertyCardProfile extends StatelessWidget {
   final Property property;
   final bool isHorizontalVariant;
   final bool showEditIcon;
   // final VoidCallback? onEditPressed; // Bisa dihapus jika tap ikon edit juga pakai onTap umum
   final VoidCallback? onTap; // <<-- TAMBAHKAN Parameter callback onTap
 
-  const PropertyCard({
+  const PropertyCardProfile({
     super.key,
     required this.property,
     this.isHorizontalVariant = true,
