@@ -7,26 +7,26 @@ enum PropertyStatus {
   pendingVerification,
   approved,
   rejected,
-  sold, // Opsional
-  archived // Opsional
+  sold,
+  archived
 }
 
 class Property extends ChangeNotifier {
   final String id;
-  String title; // Bisa diubah jika properti diedit
-  String description; // Bisa diubah
+  String title;
+  String description;
   final String uploader;
-  String imageUrl; // Bisa diubah
-  List<String> additionalImageUrls; // Bisa diubah
-  double price; // Bisa diubah
-  String address; // Bisa diubah
-  String city; // Bisa diubah
-  String stateZip; // Bisa diubah
-  int bedrooms; // Bisa diubah
-  int bathrooms; // Bisa diubah
-  double areaSqft; // Bisa diubah
-  String propertyType; // Bisa diubah
-  String furnishings; // Bisa diubah
+  String imageUrl;
+  List<String> additionalImageUrls;
+  double price;
+  String address;
+  String city;
+  String stateZip;
+  int bedrooms;
+  int bathrooms;
+  double areaSqft;
+  String propertyType;
+  String furnishings;
   PropertyStatus status;
   bool _isFavorite;
   String? rejectionReason;
@@ -59,9 +59,9 @@ class Property extends ChangeNotifier {
     this.rejectionReason,
     this.submissionDate,
     this.approvalDate,
-    this.bookmarkCount = 0, // Inisialisasi nilai default
-    this.viewsCount = 0,    // Inisialisasi nilai default
-    this.inquiriesCount = 0, // Inisialisasi nilai default
+    this.bookmarkCount = 0,
+    this.viewsCount = 0,
+    this.inquiriesCount = 0,
   }) : _isFavorite = isFavorite;
 
   bool get isFavorite => _isFavorite;

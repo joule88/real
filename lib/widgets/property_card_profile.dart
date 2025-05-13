@@ -2,7 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
-import 'package:provider/provider.dart'; // Tetap perlukan ini jika BookmarkButton pakai Provider
+// Tetap perlukan ini jika BookmarkButton pakai Provider
 import 'package:real/models/property.dart';
 // import 'package:real/screens/detail/detailpost.dart'; // Hapus import ini
 import 'package:real/widgets/bookmark_button.dart';

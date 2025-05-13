@@ -15,11 +15,11 @@ class User {
 
   factory User.fromJson(Map<String, dynamic> json) {
     return User(
-      id: json['_id'] ?? '', // Fallback ke string kosong jika null
-      name: json['name'] ?? '', // Fallback ke string kosong jika null
-      email: json['email'] ?? '', // Fallback ke string kosong jika null
-      phone: json['phone'] ?? '', // Fallback ke string kosong jika null
-      profileImage: json['profile_image'] ?? '', // Fallback ke string kosong jika null
+      id: json['_id'] ?? '',
+      name: json['name'] ?? '',
+      email: json['email'] ?? '',
+      phone: json['phone'] ?? '',
+      profileImage: json['profile_image'] ?? '',
     );
   }
 }

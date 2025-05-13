@@ -666,8 +666,9 @@ class _AddPropertyFormScreenState extends State<AddPropertyFormScreen> {
                   controller: _hargaManualController,
                   keyboardType: TextInputType.number, validator: (v) {
                 if (v == null || v.isEmpty) return 'Harga wajib diisi';
-                if (double.tryParse(v) == null || double.parse(v) <= 0)
+                if (double.tryParse(v) == null || double.parse(v) <= 0) {
                   return 'Masukkan harga valid';
+                }
                 return null;
               }, enabled: canEditFields // Harga bisa diedit jika status draft
                   ),

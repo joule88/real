@@ -14,7 +14,7 @@ class MyDraftsScreen extends StatefulWidget {
 class _MyDraftsScreenState extends State<MyDraftsScreen> {
   // Daftar properti yang berstatus draft atau pendingVerification
   // Nantinya ini akan difilter dari semua properti pengguna berdasarkan status
-  List<Property> _myDraftProperties = [
+  final List<Property> _myDraftProperties = [
     Property(
         id: 'draftProp1',
         title: 'Rumah Impian (Draft)',
