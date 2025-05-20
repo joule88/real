@@ -58,23 +58,25 @@ class _LoginScreenState extends State<LoginScreen> {
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
-                      onPressed: isLoading
-                          ? null
-                          : () async {
-                              setState(() => isLoading = true);
-                              final success = await authProvider.login(
-                                emailController.text,
-                                passwordController.text,
-                              );
-                              setState(() => isLoading = false);
-                              if (success) {
-                                Navigator.pushReplacementNamed(context, '/home');
-                              } else {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text('Login gagal')),
-                                );
-                              }
-                            },
+                    onPressed: () async {
+                      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+                      bool success = await authProvider.login(
+                        emailController.text,
+                        passwordController.text,
+                      );
+
+                      if (success) {
+                        final user = authProvider.user;
+                        if (user != null) {
+                          Provider.of<AuthProvider>(context, listen: false).setUser(user);
+                        }
+                        Navigator.pushReplacementNamed(context, '/home'); // ini penting
+                      } else {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text("Login gagal, periksa email/password")),
+                        );
+                      }
+                    },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFFDAF365),
                         shape: RoundedRectangleBorder(

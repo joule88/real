@@ -21,29 +21,8 @@ Future<void> main() async {
   runApp(
     MultiProvider(
       providers: [
-        // Pastikan semua provider Anda terdaftar di sini
-        ChangeNotifierProvider(
-          create: (_) => Property(
-            // Isi data default Property jika masih diperlukan
-            id: 'defaultProp1',
-            imageUrl: 'https://via.placeholder.com/150',
-            price: 0,
-            address: 'Default Address',
-            city: 'Default City',
-            stateZip: 'Default State',
-            bedrooms: 0,
-            bathrooms: 0,
-            areaSqft: 0,
-            title: 'Default Property',
-            description: 'Default Description',
-            uploader: 'system',
-            propertyType: "Default Type",
-            furnishings: "Default Furnishings",
-          ),
-        ),
         ChangeNotifierProvider(create: (_) => AuthProvider()),
-        // Tambahkan provider lain jika ada (misal PropertyProvider untuk list)
-        // ChangeNotifierProvider(create: (_) => PropertyProvider()),
+        // Provider lainnya
       ],
       child: const MyApp(),
     ),

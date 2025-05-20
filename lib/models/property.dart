@@ -64,6 +64,63 @@ class Property extends ChangeNotifier {
     this.inquiriesCount = 0,
   }) : _isFavorite = isFavorite;
 
+  factory Property.fromJson(Map<String, dynamic> json) {
+    return Property(
+      id: json['id'] ?? '',
+      title: json['title'] ?? '',
+      description: json['description'] ?? '',
+      uploader: json['uploader'] ?? '',
+      imageUrl: json['imageUrl'] ?? '',
+      additionalImageUrls: List<String>.from(json['additionalImageUrls'] ?? []),
+      price: (json['price'] is int) ? (json['price'] as int).toDouble() : (json['price'] ?? 0.0),
+      address: json['address'] ?? '',
+      city: json['city'] ?? '',
+      stateZip: json['stateZip'] ?? '',
+      bedrooms: json['bedrooms'] ?? 0,
+      bathrooms: json['bathrooms'] ?? 0,
+      areaSqft: (json['areaSqft'] is int) ? (json['areaSqft'] as int).toDouble() : (json['areaSqft'] ?? 0.0),
+      propertyType: json['propertyType'] ?? '',
+      furnishings: json['furnishings'] ?? '',
+      status: PropertyStatus.values.firstWhere(
+        (e) => e.toString() == 'PropertyStatus.${json['status']}',
+        orElse: () => PropertyStatus.draft,
+      ),
+      submissionDate: json['submissionDate'] != null ? DateTime.parse(json['submissionDate']) : null,
+      approvalDate: json['approvalDate'] != null ? DateTime.parse(json['approvalDate']) : null,
+      rejectionReason: json['rejectionReason'],
+      bookmarkCount: json['bookmarkCount'] ?? 0,
+      viewsCount: json['viewsCount'] ?? 0,
+      inquiriesCount: json['inquiriesCount'] ?? 0,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'title': title,
+      'description': description,
+      'uploader': uploader,
+      'imageUrl': imageUrl,
+      'additionalImageUrls': additionalImageUrls,
+      'price': price,
+      'address': address,
+      'city': city,
+      'stateZip': stateZip,
+      'bedrooms': bedrooms,
+      'bathrooms': bathrooms,
+      'areaSqft': areaSqft,
+      'propertyType': propertyType,
+      'furnishings': furnishings,
+      'status': status.toString().split('.').last,
+      'rejectionReason': rejectionReason,
+      'submissionDate': submissionDate?.toIso8601String(),
+      'approvalDate': approvalDate?.toIso8601String(),
+      'bookmarkCount': bookmarkCount,
+      'viewsCount': viewsCount,
+      'inquiriesCount': inquiriesCount,
+    };
+  }
+
   bool get isFavorite => _isFavorite;
 
   void toggleFavorite() {

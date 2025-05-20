@@ -4,6 +4,7 @@ class User {
   final String email;
   final String phone;
   final String profileImage;
+  final String? token;
 
   User({
     required this.id,
@@ -11,6 +12,7 @@ class User {
     required this.email,
     required this.phone,
     required this.profileImage,
+    this.token,
   });
 
   factory User.fromJson(Map<String, dynamic> json) {
@@ -20,6 +22,7 @@ class User {
       email: json['email'] ?? '',
       phone: json['phone'] ?? '',
       profileImage: json['profile_image'] ?? '',
+      token: json['token'],
     );
   }
 }

@@ -1,12 +1,21 @@
-// lib/screens/post_ad/add_property_form_screen.dart
+import 'dart:convert'; // Untuk jsonEncode di _processPropertySubmission
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:real/models/property.dart'; // Import model Property
+import 'package:real/models/property.dart';
+import 'package:real/widgets/property_image_picker.dart'; // Impor widget baru
+import 'package:real/services/property_service.dart'; // Impor service baru
+import 'package:provider/provider.dart';
+import 'package:real/provider/auth_provider.dart';
+import 'package:http/http.dart' as http;
+import 'package:real/widgets/property_form_fields.dart';
+import 'package:real/widgets/property_action_buttons.dart';
+import 'package:real/widgets/property_price_prediction_modal.dart';
+import 'package:real/services/api_constants.dart';
 
 class AddPropertyFormScreen extends StatefulWidget {
-  final Property? propertyToEdit; // Properti yang akan diedit (jika ada)
+  final Property? propertyToEdit;
 
   const AddPropertyFormScreen({super.key, this.propertyToEdit});
 
@@ -16,6 +25,7 @@ class AddPropertyFormScreen extends StatefulWidget {
 
 class _AddPropertyFormScreenState extends State<AddPropertyFormScreen> {
   final _formKey = GlobalKey<FormState>();
+  final PropertyService _propertyService = PropertyService(); // Instance service
 
   late TextEditingController _namaPropertiController;
   late TextEditingController _alamatController;
@@ -24,47 +34,41 @@ class _AddPropertyFormScreenState extends State<AddPropertyFormScreen> {
   late TextEditingController _luasPropertiController;
   late TextEditingController _deskripsiController;
   late TextEditingController _hargaManualController;
-  late TextEditingController _tipePropertiController; // Tambah controller
-  late TextEditingController _perabotanController; // Tambah controller
+  late TextEditingController _tipePropertiController;
+  late TextEditingController _perabotanController;
 
-  final List<XFile> _selectedImages = []; // Untuk gambar baru yang diupload
-  final List<String> _existingImageUrls =
-      []; // Untuk URL gambar lama (mode edit)
-  final ImagePicker _picker = ImagePicker();
+  List<XFile> _selectedImages = [];
+  List<String> _existingImageUrls = []; // Hanya URL yang sudah ada di server
 
   bool _isEditMode = false;
   PropertyStatus _currentStatus = PropertyStatus.draft;
+  bool _isLoading = false; // Untuk indikator loading saat submit
 
   @override
   void initState() {
     super.initState();
     _isEditMode = widget.propertyToEdit != null;
 
-    _namaPropertiController =
-        TextEditingController(text: widget.propertyToEdit?.title ?? '');
-    _alamatController =
-        TextEditingController(text: widget.propertyToEdit?.address ?? '');
-    _kamarMandiController = TextEditingController(
-        text: widget.propertyToEdit?.bathrooms.toString() ?? '');
-    _kamarTidurController = TextEditingController(
-        text: widget.propertyToEdit?.bedrooms.toString() ?? '');
-    _luasPropertiController = TextEditingController(
-        text: widget.propertyToEdit?.areaSqft.toString() ?? '');
-    _deskripsiController =
-        TextEditingController(text: widget.propertyToEdit?.description ?? '');
-    _hargaManualController = TextEditingController(
-        text: widget.propertyToEdit?.price.toString() ?? '');
-    _tipePropertiController =
-        TextEditingController(text: widget.propertyToEdit?.propertyType ?? '');
-    _perabotanController =
-        TextEditingController(text: widget.propertyToEdit?.furnishings ?? '');
+    _namaPropertiController = TextEditingController(text: widget.propertyToEdit?.title ?? '');
+    _alamatController = TextEditingController(text: widget.propertyToEdit?.address ?? '');
+    _kamarMandiController = TextEditingController(text: widget.propertyToEdit?.bathrooms.toString() ?? '');
+    _kamarTidurController = TextEditingController(text: widget.propertyToEdit?.bedrooms.toString() ?? '');
+    _luasPropertiController = TextEditingController(text: widget.propertyToEdit?.areaSqft.toString() ?? '');
+    _deskripsiController = TextEditingController(text: widget.propertyToEdit?.description ?? '');
+    _hargaManualController = TextEditingController(text: widget.propertyToEdit?.price.toString() ?? '0');
+    _tipePropertiController = TextEditingController(text: widget.propertyToEdit?.propertyType ?? '');
+    _perabotanController = TextEditingController(text: widget.propertyToEdit?.furnishings ?? '');
     _currentStatus = widget.propertyToEdit?.status ?? PropertyStatus.draft;
 
-    if (_isEditMode && widget.propertyToEdit!.imageUrl.isNotEmpty) {
-      _existingImageUrls.add(widget.propertyToEdit!.imageUrl); // Gambar utama
-    }
     if (_isEditMode) {
-      _existingImageUrls.addAll(widget.propertyToEdit!.additionalImageUrls);
+      if (widget.propertyToEdit!.imageUrl.isNotEmpty && widget.propertyToEdit!.imageUrl.startsWith('http')) {
+        _existingImageUrls.add(widget.propertyToEdit!.imageUrl);
+      }
+      _existingImageUrls.addAll(
+        widget.propertyToEdit!.additionalImageUrls.where((url) => url.startsWith('http'))
+      );
+      // Pastikan tidak ada duplikasi jika imageUrl juga ada di additionalImageUrls
+      _existingImageUrls = _existingImageUrls.toSet().toList();
     }
   }
 
@@ -82,401 +86,148 @@ class _AddPropertyFormScreenState extends State<AddPropertyFormScreen> {
     super.dispose();
   }
 
-  Future<void> _pickImages() async {
-    try {
-      final List<XFile> pickedFiles =
-          await _picker.pickMultiImage(imageQuality: 80);
-      if (pickedFiles.isNotEmpty) {
-        setState(() {
-          // Batasi jumlah total gambar (existing + new)
-          int totalImages = _existingImageUrls.length +
-              _selectedImages.length +
-              pickedFiles.length;
-          if (totalImages <= 5) {
-            _selectedImages.addAll(pickedFiles);
-          } else {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                  content: Text(
-                      'Maksimal 5 gambar (termasuk yang sudah ada). Sisa slot: ${5 - (_existingImageUrls.length + _selectedImages.length)}')),
-            );
-          }
-        });
-      }
-    } catch (e) {
-      print("Error picking images: $e");
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('Gagal memilih gambar: $e')));
+  Future<void> _processPropertySubmission({required PropertyStatus targetStatus}) async {
+    if (!_formKey.currentState!.validate()) {
+       ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Mohon lengkapi semua data yang wajib diisi dengan benar.')),
+      );
+      return;
     }
-  }
+    // Validasi gambar hanya jika membuat baru atau jika edit tapi tidak ada gambar sama sekali
+    if ((!_isEditMode && _selectedImages.isEmpty) || (_isEditMode && _existingImageUrls.isEmpty && _selectedImages.isEmpty)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Mohon upload minimal 1 foto properti.')),
+      );
+      return;
+    }
 
-  void _removeNewImage(int index) {
-    setState(() {
-      _selectedImages.removeAt(index);
-    });
-  }
+    setState(() => _isLoading = true);
 
-  void _removeExistingImage(int index) {
-    setState(() {
-      _existingImageUrls.removeAt(index);
-      // TODO: Nantinya, Anda juga perlu melacak gambar mana yang dihapus untuk dikirim ke backend
-      // saat update properti, agar backend bisa menghapus referensi URL atau file fisiknya.
-    });
-  }
+    // Tentukan ID properti
+    // Jika _isEditMode dan widget.propertyToEdit.id valid, gunakan itu.
+    // Jika tidak, backend akan membuat ID baru (kirim null atau string kosong untuk id).
+    String propertyIdForSubmission = (_isEditMode && widget.propertyToEdit != null && widget.propertyToEdit!.id.isNotEmpty)
+        ? widget.propertyToEdit!.id
+        : ''; // Backend akan generate ID jika kosong
 
-  Widget _buildTextField(String label,
-      {TextEditingController? controller,
-      int maxLines = 1,
-      TextInputType? keyboardType,
-      String? Function(String?)? validator,
-      bool enabled = true}) {
-    // Tambah parameter enabled
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 15.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            label,
-            style: GoogleFonts.poppins(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: enabled
-                    ? Colors.black87
-                    : Colors.grey[500]), // Warna label jika disabled
-          ),
-          const SizedBox(height: 8),
-          TextFormField(
-            controller: controller,
-            keyboardType: keyboardType,
-            maxLines: maxLines,
-            enabled: enabled, // Set enabled/disabled
-            decoration: InputDecoration(
-                filled: true,
-                fillColor: enabled
-                    ? Colors.grey[100]
-                    : Colors.grey[200], // Warna field jika disabled
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
-                  borderSide: BorderSide.none,
-                ),
-                contentPadding:
-                    const EdgeInsets.symmetric(horizontal: 15, vertical: 12),
-                hintText: 'Masukkan $label',
-                hintStyle: GoogleFonts.poppins(color: Colors.grey[500])),
-            validator: validator,
-          ),
-        ],
-      ),
-    );
-  }
+    // Siapkan data Property
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+final userId = authProvider.user?.id;
 
-  void _showPredictionModal(BuildContext context) {
-    // ... (Isi modal prediksi harga sama seperti sebelumnya, pastikan controller harga manual adalah _hargaManualController)
-    // ... Anda bisa memanggil _buildTextField dari sini juga untuk field di modal ...
-    final kamarMandiPrediksiCtrl =
-        TextEditingController(text: _kamarMandiController.text);
-    final kamarTidurPrediksiCtrl =
-        TextEditingController(text: _kamarTidurController.text);
-    final luasPropertiPrediksiCtrl =
-        TextEditingController(text: _luasPropertiController.text);
-    final perabotanPrediksiCtrl = TextEditingController(
-        text: _perabotanController.text); // Ambil dari form utama
+if (userId == null) {
+  // User belum login
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(content: Text('Anda harus login terlebih dahulu')),
+  );
+  return;
+}
 
-    // Controller untuk harga hasil prediksi di dalam modal
-    final hargaPrediksiHasilCtrl = TextEditingController();
 
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      backgroundColor: Colors.white,
-      builder: (BuildContext modalContext) {
-        // Menggunakan StatefulBuilder agar bisa update UI di dalam modal
-        return StatefulBuilder(
-            builder: (BuildContext context, StateSetter setModalState) {
-          return SingleChildScrollView(
-            child: Padding(
-              padding: EdgeInsets.only(
-                top: 20,
-                left: 20,
-                right: 20,
-                bottom: MediaQuery.of(modalContext).viewInsets.bottom + 20,
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Center(
-                      child: Container(
-                          width: 40,
-                          height: 4,
-                          decoration: BoxDecoration(
-                              color: Colors.grey[300],
-                              borderRadius: BorderRadius.circular(10)))),
-                  const SizedBox(height: 20),
-                  Text("Prediksi Harga",
-                      style: GoogleFonts.poppins(
-                          fontSize: 18, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 8),
-                  Text(
-                      "Memperkirakan harga properti dengan cepat berdasarkan data yang Anda masukkan.",
-                      style: GoogleFonts.poppins(
-                          color: Colors.grey[600], fontSize: 13)),
-                  const SizedBox(height: 20),
-                  // Field untuk input prediksi (bisa pakai _buildTextField yang sudah ada)
-                  _buildTextField("Kamar Mandi (Prediksi)",
-                      controller: kamarMandiPrediksiCtrl,
-                      keyboardType: TextInputType.number),
-                  _buildTextField("Kamar Tidur (Prediksi)",
-                      controller: kamarTidurPrediksiCtrl,
-                      keyboardType: TextInputType.number),
-                  _buildTextField("Luas Properti (sqft) (Prediksi)",
-                      controller: luasPropertiPrediksiCtrl,
-                      keyboardType: TextInputType.number),
-                  _buildTextField("Kondisi Perabotan (Prediksi)",
-                      controller:
-                          perabotanPrediksiCtrl), // Sesuaikan jika dropdown
-                  const SizedBox(height: 20),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: () {
-                        // TODO: Panggil API Prediksi dengan data dari controller prediksi
-                        print(
-                            "Tombol Prediksi di Modal ditekan. Data: ${kamarMandiPrediksiCtrl.text}, ${kamarTidurPrediksiCtrl.text}, ${luasPropertiPrediksiCtrl.text}, ${perabotanPrediksiCtrl.text}");
-                        // Simulasi hasil prediksi
-                        setModalState(() {
-                          hargaPrediksiHasilCtrl.text =
-                              "600000"; // Contoh hasil dari API (sebagai string)
-                        });
-                      },
-                      style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFFDAF365),
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10))),
-                      child: Text("Prediksi Harga",
-                          style: GoogleFonts.poppins(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                              color: Colors.black87)),
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  if (hargaPrediksiHasilCtrl.text.isNotEmpty)
-                    Center(
-                      child: Column(
-                        children: [
-                          Text("Harga Prediksi Properti",
-                              style: GoogleFonts.poppins(
-                                  color: Colors.grey[700], fontSize: 12)),
-                          const SizedBox(height: 5),
-                          Text(
-                            "AED ${hargaPrediksiHasilCtrl.text}", // Tampilkan hasil prediksi
-                            style: GoogleFonts.poppins(
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.black),
-                          ),
-                          const SizedBox(height: 5),
-                          Text(
-                              "Prediksi dapat membuat kesalahan. Periksa harga lebih lanjut.",
-                              style: GoogleFonts.poppins(
-                                  color: Colors.grey[600], fontSize: 11),
-                              textAlign: TextAlign.center),
-                          const SizedBox(height: 10),
-                          TextButton(
-                            onPressed: () {
-                              // Set _hargaManualController dengan nilai prediksi
-                              _hargaManualController.text =
-                                  hargaPrediksiHasilCtrl.text;
-                              Navigator.pop(modalContext); // Tutup modal
-                              // Mungkin panggil setState di form utama jika perlu update UI lain
-                              setState(() {});
-                            },
-                            child: Text("Gunakan Harga Prediksi Ini",
-                                style: GoogleFonts.poppins(
-                                    color: Theme.of(context).primaryColor)),
-                          )
-                        ],
-                      ),
-                    ),
-                  const SizedBox(height: 20),
-                  _buildTextField("Atau Isi Harga Manual",
-                      controller: _hargaManualController,
-                      keyboardType: TextInputType.number),
-                  const SizedBox(height: 10),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: () {
-                        // Jika harga manual diisi, _hargaManualController.text akan digunakan di form utama.
-                        Navigator.pop(modalContext); // Tutup modal
-                        // Panggil setState di form utama untuk update UI jika harga manual diubah di sini
-                        setState(() {});
-                      },
-                      style: ElevatedButton.styleFrom(
-                          backgroundColor:
-                              const Color(0xFFDAF365).withOpacity(0.7),
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10))),
-                      child: Text("Konfirmasi Harga Manual",
-                          style: GoogleFonts.poppins(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                              color: Colors.black87)),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          );
-        });
+    final propertyData = {
+      'title': _namaPropertiController.text,
+      'description': _deskripsiController.text,
+      'price': double.parse(_hargaManualController.text),
+      'bedrooms': int.parse(_kamarTidurController.text),
+      'bathrooms': int.parse(_kamarMandiController.text),
+      'sizeMin': double.parse(_luasPropertiController.text),
+      'furnishing': _perabotanController.text,
+      'address': _alamatController.text,
+      'user_id': userId, // kirim ke backend
+    };
+
+    // Panggil service untuk mengirim data
+    final token = Provider.of<AuthProvider>(context, listen: false).token;
+    if (token == null || token.isEmpty) {
+      setState(() => _isLoading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Anda harus login terlebih dahulu untuk mengirim properti.')),
+      );
+      return;
+    }
+    final response = await http.post(
+      Uri.parse(ApiConstants.baseUrl + ApiConstants.propertiesEndpoint),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
       },
+      body: jsonEncode(propertyData),
     );
-  }
 
-  void _saveDraft() {
-    if (_formKey.currentState!.validate()) {
-      if (_selectedImages.isEmpty && _existingImageUrls.isEmpty) {
-        // Cek apakah ada gambar
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content: Text('Mohon upload minimal 1 foto properti.')),
-        );
-        return;
-      }
-      // TODO: Logika untuk menyimpan draft (ke local storage atau API)
-      // Kumpulkan data:
-      String propertyId = widget.propertyToEdit?.id ??
-          DateTime.now().toIso8601String(); // ID baru atau ID lama
-      String mainImageUrl = _existingImageUrls.isNotEmpty
-          ? _existingImageUrls.first
-          : (_selectedImages.isNotEmpty ? _selectedImages.first.path : '');
-      List<String> additionalImages = [];
-      if (_existingImageUrls.length > 1) {
-        additionalImages.addAll(_existingImageUrls.sublist(1));
-      }
-      additionalImages
-          .addAll(_selectedImages.map((xfile) => xfile.path).toList());
-
-      Property propertyData = Property(
-        id: propertyId,
-        title: _namaPropertiController.text,
-        description: _deskripsiController.text,
-        uploader: "CurrentUser", // Ganti dengan ID user asli
-        imageUrl:
-            mainImageUrl, // Untuk saat ini ambil yg pertama atau path lokal
-        additionalImageUrls: additionalImages, // Path lokal untuk gambar baru
-        price: double.tryParse(_hargaManualController.text) ?? 0,
-        address: _alamatController.text,
-        city: "Kota Contoh", // Ambil dari inputan atau pisahkan alamat
-        stateZip: "Provinsi Contoh",
-        bedrooms: int.tryParse(_kamarTidurController.text) ?? 0,
-        bathrooms: int.tryParse(_kamarMandiController.text) ?? 0,
-        areaSqft: double.tryParse(_luasPropertiController.text) ?? 0,
-        propertyType: _tipePropertiController.text,
-        furnishings: _perabotanController.text,
-        status: PropertyStatus.draft, // Selalu draft saat disimpan
-      );
-
-      print("Draft disimpan (simulasi): ${propertyData.title}");
+    if (response.statusCode == 401) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text('Draft berhasil disimpan (Simulasi aja).')),
+        const SnackBar(content: Text('Token tidak valid atau sudah expired. Silakan login ulang.')),
       );
-      Navigator.pop(context, true); // Kirim true untuk indikasi ada perubahan
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text(
-                'Mohon lengkapi semua data yang wajib diisi dengan benar.')),
-      );
+      // Bisa redirect ke halaman login jika perlu
+      return;
+    }
+
+    setState(() => _isLoading = false);
+
+    if (mounted) { // Pastikan widget masih ada di tree
+        if (response.statusCode == 200) {
+            String successMessage = targetStatus == PropertyStatus.draft
+                ? "Draft berhasil disimpan!"
+                : "Properti berhasil diajukan untuk verifikasi!";
+            if (_isEditMode && targetStatus != PropertyStatus.draft) {
+                 successMessage = "Properti berhasil diperbarui dan diajukan!";
+            } else if (_isEditMode) {
+                successMessage = "Draft berhasil diperbarui!";
+            }
+
+            ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(successMessage), backgroundColor: Colors.green),
+            );
+            // Kirim kembali hasil (Property yang diupdate/baru dari API jika ada)
+            // atau cukup true untuk menandakan sukses
+            Navigator.pop(context, Property.fromJson(jsonDecode(response.body)['property']));
+            final propertyId = jsonDecode(response.body)['property']['_id'];
+            await _uploadImagesToServer(propertyId, token);
+        } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error: ${response.body}'), backgroundColor: Colors.red),
+            );
+        }
     }
   }
 
-  void _submitForVerification() {
-    if (_formKey.currentState!.validate()) {
-      if (_selectedImages.isEmpty && _existingImageUrls.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content: Text('Mohon upload minimal 1 foto properti.')),
-        );
-        return;
-      }
-      // TODO: Logika untuk menyimpan data DAN mengubah status menjadi pendingVerification (ke API)
-      // Kumpulkan data seperti _saveDraft, tapi statusnya PropertyStatus.pendingVerification
-      String propertyId =
-          widget.propertyToEdit?.id ?? DateTime.now().toIso8601String();
-      String mainImageUrl = _existingImageUrls.isNotEmpty
-          ? _existingImageUrls.first
-          : (_selectedImages.isNotEmpty ? _selectedImages.first.path : '');
-      List<String> additionalImages = [];
-      if (_existingImageUrls.length > 1) {
-        additionalImages.addAll(_existingImageUrls.sublist(1));
-      }
-      additionalImages
-          .addAll(_selectedImages.map((xfile) => xfile.path).toList());
+  Future<void> _uploadImagesToServer(String propertyId, String token) async {
+    var uri = Uri.parse(ApiConstants.baseUrl + "/properties/$propertyId/images");
 
-      Property propertyData = Property(
-        id: propertyId,
-        title: _namaPropertiController.text,
-        // ... isi field lainnya seperti di _saveDraft ...
-        description: _deskripsiController.text,
-        uploader: "CurrentUser",
-        imageUrl: mainImageUrl,
-        additionalImageUrls: additionalImages,
-        price: double.tryParse(_hargaManualController.text) ?? 0,
-        address: _alamatController.text,
-        city: "Kota Contoh",
-        stateZip: "Provinsi Contoh",
-        bedrooms: int.tryParse(_kamarTidurController.text) ?? 0,
-        bathrooms: int.tryParse(_kamarMandiController.text) ?? 0,
-        areaSqft: double.tryParse(_luasPropertiController.text) ?? 0,
-        propertyType: _tipePropertiController.text,
-        furnishings: _perabotanController.text,
-        status: PropertyStatus.pendingVerification, // Status diubah
-        submissionDate: DateTime.now(),
-      );
+    var request = http.MultipartRequest('POST', uri);
+    request.headers['Authorization'] = 'Bearer $token';
 
-      print(
-          "Properti diajukan untuk verifikasi (simulasi): ${propertyData.title}");
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text('Properti diajukan untuk verifikasi (simulasi).')),
-      );
-      Navigator.pop(context, true); // Kirim true untuk indikasi ada perubahan
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text(
-                'Mohon lengkapi semua data yang wajib diisi dengan benar sebelum mengajukan.')),
-      );
+    for (XFile image in _selectedImages) {
+      var file = await http.MultipartFile.fromPath('images[]', image.path);
+      request.files.add(file);
+    }
+
+    var response = await request.send();
+
+    if (response.statusCode != 200) {
+      throw Exception('Gagal mengunggah gambar');
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    // Tentukan apakah field bisa diedit berdasarkan status properti
-    // Jika status pendingVerification, approved, atau rejected, field di-disable
     bool canEditFields = _currentStatus == PropertyStatus.draft;
 
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        // ... (AppBar sama seperti sebelumnya, judul bisa dinamis "Edit Draft" atau "Tambah Draft")
+        backgroundColor: Colors.white,
+        elevation: 1,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.black),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
         title: Text(
-          _isEditMode ? "Edit Draft Properti" : "Tambah Draft Properti",
+          _isEditMode ? "Edit Properti" : "Tambah Properti Baru",
           style: GoogleFonts.poppins(
-            color: Colors.black,
-            fontWeight: FontWeight.bold,
-            fontSize: 20,
+            color: Colors.black, fontWeight: FontWeight.bold, fontSize: 18,
           ),
         ),
+        centerTitle: true,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20.0),
@@ -485,217 +236,50 @@ class _AddPropertyFormScreenState extends State<AddPropertyFormScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // --- Bagian Upload Foto ---
-              Text(
-                "Foto Properti (Maksimal 5)", /* ... */
+              PropertyImagePicker(
+                initialSelectedImages: _selectedImages,
+                initialExistingImageUrls: _existingImageUrls,
+                canEdit: canEditFields,
+                onSelectedImagesChanged: (updatedSelectedImages) {
+                  setState(() {
+                    _selectedImages = updatedSelectedImages;
+                  });
+                },
+                onExistingImageUrlsChanged: (updatedExistingUrls) {
+                  setState(() {
+                    _existingImageUrls = updatedExistingUrls;
+                  });
+                },
               ),
-              const SizedBox(height: 8),
-              // Tampilkan gambar yang sudah ada (_existingImageUrls)
-              if (_existingImageUrls.isNotEmpty)
-                SizedBox(
-                  height: 160,
-                  child: ListView.builder(
-                    scrollDirection: Axis.horizontal,
-                    itemCount: _existingImageUrls.length,
-                    itemBuilder: (context, index) {
-                      return Padding(
-                        padding: const EdgeInsets.only(
-                            right: 8.0, top: 8, bottom: 8),
-                        child: Stack(
-                          children: [
-                            ClipRRect(
-                              borderRadius: BorderRadius.circular(10),
-                              child: Image.network(
-                                // Asumsi URL dari internet jika sudah ada
-                                _existingImageUrls[index],
-                                height: 150, width: 100, fit: BoxFit.cover,
-                                errorBuilder: (context, error, stackTrace) =>
-                                    Container(
-                                        height: 150,
-                                        width: 100,
-                                        color: Colors.grey[200],
-                                        child: Icon(Icons.error_outline,
-                                            color: Colors.red[300])),
-                              ),
-                            ),
-                            if (canEditFields) // Hanya tampilkan tombol hapus jika bisa edit
-                              Positioned(
-                                top: -5,
-                                right: -5,
-                                child: IconButton(
-                                  icon: const Icon(Icons.remove_circle,
-                                      color: Colors.redAccent, size: 24),
-                                  onPressed: () => _removeExistingImage(index),
-                                ),
-                              ),
-                          ],
-                        ),
-                      );
-                    },
-                  ),
-                ),
-              // Tampilkan area untuk menambah gambar baru atau list gambar baru yang dipilih
-              (_existingImageUrls.length + _selectedImages.length) < 5 &&
-                      canEditFields
-                  ? GestureDetector(
-                      onTap: _pickImages,
-                      child: Container(
-                        margin: EdgeInsets.only(
-                            top: _existingImageUrls.isNotEmpty ||
-                                    _selectedImages.isNotEmpty
-                                ? 8
-                                : 0),
-                        height: _selectedImages.isEmpty &&
-                                _existingImageUrls.isEmpty
-                            ? 150
-                            : 60, // Lebih kecil jika sudah ada gambar
-                        width: _selectedImages.isEmpty &&
-                                _existingImageUrls.isEmpty
-                            ? double.infinity
-                            : 100,
-                        decoration: BoxDecoration(
-                          color: Colors.grey[200],
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(
-                              color: Colors.grey[400]!,
-                              style: BorderStyle.solid),
-                        ),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.add_a_photo_outlined,
-                                size: _selectedImages.isEmpty &&
-                                        _existingImageUrls.isEmpty
-                                    ? 40
-                                    : 24,
-                                color: Colors.grey[600]),
-                            if (_selectedImages.isEmpty &&
-                                _existingImageUrls.isEmpty)
-                              Text("Ketuk untuk menambah foto",
-                                  style: GoogleFonts.poppins(
-                                      color: Colors.grey[600])),
-                          ],
-                        ),
-                      ),
-                    )
-                  : const SizedBox.shrink(),
-              if (_selectedImages.isNotEmpty &&
-                  canEditFields) // Tampilkan list gambar baru yang dipilih
-                SizedBox(
-                  height: 160,
-                  child: ListView.builder(
-                    scrollDirection: Axis.horizontal,
-                    itemCount: _selectedImages.length,
-                    itemBuilder: (context, index) {
-                      return Padding(
-                        padding: const EdgeInsets.only(
-                            right: 8.0, top: 8, bottom: 8),
-                        child: Stack(
-                          children: [
-                            ClipRRect(
-                              borderRadius: BorderRadius.circular(10),
-                              child: Image.file(
-                                  File(_selectedImages[index].path),
-                                  height: 150,
-                                  width: 100,
-                                  fit: BoxFit.cover),
-                            ),
-                            Positioned(
-                              top: -5,
-                              right: -5,
-                              child: IconButton(
-                                icon: const Icon(Icons.remove_circle,
-                                    color: Colors.redAccent, size: 24),
-                                onPressed: () => _removeNewImage(index),
-                              ),
-                            ),
-                          ],
-                        ),
-                      );
-                    },
-                  ),
-                ),
               const SizedBox(height: 20),
-
-              // --- Form Fields dengan kondisi enabled ---
-              _buildTextField("Nama Properti",
-                  controller: _namaPropertiController,
-                  validator: (v) => v!.isEmpty ? 'Wajib diisi' : null,
-                  enabled: canEditFields),
-              _buildTextField("Alamat Lengkap",
-                  controller: _alamatController,
-                  maxLines: 2,
-                  validator: (v) => v!.isEmpty ? 'Wajib diisi' : null,
-                  enabled: canEditFields),
-              Row(
-                children: [
-                  Expanded(
-                      child: _buildTextField("Kamar Tidur",
-                          controller: _kamarTidurController,
-                          keyboardType: TextInputType.number,
-                          validator: (v) => v!.isEmpty ? 'Wajib' : null,
-                          enabled: canEditFields)),
-                  const SizedBox(width: 15),
-                  Expanded(
-                      child: _buildTextField("Kamar Mandi",
-                          controller: _kamarMandiController,
-                          keyboardType: TextInputType.number,
-                          validator: (v) => v!.isEmpty ? 'Wajib' : null,
-                          enabled: canEditFields)),
-                ],
+              PropertyFormFields(
+                namaPropertiController: _namaPropertiController,
+                alamatController: _alamatController,
+                kamarTidurController: _kamarTidurController,
+                kamarMandiController: _kamarMandiController,
+                luasPropertiController: _luasPropertiController,
+                tipePropertiController: _tipePropertiController,
+                perabotanController: _perabotanController,
+                deskripsiController: _deskripsiController,
+                hargaManualController: _hargaManualController,
+                canEditFields: canEditFields,
               ),
-              _buildTextField("Luas Properti (sqft)",
-                  controller: _luasPropertiController,
-                  keyboardType: TextInputType.number,
-                  validator: (v) => v!.isEmpty ? 'Wajib' : null,
-                  enabled: canEditFields),
-              _buildTextField("Tipe Properti (cth: Rumah)",
-                  controller: _tipePropertiController,
-                  validator: (v) => v!.isEmpty ? 'Wajib' : null,
-                  enabled: canEditFields),
-              _buildTextField("Kondisi Perabotan (cth: Full Furnished)",
-                  controller: _perabotanController,
-                  validator: (v) => v!.isEmpty ? 'Wajib' : null,
-                  enabled: canEditFields),
-              _buildTextField("Deskripsi Tambahan",
-                  controller: _deskripsiController,
-                  maxLines: 4,
-                  enabled: canEditFields),
               const SizedBox(height: 10),
-              _buildTextField("Harga (AED)",
-                  controller: _hargaManualController,
-                  keyboardType: TextInputType.number, validator: (v) {
-                if (v == null || v.isEmpty) return 'Harga wajib diisi';
-                if (double.tryParse(v) == null || double.parse(v) <= 0) {
-                  return 'Masukkan harga valid';
-                }
-                return null;
-              }, enabled: canEditFields // Harga bisa diedit jika status draft
-                  ),
-              const SizedBox(height: 20),
-
-              // Tombol Prediksi Harga hanya muncul jika bisa edit
               if (canEditFields)
                 SizedBox(
                   width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: () => _showPredictionModal(context),
+                  child: ElevatedButton.icon(
+                    icon: Icon(Icons.online_prediction_outlined, color: Colors.black87),
+                    label: Text("Prediksi & Isi Harga", style: GoogleFonts.poppins(fontWeight: FontWeight.w600, color: Colors.black87, fontSize: 15)),
+                    onPressed: _isLoading ? null : () => showPredictionModal(context, _hargaManualController),
                     style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFFDAF365),
                         padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10))),
-                    child: Text("Prediksi Harga & Isi Harga Manual",
-                        style: GoogleFonts.poppins(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                            color: Colors.black87)),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
                   ),
                 ),
-              const SizedBox(height: 20),
-
-              // Tampilkan status jika bukan draft
-              if (_currentStatus != PropertyStatus.draft)
+              const SizedBox(height: 25),
+              if (_currentStatus != PropertyStatus.draft && !_isLoading) // Tampilkan status jika bukan draft dan tidak loading
                 Padding(
                   padding: const EdgeInsets.only(bottom: 20.0),
                   child: Center(
@@ -707,89 +291,27 @@ class _AddPropertyFormScreenState extends State<AddPropertyFormScreen> {
                                   ? "Status: Sudah Disetujui & Tayang"
                                   : _currentStatus == PropertyStatus.rejected
                                       ? "Status: Ditolak Admin (Alasan: ${widget.propertyToEdit?.rejectionReason ?? 'Tidak ada alasan'})"
-                                      : "Status Tidak Diketahui",
-                          style: GoogleFonts.poppins(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w500)),
+                                      : "Status Tidak Diketahui", // Seharusnya tidak terjadi
+                          style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.w500, fontSize: 12)),
                       backgroundColor:
                           _currentStatus == PropertyStatus.pendingVerification
-                              ? Colors.orangeAccent
+                              ? Colors.orangeAccent.shade700
                               : _currentStatus == PropertyStatus.approved
-                                  ? Colors.green
+                                  ? Colors.green.shade600
                                   : _currentStatus == PropertyStatus.rejected
-                                      ? Colors.redAccent
+                                      ? Colors.redAccent.shade400
                                       : Colors.grey,
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 8),
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     ),
                   ),
                 ),
-
-              // Tombol Aksi berdasarkan status
-              if (_currentStatus == PropertyStatus.draft) ...[
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: _saveDraft,
-                    style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.blueGrey[700],
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10))),
-                    child: Text("Simpan Draft",
-                        style: GoogleFonts.poppins(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                            color: Colors.white)),
-                  ),
-                ),
-                const SizedBox(height: 15),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: _submitForVerification,
-                    style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF1F2937),
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10))),
-                    child: Text("Ajukan untuk Verifikasi",
-                        style: GoogleFonts.poppins(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                            color: Colors.white)),
-                  ),
-                ),
-              ] else if (_currentStatus == PropertyStatus.rejected) ...[
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: () {
-                      // Ubah status kembali ke draft agar bisa diedit dan diajukan ulang
-                      setState(() {
-                        _currentStatus = PropertyStatus.draft;
-                        // widget.propertyToEdit?.updateStatus(PropertyStatus.draft); // Panggil method di model jika ingin langsung update state global (jika pakai provider)
-                      });
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                            content: Text(
-                                'Status diubah ke Draft. Anda bisa mengedit dan mengajukan ulang.')),
-                      );
-                    },
-                    style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.orange[800],
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10))),
-                    child: Text("Edit Ulang (Revisi)",
-                        style: GoogleFonts.poppins(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                            color: Colors.white)),
-                  ),
-                ),
-              ]
-              // Jika pending atau approved, mungkin tidak ada aksi utama di sini, atau tombol "Tarik Pengajuan", "Nonaktifkan Iklan", dll.
+              PropertyActionButtons(
+                isLoading: _isLoading,
+                currentStatus: _currentStatus,
+                onSubmit: _processPropertySubmission,
+                onEdit: () => setState(() => _currentStatus = PropertyStatus.draft),
+              ),
+              const SizedBox(height: 20),
             ],
           ),
         ),
