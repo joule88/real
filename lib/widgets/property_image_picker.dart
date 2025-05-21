@@ -13,14 +13,14 @@ class PropertyImagePicker extends StatefulWidget {
   final int maxImages;
 
   const PropertyImagePicker({
-    Key? key,
+    super.key,
     this.initialSelectedImages = const [],
     this.initialExistingImageUrls = const [],
     required this.canEdit,
     required this.onSelectedImagesChanged,
     required this.onExistingImageUrlsChanged,
     this.maxImages = 5,
-  }) : super(key: key);
+  });
 
   @override
   _PropertyImagePickerState createState() => _PropertyImagePickerState();
@@ -67,7 +67,7 @@ class _PropertyImagePickerState extends State<PropertyImagePicker> {
                  if (mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                        content: Text('Hanya ${sisaSlot} gambar pertama yang ditambahkan. Maksimal ${widget.maxImages} gambar.'),
+                        content: Text('Hanya $sisaSlot gambar pertama yang ditambahkan. Maksimal ${widget.maxImages} gambar.'),
                     ),
                     );
                  }
@@ -192,10 +192,10 @@ class _PropertyImagePickerState extends State<PropertyImagePicker> {
               children: [
                 ..._existingImageUrls.asMap().entries.map((entry) {
                   return _buildImageTile(entry.value, entry.key, true);
-                }).toList(),
+                }),
                 ..._selectedImages.asMap().entries.map((entry) {
                   return _buildImageTile(entry.value, entry.key, false);
-                }).toList(),
+                }),
                 if (widget.canEdit && canAddMoreImages)
                   GestureDetector(
                     onTap: _pickImages,

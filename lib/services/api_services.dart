@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 import 'api_constants.dart';
 
 class ApiService {
-  static const String baseUrl = ApiConstants.baseUrl;
+  static const String baseUrl = ApiConstants.laravelApiBaseUrl;
 
   static Future<Map<String, dynamic>> registerUser({
     required String name,
@@ -16,7 +16,7 @@ class ApiService {
       Uri.parse('$baseUrl/register'),
       headers: {
         'Content-Type': 'application/json',
-        'Accept': 'application/json', // PENTING agar Laravel tahu ini API request
+        'Accept': 'application/json',
       },
       body: jsonEncode({
         'name': name,

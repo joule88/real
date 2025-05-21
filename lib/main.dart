@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/date_symbol_data_local.dart'; // <-- TAMBAHKAN IMPORT INI
-import 'models/property.dart'; // Pastikan semua model dan provider diimpor
+// Pastikan semua model dan provider diimpor
 import 'screens/login/login.dart';
 import 'screens/main_screen.dart';
 import 'app/themes/app_themes.dart';

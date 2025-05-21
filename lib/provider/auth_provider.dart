@@ -7,20 +7,20 @@ import '../services/api_constants.dart';
 
 class AuthProvider with ChangeNotifier {
   User? _user;
-  String? _token; // Tambahkan ini
+  String? _token;
 
-  User? get user => _user; // asumsikan setelah login selalu tidak null
-  String? get token => _token; // Getter untuk token
+  User? get user => _user;
+  String? get token => _token;
   bool get isAuthenticated => _user != null;
 
   void setUser(User user) {
     _user = user;
-    notifyListeners(); // supaya semua widget yang mendengar perubahan ikut update
+    notifyListeners();
   }
 
   Future<bool> login(String email, String password) async {
     final response = await http.post(
-      Uri.parse(ApiConstants.baseUrl + ApiConstants.loginEndpoint),
+      Uri.parse(ApiConstants.laravelApiBaseUrl + ApiConstants.loginEndpoint),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({'email': email, 'password': password}),
     );
@@ -61,11 +61,9 @@ class AuthProvider with ChangeNotifier {
     );
 
     if (result['success'] == true) {
-      // Simpan token atau user data ke state management di sini jika perlu
       _token = result['data']['token'];
       return true;
     } else {
-      // Bisa log error message jika perlu: result['message']
       return false;
     }
   }

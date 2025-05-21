@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:real/models/property.dart'; // Import model
-import 'package:real/widgets/property_card_profile.dart';
 import 'package:real/widgets/property_card.dart'; // Import widget card
 
 class HomeScreen extends StatelessWidget {
