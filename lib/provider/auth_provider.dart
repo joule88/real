@@ -18,29 +18,32 @@ class AuthProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  Future<bool> login(String email, String password) async {
-    final response = await http.post(
-      Uri.parse(ApiConstants.laravelApiBaseUrl + ApiConstants.loginEndpoint),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({'email': email, 'password': password}),
-    );
+Future<bool> login(String email, String password) async {
+  final response = await http.post(
+    Uri.parse(ApiConstants.laravelApiBaseUrl + ApiConstants.loginEndpoint),
+    headers: {'Content-Type': 'application/json'},
+    body: jsonEncode({'email': email, 'password': password}),
+  );
 
-    if (response.statusCode == 200) {
-      final json = jsonDecode(response.body);
-      if (json['success'] == true && json['data'] != null) {
-        _user = User.fromJson(json['data']);
-        _token = json['data']['token'];
-        notifyListeners();
-        return true;
-      } else {
-        print('Error: Respons tidak valid');
-        return false;
-      }
+  if (response.statusCode == 200) {
+    final json = jsonDecode(response.body);
+
+    // Periksa apakah key `token` dan `user` tersedia
+    if (json.containsKey('token') && json.containsKey('user')) {
+      _token = json['token'];
+      _user = User.fromJson(json['user']);
+      notifyListeners();
+      return true;
     } else {
-      print('Error: ${response.body}');
+      print('Error: Struktur JSON tidak sesuai.');
       return false;
     }
+  } else {
+    print('Error: ${response.body}');
+    return false;
   }
+}
+
 
   void logout() {
     _user = null;
