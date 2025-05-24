@@ -42,6 +42,9 @@ dependencies:
   geocoding: ^3.0.0
   shared_preferences: ^2.5.3
   http_parser: ^4.0.0
+  flutter_map: ^7.0.0 # Atau versi terbaru
+  latlong2: ^0.9.0    # Atau versi terbaru
+  geolocator: ^12.0.0 # Atau versi terbaru
   
 
 

@@ -121,12 +121,11 @@ class MyPropertyDetailScreen extends StatelessWidget {
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Icon(EvaIcons.pinOutline,
-                            color: Colors.grey[700], size: 18),
+                        Icon(EvaIcons.pinOutline, color: Colors.grey[700], size: 18),
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
-                            '${property.address}, ${property.city}, ${property.stateZip}',
+                            property.address, // Langsung gunakan property.address
                             style: GoogleFonts.poppins(
                                 fontSize: 13, color: Colors.grey[700]),
                           ),

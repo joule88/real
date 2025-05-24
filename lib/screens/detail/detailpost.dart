@@ -104,8 +104,7 @@ class PropertyDetailPage extends StatelessWidget {
                         ],
                       ),
                       const SizedBox(height: 10),
-
-                      // Lokasi
+                      //lokasi
                       Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -113,7 +112,7 @@ class PropertyDetailPage extends StatelessWidget {
                           const SizedBox(width: 6),
                           Expanded(
                             child: Text(
-                              '${property.address}, ${property.city}, ${property.stateZip}',
+                              property.address, // Langsung gunakan property.address
                               style: GoogleFonts.poppins(
                                 fontSize: 13,
                                 color: Colors.grey[700],

@@ -106,12 +106,12 @@ class PropertyListItem extends StatelessWidget {
 
                 // Alamat
                 Text(
-                  '${property.address}, ${property.city}, ${property.stateZip}',
+                  property.address, // Langsung gunakan property.address
                   style: GoogleFonts.poppins(
-                    fontSize: 11, // Lebih kecil
+                    fontSize: 11,
                     color: Colors.grey[700],
                   ),
-                  maxLines: 1,
+                  maxLines: 1, // Atau 2 jika perlu lebih banyak ruang
                   overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 6),

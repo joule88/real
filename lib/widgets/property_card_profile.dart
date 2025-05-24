@@ -149,8 +149,7 @@ class PropertyCardProfile extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    // Alamat
-                    '${property.address}, ${property.city}, ${property.stateZip}',
+                    property.address, // Langsung gunakan property.address
                     style: GoogleFonts.poppins(
                       fontSize: 12,
                       color: Colors.grey[700],

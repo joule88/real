@@ -15,9 +15,9 @@ class CustomNavBar extends StatefulWidget {
   State<CustomNavBar> createState() => _CustomNavBarState();
 }
 
-class _CustomNavBarState extends State<CustomNavBar>
-    with SingleTickerProviderStateMixin {
-  final Color navBgColor = const Color(0xFF182420); 
+// Menghapus 'with SingleTickerProviderStateMixin' karena tidak ada AnimationController
+class _CustomNavBarState extends State<CustomNavBar> {
+  final Color navBgColor = const Color(0xFF182420);
   final Color selectedColor = const Color(0xFFDDEF6D);
   final Color unselectedColor = Colors.white;
 
@@ -47,22 +47,18 @@ class _CustomNavBarState extends State<CustomNavBar>
   Widget _buildNavItem(int index, IconData iconData) {
     final bool isSelected = widget.selectedIndex == index;
 
+    // Menghapus AnimatedContainer dan AnimatedScale
     return GestureDetector(
       onTap: () => widget.onItemTapped(index),
-      behavior: HitTestBehavior.opaque,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 250),
-        curve: Curves.easeOut,
+      behavior: HitTestBehavior.opaque, // Memastikan area tap mencakup padding
+      child: Container(
+        // Menggunakan Container biasa sebagai pengganti AnimatedContainer
         padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-        child: AnimatedScale(
-          scale: isSelected ? 1.3 : 1.0,
-          duration: const Duration(milliseconds: 250),
-          curve: Curves.easeInOut,
-          child: Icon(
-            iconData,
-            color: isSelected ? selectedColor : unselectedColor,
-            size: 26,
-          ),
+        child: Icon(
+          iconData,
+          color: isSelected ? selectedColor : unselectedColor,
+          size: isSelected ? 28 : 26, // Sedikit perbedaan ukuran jika item terpilih (opsional)
+                                     // Jika ingin ukuran sama persis, gunakan 'size: 26' untuk keduanya.
         ),
       ),
     );

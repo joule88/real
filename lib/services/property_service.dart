@@ -1,3 +1,4 @@
+// lib/services/property_service.dart
 import 'dart:async';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
@@ -22,39 +23,56 @@ class PropertyService {
         : ApiConstants.propertiesEndpoint;
 
     var uri = Uri.parse('${ApiConstants.laravelApiBaseUrl}$endpoint');
-    var request = http.MultipartRequest(isUpdate ? 'PUT' : 'POST', uri);
+    var request = http.MultipartRequest(isUpdate ? 'PUT' : 'POST', uri); // 'PUT' untuk update
 
     request.headers['Authorization'] = 'Bearer $token';
     request.headers['Accept'] = 'application/json';
 
-  request.fields['title'] = property.title;
-  request.fields['description'] = property.description;
-  request.fields['price'] = property.price.toString();
-  request.fields['address'] = property.address;
-  request.fields['bedrooms'] = property.bedrooms.toString();
-  request.fields['bathrooms'] = property.bathrooms.toString();
-  request.fields['sizeMin'] = property.areaSqft.toString(); // key sesuai Laravel
-  request.fields['furnishing'] = property.furnishings;
+    // Menggunakan data dari objek Property yang sudah diperbarui
+    request.fields['title'] = property.title;
+    request.fields['description'] = property.description;
+    request.fields['price'] = property.price.toString();
+    request.fields['address'] = property.address; // Ini sudah berisi alamat lengkap
+    request.fields['bedrooms'] = property.bedrooms.toString();
+    request.fields['bathrooms'] = property.bathrooms.toString();
+    // Pastikan key 'sizeMin' atau 'areaSqft' konsisten dengan backend Anda
+    request.fields['sizeMin'] = property.areaSqft.toString(); 
+    request.fields['furnishing'] = property.furnishings;
+    request.fields['propertyType'] = property.propertyType;
+    request.fields['status'] = property.status.toString().split('.').last;
 
+
+    // Field opsional/baru dari model Property
+    if (property.mainView != null) {
+      request.fields['mainView'] = property.mainView!;
+    }
+    if (property.listingAgeCategory != null) {
+      request.fields['listingAgeCategory'] = property.listingAgeCategory!;
+    }
+    if (property.propertyLabel != null) {
+      request.fields['propertyLabel'] = property.propertyLabel!;
+    }
+    
     // Tambahkan retained image URLs
     List<String> retainedImageUrls = [];
     if (isUpdate) {
       retainedImageUrls.addAll(existingImageUrls.where((url) => url.startsWith('http')));
     }
-    request.fields['retainedImageUrls'] = jsonEncode(retainedImageUrls);
+    // Backend Anda harus bisa menangani 'retainedImageUrls' jika dikirim sebagai JSON string
+    // Atau Anda bisa mengirimnya sebagai array jika backend mendukung (misal, retainedImageUrls[0], retainedImageUrls[1], dst.)
+    request.fields['retainedImageUrls'] = jsonEncode(retainedImageUrls); 
 
-    // Gunakan fromBytes untuk upload file
-  for (var image in newSelectedImages) {
-    Uint8List imageBytes = await image.readAsBytes();
-    request.files.add(
-      http.MultipartFile.fromBytes(
-        'image[]',       // key yang Laravel harapkan
-        imageBytes,
-        filename: image.name,
-        contentType: MediaType('image', _getExtension(image.name)), // gunakan package http_parser
-      ),
-    );
-  }
+    for (var imageFile in newSelectedImages) {
+      Uint8List imageBytes = await imageFile.readAsBytes();
+      request.files.add(
+        http.MultipartFile.fromBytes(
+          'images[]', // Key yang diharapkan Laravel untuk array gambar baru
+          imageBytes,
+          filename: imageFile.name,
+          contentType: MediaType('image', _getExtension(imageFile.name)),
+        ),
+      );
+    }
 
     try {
       final streamedResponse = await request.send();
@@ -64,12 +82,16 @@ class PropertyService {
         return {'success': true, 'data': jsonDecode(response.body)};
       } else {
         final errorBody = jsonDecode(response.body);
-        final message = errorBody['message'] ??
-            (errorBody['errors'] != null
-                ? errorBody['errors'].entries
-                    .map((e) => '${e.key}: ${e.value.join(", ")}')
-                    .join('\n')
-                : response.body);
+        // Logika parsing pesan error yang lebih baik
+        String message = 'Terjadi kesalahan';
+        if (errorBody != null && errorBody is Map) {
+            message = errorBody['message'] as String? ?? 
+                      (errorBody['errors'] != null && errorBody['errors'] is Map
+                          ? (errorBody['errors'] as Map).entries.map((e) => '${e.key}: ${(e.value as List).join(", ")}').join('\n')
+                          : response.body);
+        } else {
+            message = response.body;
+        }
         return {'success': false, 'message': message};
       }
     } catch (e) {
@@ -77,7 +99,8 @@ class PropertyService {
     }
   }
 
-  Future<Map<String, dynamic>> createNewProperty({
+  // ... (createNewProperty dan predictPropertyPrice SAMA)
+    Future<Map<String, dynamic>> createNewProperty({
     required Property property,
     required List<XFile> selectedImages,
     required String token,
@@ -127,7 +150,16 @@ class PropertyService {
           'predicted_price': data['prediction_result'],
         };
       } else {
-        return {'success': false, 'message': response.body};
+        final errorBody = jsonDecode(response.body);
+        String message = 'Gagal mendapatkan prediksi harga.';
+         if (errorBody != null && errorBody is Map && errorBody['message'] != null) {
+            message = errorBody['message'];
+         } else if (errorBody != null && errorBody is Map && errorBody['error'] != null){
+            message = errorBody['error'];
+         } else {
+            message = response.body;
+         }
+        return {'success': false, 'message': message};
       }
     } catch (e) {
       return {'success': false, 'message': 'Error saat prediksi harga: $e'};
@@ -135,16 +167,15 @@ class PropertyService {
   }
   
   String _getExtension(String filename) {
-  final ext = filename.split('.').last.toLowerCase();
-  switch (ext) {
-    case 'jpg':
-    case 'jpeg':
-      return 'jpeg';
-    case 'png':
-      return 'png';
-    default:
-      return 'jpeg'; // default fallback
+    final ext = filename.split('.').last.toLowerCase();
+    switch (ext) {
+      case 'jpg':
+      case 'jpeg':
+        return 'jpeg';
+      case 'png':
+        return 'png';
+      default:
+        return 'jpeg'; 
+    }
   }
-}
-
 }
