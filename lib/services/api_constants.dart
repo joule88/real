@@ -8,6 +8,7 @@ class ApiConstants {
 
   // Endpoint untuk API Laravel (akan digabung dengan laravelApiBaseUrl)
   static const String propertiesEndpoint = '/properties';
+  static const String userPropertiesEndpoint = '/user/properties';
   static const String registerEndpoint = '/register';
   static const String loginEndpoint = '/login';
 

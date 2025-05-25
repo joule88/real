@@ -1,8 +1,11 @@
 // lib/screens/my_drafts/my_drafts_screen.dart
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
 import 'package:real/models/property.dart';
-import 'package:real/screens/my_drafts/add_property_form_screen.dart'; // Halaman form
+import 'package:real/provider/auth_provider.dart';
+import 'package:real/provider/property_provider.dart';
+import 'package:real/screens/my_drafts/add_property_form_screen.dart';
 
 class MyDraftsScreen extends StatefulWidget {
   const MyDraftsScreen({super.key});
@@ -12,189 +15,200 @@ class MyDraftsScreen extends StatefulWidget {
 }
 
 class _MyDraftsScreenState extends State<MyDraftsScreen> {
-  // Daftar properti yang berstatus draft atau pendingVerification
-  // Nantinya ini akan difilter dari semua properti pengguna berdasarkan status
-  final List<Property> _myDraftProperties = [
-    Property(
-        id: 'draftProp1',
-        title: 'Rumah Impian (Draft)',
-        description: 'Belum selesai deskripsinya...',
-        uploader: 'CurrentUser',
-        imageUrl: 'https://via.placeholder.com/150/e0e0e0/969696?Text=Draft1',
-        price: 0, // Mungkin harga belum diisi
-        address: 'Jl. Contoh Draft',
-        // city: 'Kota Draft',
-        // stateZip: 'Provinsi',
-        bedrooms: 3,
-        bathrooms: 1,
-        areaSqft: 100,
-        propertyType: "Rumah",
-        furnishings: "Unfurnished",
-        status: PropertyStatus.draft),
-    Property(
-        id: 'draftProp2',
-        title: 'Apartemen Siap Diajukan (Draft)',
-        description: 'Sudah lengkap, tinggal ajukan.',
-        uploader: 'CurrentUser',
-        imageUrl: 'https://via.placeholder.com/150/d0d0d0/888888?Text=Draft2',
-        price: 1500000,
-        address: 'Jl. Contoh Apartemen Draft',
-        // city: 'Kota Draft Lain',
-        // stateZip: 'Provinsi',
-        bedrooms: 2,
-        bathrooms: 2,
-        areaSqft: 75,
-        propertyType: "Apartemen",
-        furnishings: "Full Furnished",
-        status: PropertyStatus.pendingVerification), // Contoh yg sudah diajukan
-  ];
+  @override
+  void initState() {
+    super.initState();
+    // Panggil _fetchMyDrafts setelah frame pertama selesai dibangun
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _fetchMyDrafts();
+    });
+  }
+
+  Future<void> _fetchMyDrafts() async {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final token = authProvider.token;
+    if (token != null) {
+      // Panggil metode dari PropertyProvider
+      await Provider.of<PropertyProvider>(context, listen: false)
+          .fetchUserDraftAndPendingProperties(token);
+    } else {
+      // Handle kasus token null (misalnya, tampilkan pesan atau logout)
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Sesi tidak valid. Silakan login ulang.')),
+        );
+      }
+    }
+  }
 
   void _navigateToForm({Property? existingProperty}) async {
-    // Navigasi ke halaman form, bawa properti jika mode edit
-    final result = await Navigator.push(
+    final propertyProvider = Provider.of<PropertyProvider>(context, listen: false);
+    final result = await Navigator.push<bool>( // Tipe result diubah ke bool
       context,
       MaterialPageRoute(
         builder: (context) => AddPropertyFormScreen(propertyToEdit: existingProperty),
       ),
     );
 
-    if (result == true || result != null) { // Anggap ada perubahan jika result tidak null
-      setState(() {
-        // TODO: Logika untuk refresh data _myDraftProperties dari database/state
-        // atau update item yang diedit, atau tambah item baru jika `existingProperty` null
-        print("Kembali dari form draft, idealnya refresh data draft di sini.");
-        // Contoh sederhana jika form mengembalikan properti baru/diedit:
-        // if (result is Property) {
-        //   if (existingProperty == null) { // Tambah baru
-        //     _myDraftProperties.add(result);
-        //   } else { // Update yang ada
-        //     final index = _myDraftProperties.indexWhere((p) => p.id == result.id);
-        //     if (index != -1) {
-        //       _myDraftProperties[index] = result;
-        //     }
-        //   }
-        // }
-      });
+    if (result == true) {
+      // Jika AddPropertyFormScreen mengembalikan true (artinya ada perubahan/simpan),
+      // panggil _fetchMyDrafts lagi untuk memperbarui daftar.
+      _fetchMyDrafts();
     }
   }
 
   String _getStatusText(PropertyStatus status) {
     switch (status) {
       case PropertyStatus.draft:
-        return 'Status: Draft';
+        return 'Draft'; // Disingkat
       case PropertyStatus.pendingVerification:
-        return 'Status: Menunggu Verifikasi';
-      case PropertyStatus.approved:
-        return 'Status: Disetujui';
-      case PropertyStatus.rejected:
-        return 'Status: Ditolak';
+        return 'Menunggu Verifikasi';
       default:
-        return 'Status: Tidak Diketahui';
+        return status.toString().split('.').last;
+    }
+  }
+
+  Color _getStatusColor(PropertyStatus status) {
+    switch (status) {
+      case PropertyStatus.draft:
+        return Colors.blueGrey[600]!;
+      case PropertyStatus.pendingVerification:
+        return Colors.orange[600]!;
+      default:
+        return Colors.grey;
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 1,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-        title: Text(
-          "Draft Iklan Saya",
-          style: GoogleFonts.poppins(
-            color: Colors.black,
-            fontWeight: FontWeight.bold,
-            fontSize: 20,
-          ),
-        ),
-        centerTitle: true,
-      ),
-      body: _myDraftProperties.isEmpty
-          ? Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.note_add_outlined, size: 80, color: Colors.grey[400]),
-                  const SizedBox(height: 20),
-                  Text(
-                    "Belum ada draft iklan.",
-                    style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.w500, color: Colors.grey[700]),
-                  ),
-                  const SizedBox(height: 10),
-                  Text(
-                    "Buat draft iklan properti Anda sekarang!",
-                    style: GoogleFonts.poppins(fontSize: 14, color: Colors.grey[600]),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 30),
-                  ElevatedButton.icon(
-                    icon: const Icon(Icons.add_circle_outline),
-                    label: Text("Buat Draft Baru", style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
-                    onPressed: () => _navigateToForm(), // Panggil tanpa properti untuk draft baru
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFDAF365),
-                      foregroundColor: Colors.black87,
-                      padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
-                      textStyle: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.bold),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                    ),
-                  ),
-                ],
+    // Gunakan Consumer untuk rebuild saat data di provider berubah
+    return Consumer<PropertyProvider>(
+      builder: (context, propertyProvider, child) {
+        return Scaffold(
+          backgroundColor: Colors.white,
+          appBar: AppBar(
+            backgroundColor: Colors.white,
+            elevation: 1,
+            leading: IconButton(
+              icon: const Icon(Icons.arrow_back, color: Colors.black),
+              onPressed: () => Navigator.of(context).pop(),
+            ),
+            title: Text(
+              "Draft & Pengajuan Saya",
+              style: GoogleFonts.poppins(
+                color: Colors.black,
+                fontWeight: FontWeight.bold,
+                fontSize: 20,
               ),
-            )
-          : Padding(
-              padding: const EdgeInsets.all(15.0),
-              child: ListView.builder(
-                itemCount: _myDraftProperties.length,
-                itemBuilder: (context, index) {
-                  final property = _myDraftProperties[index];
-                  // Kita bisa buat widget Card khusus untuk Draft atau pakai PropertyListItem dengan modifikasi
-                  return Card( // Contoh sederhana menggunakan Card
-                    elevation: 2,
-                    margin: const EdgeInsets.only(bottom: 15),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                    child: ListTile(
-                      leading: ClipRRect(
-                        borderRadius: BorderRadius.circular(8.0),
-                        child: Image.network(
-                          property.imageUrl.isNotEmpty ? property.imageUrl : 'https://via.placeholder.com/80/e0e0e0/969696?Text=NoImage',
-                          width: 80,
-                          height: 80,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) => Container(width: 80, height: 80, color: Colors.grey[200], child: const Icon(Icons.broken_image, color: Colors.grey)),
+            ),
+            centerTitle: true,
+          ),
+          body: propertyProvider.isLoadingUserProperties
+              ? const Center(child: CircularProgressIndicator())
+              : propertyProvider.userPropertiesError != null
+                  ? Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Text(
+                          'Gagal memuat data: ${propertyProvider.userPropertiesError}\nCoba tarik untuk muat ulang.',
+                          textAlign: TextAlign.center,
+                          style: GoogleFonts.poppins(color: Colors.red[700]),
                         ),
                       ),
-                      title: Text(property.title, style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
-                      subtitle: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(property.address, maxLines: 1, overflow: TextOverflow.ellipsis, style: GoogleFonts.poppins(fontSize: 12)),
-                          const SizedBox(height: 4),
-                          Text(_getStatusText(property.status), style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.w500, color: property.status == PropertyStatus.pendingVerification ? Colors.orange[700] : Colors.grey[600])),
-                        ],
-                      ),
-                      trailing: const Icon(Icons.edit_outlined, color: Colors.grey),
-                      onTap: () {
-                        _navigateToForm(existingProperty: property); // Buka form untuk edit draft ini
-                      },
-                    ),
-                  );
-                },
-              ),
-            ),
-      floatingActionButton: _myDraftProperties.isEmpty
-          ? null
-          : FloatingActionButton.extended(
-              onPressed: () => _navigateToForm(), // Panggil tanpa properti untuk draft baru
-              backgroundColor: const Color(0xFF1F2937),
-              icon: const Icon(Icons.add, color: Colors.white),
-              label: Text("Draft Baru", style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.w600)),
-            ),
+                    )
+                  : propertyProvider.userProperties.isEmpty
+                      ? Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.note_add_outlined, size: 80, color: Colors.grey[400]),
+                              const SizedBox(height: 20),
+                              Text(
+                                "Belum ada draft atau pengajuan.",
+                                style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.w500, color: Colors.grey[700]),
+                              ),
+                              const SizedBox(height: 10),
+                              Text(
+                                "Buat properti baru sekarang!",
+                                style: GoogleFonts.poppins(fontSize: 14, color: Colors.grey[600]),
+                                textAlign: TextAlign.center,
+                              ),
+                              const SizedBox(height: 30),
+                              ElevatedButton.icon(
+                                icon: const Icon(Icons.add_circle_outline),
+                                label: Text("Buat Iklan Baru", style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
+                                onPressed: () => _navigateToForm(),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFFDAF365),
+                                  foregroundColor: Colors.black87,
+                                  padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
+                                  textStyle: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.bold),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                ),
+                              ),
+                            ],
+                          ),
+                        )
+                      : RefreshIndicator(
+                          onRefresh: _fetchMyDrafts,
+                          child: ListView.builder(
+                            padding: const EdgeInsets.all(15.0),
+                            itemCount: propertyProvider.userProperties.length,
+                            itemBuilder: (context, index) {
+                              final property = propertyProvider.userProperties[index];
+                              return Card(
+                                elevation: 2,
+                                margin: const EdgeInsets.only(bottom: 15),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                child: ListTile(
+                                  leading: ClipRRect(
+                                    borderRadius: BorderRadius.circular(8.0),
+                                    child: property.imageUrl.isNotEmpty
+                                      ? Image.network(
+                                          property.imageUrl,
+                                          width: 80,
+                                          height: 80,
+                                          fit: BoxFit.cover,
+                                          errorBuilder: (context, error, stackTrace) => Container(width: 80, height: 80, color: Colors.grey[200], child: const Icon(Icons.broken_image, color: Colors.grey)),
+                                        )
+                                      : Container(width: 80, height: 80, color: Colors.grey[200], child: const Icon(Icons.house_outlined, color: Colors.grey, size: 40)),
+                                  ),
+                                  title: Text(property.title, style: GoogleFonts.poppins(fontWeight: FontWeight.w600), maxLines: 1, overflow: TextOverflow.ellipsis,),
+                                  subtitle: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(property.address, maxLines: 1, overflow: TextOverflow.ellipsis, style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey[700])),
+                                      const SizedBox(height: 4),
+                                      Chip(
+                                        label: Text(
+                                          _getStatusText(property.status),
+                                          style: GoogleFonts.poppins(fontSize: 11, fontWeight: FontWeight.w500, color: Colors.white)
+                                        ),
+                                        backgroundColor: _getStatusColor(property.status),
+                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                      ),
+                                    ],
+                                  ),
+                                  trailing: const Icon(Icons.edit_outlined, color: Colors.blueAccent),
+                                  onTap: () {
+                                    _navigateToForm(existingProperty: property);
+                                  },
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+          floatingActionButton: propertyProvider.isLoadingUserProperties || propertyProvider.userProperties.isEmpty
+              ? null // Sembunyikan FAB jika sedang loading atau list kosong (karena ada tombol besar di tengah)
+              : FloatingActionButton.extended(
+                  onPressed: () => _navigateToForm(),
+                  backgroundColor: const Color(0xFF1F2937),
+                  icon: const Icon(Icons.add, color: Colors.white),
+                  label: Text("Iklan Baru", style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.w600)),
+                ),
+        );
+      },
     );
   }
 }

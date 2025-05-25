@@ -57,7 +57,7 @@ class _CustomNavBarState extends State<CustomNavBar> {
         child: Icon(
           iconData,
           color: isSelected ? selectedColor : unselectedColor,
-          size: isSelected ? 28 : 26, // Sedikit perbedaan ukuran jika item terpilih (opsional)
+          size: isSelected ? 28 : 28, // Sedikit perbedaan ukuran jika item terpilih (opsional)
                                      // Jika ingin ukuran sama persis, gunakan 'size: 26' untuk keduanya.
         ),
       ),

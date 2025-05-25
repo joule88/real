@@ -1,4 +1,3 @@
-// lib/services/property_service.dart
 import 'dart:async';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
@@ -8,8 +7,8 @@ import '../models/property.dart';
 import 'dart:typed_data';
 import 'package:http_parser/http_parser.dart';
 
-
 class PropertyService {
+  // Metode untuk mengirim properti (Create/Update)
   Future<Map<String, dynamic>> submitProperty({
     required Property property,
     required List<XFile> newSelectedImages,
@@ -23,26 +22,23 @@ class PropertyService {
         : ApiConstants.propertiesEndpoint;
 
     var uri = Uri.parse('${ApiConstants.laravelApiBaseUrl}$endpoint');
-    var request = http.MultipartRequest(isUpdate ? 'PUT' : 'POST', uri); // 'PUT' untuk update
+    var request = http.MultipartRequest(isUpdate ? 'PUT' : 'POST', uri);
 
     request.headers['Authorization'] = 'Bearer $token';
     request.headers['Accept'] = 'application/json';
 
-    // Menggunakan data dari objek Property yang sudah diperbarui
+    // Menggunakan data dari objek Property
     request.fields['title'] = property.title;
     request.fields['description'] = property.description;
     request.fields['price'] = property.price.toString();
-    request.fields['address'] = property.address; // Ini sudah berisi alamat lengkap
+    request.fields['address'] = property.address;
     request.fields['bedrooms'] = property.bedrooms.toString();
     request.fields['bathrooms'] = property.bathrooms.toString();
-    // Pastikan key 'sizeMin' atau 'areaSqft' konsisten dengan backend Anda
-    request.fields['sizeMin'] = property.areaSqft.toString(); 
+    request.fields['sizeMin'] = property.areaSqft.toString();
     request.fields['furnishing'] = property.furnishings;
     request.fields['propertyType'] = property.propertyType;
     request.fields['status'] = property.status.toString().split('.').last;
 
-
-    // Field opsional/baru dari model Property
     if (property.mainView != null) {
       request.fields['mainView'] = property.mainView!;
     }
@@ -52,26 +48,32 @@ class PropertyService {
     if (property.propertyLabel != null) {
       request.fields['propertyLabel'] = property.propertyLabel!;
     }
-    
-    // Tambahkan retained image URLs
+
     List<String> retainedImageUrls = [];
     if (isUpdate) {
       retainedImageUrls.addAll(existingImageUrls.where((url) => url.startsWith('http')));
     }
-    // Backend Anda harus bisa menangani 'retainedImageUrls' jika dikirim sebagai JSON string
-    // Atau Anda bisa mengirimnya sebagai array jika backend mendukung (misal, retainedImageUrls[0], retainedImageUrls[1], dst.)
-    request.fields['retainedImageUrls'] = jsonEncode(retainedImageUrls); 
+    request.fields['retainedImageUrls'] = jsonEncode(retainedImageUrls);
 
+    print('INFO: Jumlah file gambar baru yang akan dikirim: ${newSelectedImages.length}');
+    int imageIndex = 0; // Pindahkan inisialisasi index ke luar loop
     for (var imageFile in newSelectedImages) {
-      Uint8List imageBytes = await imageFile.readAsBytes();
-      request.files.add(
-        http.MultipartFile.fromBytes(
-          'images[]', // Key yang diharapkan Laravel untuk array gambar baru
-          imageBytes,
-          filename: imageFile.name,
-          contentType: MediaType('image', _getExtension(imageFile.name)),
-        ),
-      );
+      try {
+        Uint8List imageBytes = await imageFile.readAsBytes();
+        request.files.add(
+          http.MultipartFile.fromBytes(
+            'images[$imageIndex]', // Gunakan index yang diincrement dengan benar
+            imageBytes,
+            filename: imageFile.name,
+            contentType: MediaType('image', _getExtension(imageFile.name)),
+          ),
+        );
+        print('INFO: File gambar ${imageFile.name} (index: $imageIndex) berhasil ditambahkan ke request.');
+        imageIndex++; // Increment index untuk gambar berikutnya
+      } catch (e) {
+        print('ERROR: Gagal membaca atau menambahkan file gambar ${imageFile.name}: $e');
+        // Anda mungkin ingin mengembalikan error atau melanjutkan tanpa file ini
+      }
     }
 
     try {
@@ -79,51 +81,85 @@ class PropertyService {
       final response = await http.Response.fromStream(streamedResponse);
 
       if (response.statusCode == 200 || response.statusCode == 201) {
+        print('INFO: Properti berhasil dikirim. Status: ${response.statusCode}');
         return {'success': true, 'data': jsonDecode(response.body)};
       } else {
         final errorBody = jsonDecode(response.body);
-        // Logika parsing pesan error yang lebih baik
-        String message = 'Terjadi kesalahan';
+        String message = 'Terjadi kesalahan saat mengirim properti.';
         if (errorBody != null && errorBody is Map) {
-            message = errorBody['message'] as String? ?? 
-                      (errorBody['errors'] != null && errorBody['errors'] is Map
-                          ? (errorBody['errors'] as Map).entries.map((e) => '${e.key}: ${(e.value as List).join(", ")}').join('\n')
-                          : response.body);
+          message = errorBody['message'] as String? ??
+              (errorBody['errors'] != null && errorBody['errors'] is Map
+                  ? (errorBody['errors'] as Map).entries.map((e) => '${e.key}: ${(e.value as List).join(", ")}').join('\n')
+                  : response.body);
         } else {
-            message = response.body;
+          message = response.body;
         }
+        print('ERROR: Gagal mengirim properti. Status: ${response.statusCode}, Pesan: $message');
         return {'success': false, 'message': message};
       }
     } catch (e) {
+      print('ERROR: Exception saat mengirim properti: $e');
       return {'success': false, 'message': 'Error saat mengirim properti: $e'};
     }
   }
 
-  // ... (createNewProperty dan predictPropertyPrice SAMA)
-    Future<Map<String, dynamic>> createNewProperty({
-    required Property property,
-    required List<XFile> selectedImages,
-    required String token,
-  }) async {
-    return await submitProperty(
-      property: property,
-      newSelectedImages: selectedImages,
-      existingImageUrls: [],
-      token: token,
-    );
+  // Metode untuk mengambil properti pengguna
+  Future<Map<String, dynamic>> getUserProperties(String token, {List<String>? statuses}) async {
+    String statusQuery = '';
+    if (statuses != null && statuses.isNotEmpty) {
+      statusQuery = '?status=${statuses.join(',')}';
+    }
+    final uri = Uri.parse('${ApiConstants.laravelApiBaseUrl}${ApiConstants.userPropertiesEndpoint}$statusQuery');
+
+    print("INFO: Fetching user properties from: $uri");
+
+    try {
+      final response = await http.get(
+        uri,
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Accept': 'application/json',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (data is Map && data.containsKey('data') && data['data'] is List) {
+          print("INFO: User properties fetched successfully.");
+          return {'success': true, 'properties': List<Map<String, dynamic>>.from(data['data'])};
+        } else if (data is List) { // Jika API langsung mengembalikan array properti
+          print("INFO: User properties fetched successfully (direct array).");
+          return {'success': true, 'properties': List<Map<String, dynamic>>.from(data)};
+        }
+        print("WARNING: Unexpected response format for user properties: $data");
+        return {'success': false, 'message': 'Format data properti tidak sesuai.'};
+      } else {
+        print("ERROR: Failed to get user properties: ${response.statusCode} - ${response.body}");
+        return {'success': false, 'message': 'Gagal mengambil properti: ${response.statusCode}'};
+      }
+    } catch (e) {
+      print("ERROR: Exception getting user properties: $e");
+      return {'success': false, 'message': 'Terjadi kesalahan: $e'};
+    }
   }
 
+  // Metode untuk prediksi harga properti
   Future<Map<String, dynamic>> predictPropertyPrice({
     required int bathrooms,
     required int bedrooms,
     required int furnishing,
-    required double sizeMin,
+    required double sizeMin, // Ini adalah nilai sqft
     required int verified,
     required int listingAgeCategory,
     required int viewType,
     required int titleKeyword,
   }) async {
     final String predictUrl = '${ApiConstants.flaskApiBaseUrl}${ApiConstants.predictPriceEndpoint}';
+    print("INFO: Predicting property price with payload: ${{
+      'bathrooms': bathrooms, 'bedrooms': bedrooms, 'furnishing': furnishing,
+      'sizeMin': sizeMin, 'verified': verified, 'listing_age_category': listingAgeCategory,
+      'view_type': viewType, 'title_keyword': titleKeyword
+    }}");
 
     final payload = {
       'bathrooms': bathrooms,
@@ -145,6 +181,7 @@ class PropertyService {
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
+        print("INFO: Price prediction successful. Result: $data");
         return {
           'success': true,
           'predicted_price': data['prediction_result'],
@@ -152,20 +189,23 @@ class PropertyService {
       } else {
         final errorBody = jsonDecode(response.body);
         String message = 'Gagal mendapatkan prediksi harga.';
-         if (errorBody != null && errorBody is Map && errorBody['message'] != null) {
-            message = errorBody['message'];
-         } else if (errorBody != null && errorBody is Map && errorBody['error'] != null){
-            message = errorBody['error'];
-         } else {
-            message = response.body;
-         }
+        if (errorBody != null && errorBody is Map && errorBody['message'] != null) {
+          message = errorBody['message'];
+        } else if (errorBody != null && errorBody is Map && errorBody['error'] != null){
+          message = errorBody['error'];
+        } else {
+          message = response.body;
+        }
+        print("ERROR: Failed to predict price: ${response.statusCode} - Message: $message");
         return {'success': false, 'message': message};
       }
     } catch (e) {
+      print("ERROR: Exception predicting property price: $e");
       return {'success': false, 'message': 'Error saat prediksi harga: $e'};
     }
   }
-  
+
+  // Helper untuk mendapatkan ekstensi file
   String _getExtension(String filename) {
     final ext = filename.split('.').last.toLowerCase();
     switch (ext) {
@@ -175,7 +215,7 @@ class PropertyService {
       case 'png':
         return 'png';
       default:
-        return 'jpeg'; 
+        return 'jpeg'; // default fallback
     }
   }
 }
