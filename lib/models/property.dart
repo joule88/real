@@ -68,95 +68,102 @@ class Property extends ChangeNotifier {
   }) : _isFavorite = isFavorite;
 
   factory Property.fromJson(Map<String, dynamic> json) {
-    List<String> allOriginalImageUrls = [];
-    dynamic imageField = json['image']; // Field dari backend adalah 'image'
+    List<String> allImageReferences = []; // Akan berisi nama file atau referensi gambar lainnya
+    dynamic imageField = json['image'];
 
+    // Logika untuk parsing field 'image' yang mungkin berupa:
+    // 1. String JSON dari array nama file (misalnya, "[\"file1.jpg\", \"file2.png\"]")
+    // 2. Array nama file langsung (jika backend mengirimnya sebagai array)
+    // 3. String nama file tunggal
     if (imageField is List) {
-      // Jika backend mengirim array URL langsung (ideal)
-      allOriginalImageUrls = List<String>.from(imageField.map((item) => item.toString()));
+      allImageReferences = List<String>.from(imageField.map((item) => item.toString()));
     } else if (imageField is String) {
-      // Fallback jika 'image' adalah string berisi JSON array
-      try {
-        if (imageField.startsWith("[") && imageField.endsWith("]")) {
+      if (imageField.startsWith("[") && imageField.endsWith("]")) {
+        try {
           List<dynamic> decodedList = jsonDecode(imageField);
-          allOriginalImageUrls = decodedList.map((e) => e.toString()).toList();
-        } else if (imageField.isNotEmpty) {
-           // Jika hanya satu URL string (bukan array JSON string)
-           if (Uri.tryParse(imageField)?.hasAbsolutePath ?? false) {
-             allOriginalImageUrls.add(imageField);
-           }
+          allImageReferences = decodedList.map((e) => e.toString()).toList();
+        } catch (e) {
+          print("Error parsing 'image' field as JSON array string: $e. Raw value: $imageField");
+          // Jika gagal parse sebagai array JSON dan stringnya tidak kosong, anggap sebagai nama file tunggal
+          if (imageField.isNotEmpty) {
+            allImageReferences.add(imageField);
+          }
         }
-      } catch (e) {
-        print("Error parsing 'image' field string in Property.fromJson: $e. Raw value: $imageField");
+      } else if (imageField.isNotEmpty) {
+        // Jika bukan array JSON string tapi string tidak kosong, anggap nama file tunggal
+        allImageReferences.add(imageField);
       }
+    } else if (imageField != null) {
+      print("Warning: 'image' field has an unexpected type: ${imageField.runtimeType}. Value: $imageField");
     }
 
-    // --- PENTING: Sesuaikan URL Basis Laravel Anda di sini ---
-    const String laravelBaseUrl = "http://127.0.0.1:8000/api"; // <<< GANTI INI DENGAN URL SERVER LARAVEL ANDA
+    // Base URL API Laravel Anda (tempat rute /serve-image berada)
+    const String laravelApiBaseUrl = "http://127.0.0.1:8000/api";
 
     String parsedMainImageUrl = "";
     List<String> parsedAdditionalImageUrls = [];
 
-    if (allOriginalImageUrls.isNotEmpty) {
-      try {
-        String firstUrl = allOriginalImageUrls.first;
-        if (firstUrl.isNotEmpty && (Uri.tryParse(firstUrl)?.hasAbsolutePath ?? false)) {
-            Uri originalUri = Uri.parse(firstUrl);
-            if (originalUri.pathSegments.isNotEmpty) {
-                String filename = originalUri.pathSegments.last;
-                parsedMainImageUrl = "$laravelBaseUrl/serve-image/properties/$filename";
-            } else {
-                 print("Warning: Main image URL has no path segments: $firstUrl. Using original URL.");
-                 parsedMainImageUrl = firstUrl; // Fallback ke URL asli jika tidak ada path segment
-            }
-        } else {
-            print("Warning: Invalid or empty main image URL in allOriginalImageUrls: $firstUrl");
-        }
-      } catch (e) {
-        print("Error parsing original main image URL to get filename: ${allOriginalImageUrls.first} - $e");
-        if (allOriginalImageUrls.first.isNotEmpty) {
-            // parsedMainImageUrl = allOriginalImageUrls.first; // Fallback jika error, tapi bisa kembali ke CORS
-        }
+    if (allImageReferences.isNotEmpty) {
+      String firstRef = allImageReferences.first;
+      // Ekstrak nama file jika firstRef adalah URL lengkap (sebagai fallback jika data lama masih ada)
+      // Namun, dengan backend yang menyimpan nama file, ini seharusnya hanya nama file.
+      String mainFilename = firstRef.contains('/') ? firstRef.split('/').last : firstRef;
+      if (mainFilename.isNotEmpty) {
+        parsedMainImageUrl = "$laravelApiBaseUrl/serve-image/properties/$mainFilename";
       }
     }
 
-    if (allOriginalImageUrls.length > 1) {
-      parsedAdditionalImageUrls = allOriginalImageUrls.sublist(1).map((url) {
-        try {
-          if (url.isNotEmpty && (Uri.tryParse(url)?.hasAbsolutePath ?? false)) {
-              Uri originalUri = Uri.parse(url);
-              if (originalUri.pathSegments.isNotEmpty) {
-                  String filename = originalUri.pathSegments.last;
-                  return "$laravelBaseUrl/serve-image/properties/$filename";
-              } else {
-                  print("Warning: Additional image URL has no path segments: $url. Using original URL.");
-                  return url; // Fallback ke URL asli
-              }
-          } else {
-              print("Warning: Invalid or empty additional image URL: $url");
-              return "";
-          }
-        } catch (e) {
-          print("Error parsing original additional image URL to get filename: $url - $e");
-          // return url; // Fallback jika error
-          return "";
+    if (allImageReferences.length > 1) {
+      parsedAdditionalImageUrls = allImageReferences.sublist(1).map((ref) {
+        String additionalFilename = ref.contains('/') ? ref.split('/').last : ref;
+        if (additionalFilename.isNotEmpty) {
+          return "$laravelApiBaseUrl/serve-image/properties/$additionalFilename";
         }
+        return "";
       }).where((url) => url.isNotEmpty).toList();
     }
+    // print('DEBUG Property.fromJson: mainImageUrl = $parsedMainImageUrl, additionalCount: ${parsedAdditionalImageUrls.length}');
 
-    print('DEBUG Property.fromJson (Using Proxied Route): mainImageUrl = $parsedMainImageUrl, additionalCount: ${parsedAdditionalImageUrls.length}');
+
+    // Logika Parsing Status (tetap sama seperti versi perbaikan sebelumnya)
+    PropertyStatus statusValue = PropertyStatus.draft;
+    dynamic statusDynamicFromJson = json['status'];
+    String? statusStringFromJson;
+
+    if (statusDynamicFromJson is String) {
+      statusStringFromJson = statusDynamicFromJson;
+    } else if (statusDynamicFromJson is bool) {
+      print("Warning: Received boolean for status: $statusDynamicFromJson for property ID ${json['_id'] ?? json['id'] ?? 'N/A'}. Defaulting to draft.");
+    } else if (statusDynamicFromJson != null) {
+      statusStringFromJson = statusDynamicFromJson.toString();
+       print("Warning: Received unexpected type for status: ${statusDynamicFromJson.runtimeType} ('$statusStringFromJson') for property ID ${json['_id'] ?? json['id'] ?? 'N/A'}. Attempting to parse.");
+    }
+
+    if (statusStringFromJson != null && statusStringFromJson.isNotEmpty) {
+      try {
+        statusValue = PropertyStatus.values.firstWhere(
+          (e) => e.name.toLowerCase() == statusStringFromJson!.toLowerCase(),
+        );
+      } catch (e) {
+        print("Warning: Unknown status string '$statusStringFromJson' received from backend for property ID ${json['_id'] ?? json['id'] ?? 'N/A'}. Defaulting to draft. Error: $e");
+      }
+    } else {
+        if (!(statusDynamicFromJson is bool)) { // Jangan cetak lagi jika sudah dicetak sebagai boolean
+             print("Warning: Status string is null, empty, or unhandled non-string type for property ID ${json['_id'] ?? json['id'] ?? 'N/A'}. Defaulting to draft.");
+        }
+    }
 
     return Property(
       id: json['_id'] ?? json['id'] ?? '',
       title: json['title'] ?? '',
       description: json['description'] ?? '',
       uploader: json['user_id'] ?? json['uploader'] ?? '',
-      imageUrl: parsedMainImageUrl,
-      additionalImageUrls: parsedAdditionalImageUrls,
+      imageUrl: parsedMainImageUrl, // Menggunakan URL yang sudah dibangun
+      additionalImageUrls: parsedAdditionalImageUrls, // Menggunakan URL yang sudah dibangun
       price: (json['price'] is String)
               ? (double.tryParse(json['price']) ?? 0.0)
               : ((json['price'] as num?)?.toDouble() ?? 0.0),
-      address: json['address'] ?? '',
+      address: json['address'] as String? ?? json['Address'] as String? ?? '',
       bedrooms: (json['bedrooms'] as num?)?.toInt() ?? 0,
       bathrooms: (json['bathrooms'] as num?)?.toInt() ?? 0,
       areaSqft: (json['sizeMin'] != null)
@@ -164,10 +171,7 @@ class Property extends ChangeNotifier {
                   : ((json['areaSqft'] as num?)?.toDouble() ?? 0.0),
       propertyType: json['propertyType'] ?? '',
       furnishings: json['furnishing'] ?? '',
-      status: PropertyStatus.values.firstWhere(
-        (e) => e.toString() == 'PropertyStatus.${json['status']}',
-        orElse: () => PropertyStatus.draft,
-      ),
+      status: statusValue,
       submissionDate: json['submissionDate'] != null ? DateTime.tryParse(json['submissionDate']) : null,
       approvalDate: json['approvalDate'] != null ? DateTime.tryParse(json['approvalDate']) : null,
       rejectionReason: json['rejectionReason'],
@@ -175,8 +179,8 @@ class Property extends ChangeNotifier {
       viewsCount: (json['viewsCount'] as num?)?.toInt() ?? 0,
       inquiriesCount: (json['inquiriesCount'] as num?)?.toInt() ?? 0,
       mainView: json['mainView'],
-      listingAgeCategory: json['listingAgeCategory'],
-      propertyLabel: json['propertyLabel'],
+      listingAgeCategory: json['listingAgeCategory'] as String?,
+      propertyLabel: json['propertyLabel'] as String?,
     );
   }
 
@@ -192,7 +196,7 @@ class Property extends ChangeNotifier {
       'sizeMin': areaSqft,
       'propertyType': propertyType,
       'furnishing': furnishings,
-      'status': status.toString().split('.').last,
+      'status': status.name,
       'rejectionReason': rejectionReason,
       'submissionDate': submissionDate?.toIso8601String(),
       'approvalDate': approvalDate?.toIso8601String(),
@@ -202,6 +206,7 @@ class Property extends ChangeNotifier {
       'mainView': mainView,
       'listingAgeCategory': listingAgeCategory,
       'propertyLabel': propertyLabel,
+      // 'image' tidak perlu dikirim dari sini jika PropertyService yang mengelola file
     };
   }
 

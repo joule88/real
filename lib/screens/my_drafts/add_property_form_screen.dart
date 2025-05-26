@@ -1,7 +1,7 @@
 // File: lib/screens/my_drafts/add_property_form_screen.dart
 
 import 'dart:async';
-import 'dart:convert'; 
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
@@ -11,7 +11,7 @@ import 'package:real/widgets/property_image_picker.dart';
 import 'package:real/services/property_service.dart';
 import 'package:provider/provider.dart';
 import 'package:real/provider/auth_provider.dart';
-import 'package:http/http.dart' as http; 
+import 'package:http/http.dart' as http;
 import 'package:real/widgets/property_action_buttons.dart';
 import 'map_picker_screen.dart';
 import 'package:real/widgets/custom_form_field.dart';
@@ -50,11 +50,11 @@ class _AddPropertyFormScreenState extends State<AddPropertyFormScreen> {
   OverlayEntry? _overlayEntry;
   final LayerLink _layerLink = LayerLink();
 
-  List<XFile> _newlySelectedImages = []; 
-  List<String> _currentExistingImageUrls = []; 
+  List<XFile> _newlySelectedImages = [];
+  List<String> _currentExistingImageUrls = [];
 
   bool _isEditMode = false;
-  PropertyStatus _currentStatus = PropertyStatus.draft;
+  PropertyStatus _currentStatus = PropertyStatus.draft; // Status internal form
   bool _isLoadingSubmit = false;
   bool _isPredictingPrice = false;
   String? _hargaPrediksiIdrFormatted;
@@ -67,27 +67,27 @@ class _AddPropertyFormScreenState extends State<AddPropertyFormScreen> {
   ];
 
   final List<Map<String, dynamic>> kondisiFurnishingOptions = [
-    {'text': 'Unfurnished', 'value': 0},
+    {'text': 'Unfurnished', 'value': 1},
     {'text': 'Semi Furnished', 'value': 2},
-    {'text': 'Furnished', 'value': 1},
+    {'text': 'Furnished', 'value': 0},
   ];
 
   final List<Map<String, dynamic>> pemandanganSekitarOptions = [
     {'text': 'Lainnya / Tidak Spesifik', 'value': 0},
     {'text': 'Pemandangan Laut', 'value': 1},
+    {'text': 'Pemandangan Burj Khalifa', 'value': 2},
+    {'text': 'Pemandangan Golf', 'value': 3},
+    {'text': 'Pemandangan Komunitas', 'value': 4},
     {'text': 'Pemandangan Kota', 'value': 5},
-    {'text': 'Pemandangan Taman/Hijau', 'value': 10},
-    {'text': 'Pemandangan Gunung', 'value': 11},
+    {'text': 'Pemandangan Danau', 'value': 6},
     {'text': 'Pemandangan Kolam Renang', 'value': 7},
-    {'text': 'Pemandangan Danau/Sungai', 'value': 6},
+    {'text': 'Pemandangan Sungai', 'value': 8},
   ];
 
   final List<Map<String, dynamic>> usiaPropertiOptions = [
-    {'text': 'Baru (Kurang dari 1 tahun)', 'value': 0},
-    {'text': '1-5 tahun', 'value': 1},
-    {'text': '6-10 tahun', 'value': 2},
-    {'text': 'Lebih dari 10 tahun', 'value': 3},
-    {'text': 'Belum Dibangun/Indent', 'value': 4},
+    {'text': 'Kurang dari 3 bulan', 'value': 0},
+    {'text': '3-6 Bulan', 'value': 1},
+    {'text': 'Lebih dari 6 Bulan', 'value': 2},
   ];
 
   final List<Map<String, dynamic>> labelPropertiOptions = [
@@ -95,22 +95,16 @@ class _AddPropertyFormScreenState extends State<AddPropertyFormScreen> {
     {'text': 'Furnished', 'value': 2},{'text': 'Spacious', 'value': 3},
     {'text': 'Prime Location', 'value': 4},{'text': 'Studio', 'value': 5},
     {'text': 'Penthouse', 'value': 6},{'text': 'Investment', 'value': 7},
-    {'text': 'Classic', 'value': 10}, {'text': 'Minimalist', 'value': 11},
+    {'text': 'Villa', 'value': 8}, {'text': 'Downtown', 'value': 9},
   ];
+
+
 
   @override
   void initState() {
     super.initState();
     _isEditMode = widget.propertyToEdit != null;
     Property? p = widget.propertyToEdit;
-
-    if (p != null) {
-      print('DEBUG AddPropertyFormScreen: initState - Editing Property ID: ${p.id}, Status: ${p.status}');
-      print('DEBUG AddPropertyFormScreen: initState - p.imageUrl FROM MODEL: ${p.imageUrl}');
-      print('DEBUG AddPropertyFormScreen: initState - p.additionalImageUrls FROM MODEL: ${p.additionalImageUrls}');
-    } else {
-      print('DEBUG AddPropertyFormScreen: initState - Creating New Property (propertyToEdit is null)');
-    }
 
     _namaPropertiController = TextEditingController(text: p?.title ?? '');
     _alamatController = TextEditingController(text: p?.address ?? '');
@@ -119,25 +113,32 @@ class _AddPropertyFormScreenState extends State<AddPropertyFormScreen> {
     _hargaManualAedController = TextEditingController(text: p?.price.toStringAsFixed(0) ?? '0');
     _kamarMandiController = TextEditingController(text: p?.bathrooms.toString() ?? '0');
     _kamarTidurController = TextEditingController(text: p?.bedrooms.toString() ?? '0');
+    
+    // Inisialisasi _currentStatus berdasarkan properti yang diedit
+    // Jika properti baru, default ke draft
     _currentStatus = p?.status ?? PropertyStatus.draft;
 
-    _newlySelectedImages = []; 
+    _newlySelectedImages = [];
     _currentExistingImageUrls = [];
 
     if (_isEditMode && p != null) {
+      // Jika properti yang diedit statusnya rejected,
+      // maka di form ini statusnya diubah menjadi draft agar bisa direvisi.
       if (p.status == PropertyStatus.rejected) {
         _currentStatus = PropertyStatus.draft;
       }
+      // Jika statusnya pendingVerification, _currentStatus akan tetap pendingVerification,
+      // yang akan membuat canEditFields menjadi false.
 
       if (p.imageUrl.isNotEmpty && p.imageUrl.startsWith('http')) {
         _currentExistingImageUrls.add(p.imageUrl);
       }
-      if (p.additionalImageUrls != null) {
+      if (p.additionalImageUrls.isNotEmpty) {
         _currentExistingImageUrls.addAll(
-            p.additionalImageUrls.where((url) => url != null && url.isNotEmpty && url.startsWith('http')));
+            p.additionalImageUrls.where((url) => url.isNotEmpty && url.startsWith('http')));
       }
       _currentExistingImageUrls = _currentExistingImageUrls.toSet().toList();
-      
+
       if (p.propertyType.isNotEmpty && _tipePropertiOptions.contains(p.propertyType)) {
         _tipePropertiValue = p.propertyType;
       }
@@ -170,9 +171,6 @@ class _AddPropertyFormScreenState extends State<AddPropertyFormScreen> {
         if (found.isNotEmpty) _labelPropertiValue = found['value'];
       }
     }
-
-    print('DEBUG AddPropertyFormScreen: initState - _newlySelectedImages AT END (should be empty): $_newlySelectedImages');
-    print('DEBUG AddPropertyFormScreen: initState - _currentExistingImageUrls AT END: $_currentExistingImageUrls');
 
     _alamatController.addListener(() {
       if (_alamatController.text.isEmpty) {
@@ -210,7 +208,7 @@ class _AddPropertyFormScreenState extends State<AddPropertyFormScreen> {
         final bathrooms = int.parse(_kamarMandiController.text);
         final bedrooms = int.parse(_kamarTidurController.text);
         final furnishing = _kondisiFurnishingValue;
-        
+
         final double luasPropertiSqft = double.tryParse(_luasPropertiSqftController.text) ?? 0.0;
         if (luasPropertiSqft <= 0) {
            ScaffoldMessenger.of(context).showSnackBar(
@@ -238,13 +236,13 @@ class _AddPropertyFormScreenState extends State<AddPropertyFormScreen> {
           bathrooms: bathrooms,
           bedrooms: bedrooms,
           furnishing: furnishing,
-          sizeMin: luasPropertiSqft, 
+          sizeMin: luasPropertiSqft,
           verified: defaultVerifiedStatusForPrediction,
           listingAgeCategory: listingAgeCategory,
           viewType: viewType,
           titleKeyword: titleKeyword,
         );
-        
+
          if (result['success'] == true && result['predicted_price'] != null) {
           final predictedPriceAed = result['predicted_price'];
           setState(() {
@@ -287,7 +285,7 @@ class _AddPropertyFormScreenState extends State<AddPropertyFormScreen> {
       );
       return;
     }
-    if ((!_isEditMode && _newlySelectedImages.isEmpty) || 
+    if ((!_isEditMode && _newlySelectedImages.isEmpty) ||
         (_isEditMode && _currentExistingImageUrls.isEmpty && _newlySelectedImages.isEmpty)) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Mohon upload minimal 1 foto properti.')),
@@ -299,8 +297,7 @@ class _AddPropertyFormScreenState extends State<AddPropertyFormScreen> {
 
     String propertyIdForSubmission = (_isEditMode && widget.propertyToEdit != null && widget.propertyToEdit!.id.isNotEmpty)
         ? widget.propertyToEdit!.id
-        : DateTime.now().toIso8601String(); 
-
+        : DateTime.now().toIso8601String();
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final userId = authProvider.user?.id;
 
@@ -308,10 +305,10 @@ class _AddPropertyFormScreenState extends State<AddPropertyFormScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Anda harus login terlebih dahulu untuk mengirim properti.')),
       );
-      setState(() => _isLoadingSubmit = false);
+      if (mounted) setState(() => _isLoadingSubmit = false);
       return;
     }
-    
+
     String furnishingText = _kondisiFurnishingValue != null
         ? kondisiFurnishingOptions.firstWhere((opt) => opt['value'] == _kondisiFurnishingValue, orElse: () => {'text': ''})['text']
         : '';
@@ -330,8 +327,8 @@ class _AddPropertyFormScreenState extends State<AddPropertyFormScreen> {
       title: _namaPropertiController.text,
       description: _deskripsiController.text,
       uploader: userId,
-      imageUrl: '', 
-      additionalImageUrls: [], 
+      imageUrl: '',
+      additionalImageUrls: [],
       price: double.tryParse(_hargaManualAedController.text) ?? 0.0,
       address: _alamatController.text,
       bedrooms: int.tryParse(_kamarTidurController.text) ?? 0,
@@ -339,36 +336,41 @@ class _AddPropertyFormScreenState extends State<AddPropertyFormScreen> {
       areaSqft: double.tryParse(_luasPropertiSqftController.text) ?? 0.0,
       propertyType: _tipePropertiValue ?? '',
       furnishings: furnishingText,
-      status: targetStatus,
-      mainView: pemandanganSekitarText, 
-      listingAgeCategory: usiaPropertiText, 
+      status: targetStatus, // Menggunakan targetStatus yang diterima dari tombol
+      mainView: pemandanganSekitarText,
+      listingAgeCategory: usiaPropertiText,
       propertyLabel: labelPropertiText,
       bookmarkCount: widget.propertyToEdit?.bookmarkCount ?? 0,
       viewsCount: widget.propertyToEdit?.viewsCount ?? 0,
       inquiriesCount: widget.propertyToEdit?.inquiriesCount ?? 0,
-      submissionDate: widget.propertyToEdit?.submissionDate, 
-      approvalDate: widget.propertyToEdit?.approvalDate, 
+      submissionDate: (targetStatus == PropertyStatus.pendingVerification && widget.propertyToEdit?.submissionDate == null)
+                          ? DateTime.now()
+                          : widget.propertyToEdit?.submissionDate,
+      approvalDate: widget.propertyToEdit?.approvalDate,
     );
 
     final token = authProvider.token;
     if (token == null || token.isEmpty) {
-      setState(() => _isLoadingSubmit = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Sesi Anda berakhir. Silakan login ulang.')),
-      );
-      return; 
+      if (mounted) {
+        setState(() => _isLoadingSubmit = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Sesi Anda berakhir. Silakan login ulang.')),
+        );
+      }
+      return;
     }
-    
+
+    print('DEBUG AddPropertyFormScreen: Mengirim properti dengan status: ${propertyData.status}');
+
     final result = await _propertyService.submitProperty(
       property: propertyData,
       newSelectedImages: _newlySelectedImages,
       existingImageUrls: _currentExistingImageUrls,
-      token: token, 
+      token: token,
     );
 
-    if(mounted) setState(() => _isLoadingSubmit = false);
-
     if (mounted) {
+      setState(() => _isLoadingSubmit = false);
       if (result['success'] == true) {
         String successMessage = targetStatus == PropertyStatus.draft
             ? "Draft berhasil disimpan!"
@@ -378,11 +380,10 @@ class _AddPropertyFormScreenState extends State<AddPropertyFormScreen> {
         } else if (_isEditMode) {
             successMessage = "Draft berhasil diperbarui!";
         }
-
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(successMessage), backgroundColor: Colors.green),
         );
-        Navigator.pop(context, true); 
+        Navigator.pop(context, true);
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(result['message'] ?? 'Terjadi kesalahan saat mengirim properti.'), backgroundColor: Colors.red),
@@ -390,6 +391,7 @@ class _AddPropertyFormScreenState extends State<AddPropertyFormScreen> {
       }
     }
   }
+
 
   Future<void> _fetchAddressSuggestions(String query) async {
     if (query.trim().isEmpty) {
@@ -414,7 +416,7 @@ class _AddPropertyFormScreenState extends State<AddPropertyFormScreen> {
 
     try {
       final response = await http.get(uri, headers: {
-        'User-Agent': 'NestoraApp/1.0 (muhammadjulianromadhoni@gmail.com)'
+        'User-Agent': 'NamaAplikasiAnda/1.0 (emailanda@example.com)'
       });
 
       if (mounted) {
@@ -469,7 +471,7 @@ class _AddPropertyFormScreenState extends State<AddPropertyFormScreen> {
         child: CompositedTransformFollower(
           link: _layerLink,
           showWhenUnlinked: false,
-          offset: const Offset(0.0, 58.0), 
+          offset: const Offset(0.0, 58.0),
           child: Material(
             elevation: 4.0,
             borderRadius: BorderRadius.circular(8),
@@ -540,11 +542,11 @@ class _AddPropertyFormScreenState extends State<AddPropertyFormScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Menentukan apakah field form bisa diedit berdasarkan status properti (_currentStatus) di form ini.
+    // Jika _currentStatus adalah draft atau rejected (setelah revisi), maka field bisa diedit.
+    // Jika _currentStatus adalah pendingVerification, approved, dll., maka field tidak bisa diedit.
     bool canEditFields = _currentStatus == PropertyStatus.draft || _currentStatus == PropertyStatus.rejected;
-    
-    print('DEBUG AddPropertyFormScreen: build() - _newlySelectedImages: $_newlySelectedImages');
-    print('DEBUG AddPropertyFormScreen: build() - _currentExistingImageUrls: $_currentExistingImageUrls');
-    
+
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -577,7 +579,7 @@ class _AddPropertyFormScreenState extends State<AddPropertyFormScreen> {
                 PropertyImagePicker(
                   initialSelectedImages: _newlySelectedImages,
                   initialExistingImageUrls: _currentExistingImageUrls,
-                  canEdit: canEditFields,
+                  canEdit: canEditFields, // Kontrol editability PropertyImagePicker
                   onSelectedImagesChanged: (updatedSelectedImages) {
                     setState(() => _newlySelectedImages = updatedSelectedImages);
                   },
@@ -602,7 +604,7 @@ class _AddPropertyFormScreenState extends State<AddPropertyFormScreen> {
                       onChanged: _onAddressSearchChanged,
                       suffixIcon: IconButton(
                         icon: Icon(Icons.map_outlined, color: Theme.of(context).primaryColor),
-                        onPressed: _openMapPicker,
+                        onPressed: canEditFields ? _openMapPicker : null,
                       ),
                       validator: (value) {
                         if (value == null || value.isEmpty) return 'Alamat tidak boleh kosong';
@@ -614,17 +616,17 @@ class _AddPropertyFormScreenState extends State<AddPropertyFormScreen> {
                   label: "Tipe Properti",
                   value: _tipePropertiValue,
                   options: _tipePropertiOptions,
-                  onChanged: (value) {
-                    if (mounted) {
+                  onChanged: (String? newValue) { // Selalu berikan fungsi non-null
+                    if (canEditFields && mounted) {
                       setState(() {
-                        _tipePropertiValue = value;
+                        _tipePropertiValue = newValue;
                       });
                     }
                   },
                   hint: "Pilih Tipe Properti",
                   enabled: canEditFields,
                 ),
-                
+
                 Row(
                   children: [
                     Expanded(
@@ -656,46 +658,62 @@ class _AddPropertyFormScreenState extends State<AddPropertyFormScreen> {
                   value: _kondisiFurnishingValue,
                   options: kondisiFurnishingOptions,
                   enabled: canEditFields,
-                  onChanged: (value) => setState(() => _kondisiFurnishingValue = value),
+                  onChanged: (dynamic? newValue) { // Selalu berikan fungsi non-null
+                    if (canEditFields) {
+                      setState(() => _kondisiFurnishingValue = newValue as int?);
+                    }
+                  },
                 ),
                 CustomDropdownMapField(
                   label: "Pemandangan Sekitar",
                   value: _pemandanganSekitarValue,
                   options: pemandanganSekitarOptions,
                   enabled: canEditFields,
-                  onChanged: (value) => setState(() => _pemandanganSekitarValue = value),
+                  onChanged: (dynamic? newValue) { // Selalu berikan fungsi non-null
+                    if (canEditFields) {
+                      setState(() => _pemandanganSekitarValue = newValue as int?);
+                    }
+                  },
                 ),
                 CustomDropdownMapField(
                   label: "Usia Properti",
                   value: _usiaPropertiValue,
                   options: usiaPropertiOptions,
                   enabled: canEditFields,
-                  onChanged: (value) => setState(() => _usiaPropertiValue = value),
+                  onChanged: (dynamic? newValue) { // Selalu berikan fungsi non-null
+                    if (canEditFields) {
+                      setState(() => _usiaPropertiValue = newValue as int?);
+                    }
+                  },
                 ),
                 CustomDropdownMapField(
                   label: "Label Properti / Tag",
                   value: _labelPropertiValue,
                   options: labelPropertiOptions,
                   enabled: canEditFields,
-                  onChanged: (value) => setState(() => _labelPropertiValue = value),
+                  onChanged: (dynamic? newValue) { // Selalu berikan fungsi non-null
+                    if (canEditFields) {
+                      setState(() => _labelPropertiValue = newValue as int?);
+                    }
+                  },
                 ),
-                
+
                 CustomTextFormField(
                   label: "Deskripsi Tambahan",
                   controller: _deskripsiController,
                   maxLines: 4,
                   enabled: canEditFields,
-                  validator: null, 
+                  validator: null,
                 ),
 
                 const SizedBox(height: 10),
-                if (canEditFields)
+                if (canEditFields) // Tombol prediksi hanya muncul jika bisa diedit
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton.icon(
                       icon: _isPredictingPrice
-                          ? Container(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black87))
-                          : Icon(Icons.online_prediction_outlined, color: Colors.black87),
+                          ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black87))
+                          : const Icon(Icons.online_prediction_outlined, color: Colors.black87),
                       label: Text("Prediksi & Isi Harga", style: GoogleFonts.poppins(fontWeight: FontWeight.w600, color: Colors.black87, fontSize: 15)),
                       onPressed: _isPredictingPrice ? null : _predictAndSetPrice,
                       style: ElevatedButton.styleFrom(
@@ -736,10 +754,12 @@ class _AddPropertyFormScreenState extends State<AddPropertyFormScreen> {
                       ],
                     ),
                   ),
-                
+
                 const SizedBox(height: 10),
 
-                if (_currentStatus != PropertyStatus.draft && _currentStatus != PropertyStatus.rejected && !_isLoadingSubmit)
+                // Menampilkan status properti saat ini jika form TIDAK BOLEH DIEDIT
+                // Ini akan menampilkan chip status seperti "Menunggu Verifikasi Admin"
+                if (!canEditFields && !_isLoadingSubmit)
                   Padding(
                     padding: const EdgeInsets.only(bottom: 20.0),
                     child: Center(
@@ -749,18 +769,22 @@ class _AddPropertyFormScreenState extends State<AddPropertyFormScreen> {
                                 ? "Status: Menunggu Verifikasi Admin"
                                 : _currentStatus == PropertyStatus.approved
                                     ? "Status: Sudah Disetujui & Tayang"
-                                    : "Status: ${widget.propertyToEdit?.status.toString().split('.').last ?? 'Tidak Diketahui'}",
+                                    : "Status: ${_currentStatus.name.replaceAllMapped(RegExp(r'(?<=[a-z])(?=[A-Z])'), (Match m) => ' ${m[0]}').replaceFirstMapped(RegExp(r'^[a-z]'), (m) => m[0]!.toUpperCase())}",
                             style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.w500, fontSize: 12)),
                         backgroundColor:
                             _currentStatus == PropertyStatus.pendingVerification
                                 ? Colors.orangeAccent.shade700
                                 : _currentStatus == PropertyStatus.approved
                                     ? Colors.green.shade600
-                                    : Colors.grey,
+                                    : Colors.grey[700], // Warna default jika status lain
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                       ),
                     ),
                   ),
+
+                // Tombol Aksi hanya akan ditampilkan jika canEditFields == true (status draft atau rejected)
+                // Sesuai logika di dalam PropertyActionButtons, jika _currentStatus adalah pendingVerification,
+                // tombol tidak akan muncul.
                 PropertyActionButtons(
                     isLoading: _isLoadingSubmit,
                     currentStatus: _currentStatus,
@@ -768,6 +792,8 @@ class _AddPropertyFormScreenState extends State<AddPropertyFormScreen> {
                     onEdit: () {
                       if (mounted) {
                         setState(() {
+                          // Ini dipanggil ketika properti yang REJECTED ingin direvisi.
+                          // Status form diubah menjadi DRAFT agar bisa diedit.
                           _currentStatus = PropertyStatus.draft;
                         });
                       }

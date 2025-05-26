@@ -18,7 +18,6 @@ class _MyDraftsScreenState extends State<MyDraftsScreen> {
   @override
   void initState() {
     super.initState();
-    // Panggil _fetchMyDrafts setelah frame pertama selesai dibangun
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _fetchMyDrafts();
     });
@@ -27,32 +26,26 @@ class _MyDraftsScreenState extends State<MyDraftsScreen> {
   Future<void> _fetchMyDrafts() async {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final token = authProvider.token;
-    if (token != null) {
+    if (token != null && mounted) { // Tambahkan cek mounted
       // Panggil metode dari PropertyProvider
       await Provider.of<PropertyProvider>(context, listen: false)
           .fetchUserDraftAndPendingProperties(token);
-    } else {
-      // Handle kasus token null (misalnya, tampilkan pesan atau logout)
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Sesi tidak valid. Silakan login ulang.')),
-        );
-      }
+    } else if (token == null && mounted) { // Tambahkan cek mounted
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Sesi tidak valid. Silakan login ulang.')),
+      );
     }
   }
 
   void _navigateToForm({Property? existingProperty}) async {
-    final propertyProvider = Provider.of<PropertyProvider>(context, listen: false);
-    final result = await Navigator.push<bool>( // Tipe result diubah ke bool
+    final result = await Navigator.push<bool>( 
       context,
       MaterialPageRoute(
         builder: (context) => AddPropertyFormScreen(propertyToEdit: existingProperty),
       ),
     );
 
-    if (result == true) {
-      // Jika AddPropertyFormScreen mengembalikan true (artinya ada perubahan/simpan),
-      // panggil _fetchMyDrafts lagi untuk memperbarui daftar.
+    if (result == true && mounted) { 
       _fetchMyDrafts();
     }
   }
@@ -60,11 +53,23 @@ class _MyDraftsScreenState extends State<MyDraftsScreen> {
   String _getStatusText(PropertyStatus status) {
     switch (status) {
       case PropertyStatus.draft:
-        return 'Draft'; // Disingkat
+        return 'Draft';
       case PropertyStatus.pendingVerification:
         return 'Menunggu Verifikasi';
+      case PropertyStatus.approved:
+        return 'Disetujui';
+      case PropertyStatus.rejected:
+        return 'Ditolak';
+      case PropertyStatus.sold:
+        return 'Terjual';
+      case PropertyStatus.archived:
+        return 'Diarsipkan';
       default:
-        return status.toString().split('.').last;
+        // Menggunakan e.name untuk mendapatkan nama enum tanpa prefix kelas
+        // dan menambahkan spasi sebelum huruf kapital untuk keterbacaan.
+        String name = status.name;
+        return name.replaceAllMapped(RegExp(r'(?<=[a-z])(?=[A-Z])'), (Match m) => ' ${m[0]}')
+                   .replaceFirstMapped(RegExp(r'^[a-z]'), (m) => m[0]!.toUpperCase());
     }
   }
 
@@ -73,15 +78,47 @@ class _MyDraftsScreenState extends State<MyDraftsScreen> {
       case PropertyStatus.draft:
         return Colors.blueGrey[600]!;
       case PropertyStatus.pendingVerification:
-        return Colors.orange[600]!;
+        return Colors.orange[700]!; 
+      case PropertyStatus.approved:
+        return Colors.green[600]!;
+      case PropertyStatus.rejected:
+        return Colors.red[700]!;
       default:
         return Colors.grey;
     }
   }
 
+  IconData _getStatusIcon(PropertyStatus status) {
+    switch (status) {
+      case PropertyStatus.draft:
+      case PropertyStatus.rejected: 
+        return Icons.edit_outlined;
+      case PropertyStatus.pendingVerification:
+        return Icons.hourglass_top_rounded; 
+      case PropertyStatus.approved:
+        return Icons.check_circle_outline_rounded;
+      default:
+        return Icons.info_outline_rounded; 
+    }
+  }
+
+  Color _getTrailingIconColor(PropertyStatus status) {
+     switch (status) {
+      case PropertyStatus.draft:
+      case PropertyStatus.rejected:
+        return Colors.blueAccent;
+      case PropertyStatus.pendingVerification:
+        return Colors.orange[700]!;
+      case PropertyStatus.approved:
+        return Colors.green[600]!;
+      default:
+        return Colors.grey[700]!;
+    }
+  }
+
+
   @override
   Widget build(BuildContext context) {
-    // Gunakan Consumer untuk rebuild saat data di provider berubah
     return Consumer<PropertyProvider>(
       builder: (context, propertyProvider, child) {
         return Scaffold(
@@ -109,10 +146,21 @@ class _MyDraftsScreenState extends State<MyDraftsScreen> {
                   ? Center(
                       child: Padding(
                         padding: const EdgeInsets.all(16.0),
-                        child: Text(
-                          'Gagal memuat data: ${propertyProvider.userPropertiesError}\nCoba tarik untuk muat ulang.',
-                          textAlign: TextAlign.center,
-                          style: GoogleFonts.poppins(color: Colors.red[700]),
+                        child: Column( // Bungkus dengan Column untuk tombol refresh
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              'Gagal memuat data: ${propertyProvider.userPropertiesError}',
+                              textAlign: TextAlign.center,
+                              style: GoogleFonts.poppins(color: Colors.red[700]),
+                            ),
+                            const SizedBox(height: 10),
+                            ElevatedButton.icon(
+                              icon: const Icon(Icons.refresh),
+                              label: const Text("Coba Lagi"),
+                              onPressed: _fetchMyDrafts,
+                            )
+                          ],
                         ),
                       ),
                     )
@@ -190,7 +238,10 @@ class _MyDraftsScreenState extends State<MyDraftsScreen> {
                                       ),
                                     ],
                                   ),
-                                  trailing: const Icon(Icons.edit_outlined, color: Colors.blueAccent),
+                                  trailing: Icon(
+                                    _getStatusIcon(property.status),
+                                    color: _getTrailingIconColor(property.status),
+                                  ),
                                   onTap: () {
                                     _navigateToForm(existingProperty: property);
                                   },
@@ -200,7 +251,7 @@ class _MyDraftsScreenState extends State<MyDraftsScreen> {
                           ),
                         ),
           floatingActionButton: propertyProvider.isLoadingUserProperties || propertyProvider.userProperties.isEmpty
-              ? null // Sembunyikan FAB jika sedang loading atau list kosong (karena ada tombol besar di tengah)
+              ? null
               : FloatingActionButton.extended(
                   onPressed: () => _navigateToForm(),
                   backgroundColor: const Color(0xFF1F2937),

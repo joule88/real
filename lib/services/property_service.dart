@@ -8,7 +8,6 @@ import 'dart:typed_data';
 import 'package:http_parser/http_parser.dart';
 
 class PropertyService {
-  // Metode untuk mengirim properti (Create/Update)
   Future<Map<String, dynamic>> submitProperty({
     required Property property,
     required List<XFile> newSelectedImages,
@@ -17,17 +16,26 @@ class PropertyService {
   }) async {
     bool isUpdate = property.id.isNotEmpty &&
         !(property.id.contains(RegExp(r'^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+Z?$')));
+    
+    // Endpoint tetap sama, baik untuk create (tanpa {id}) maupun update (dengan {id})
     String endpoint = isUpdate
         ? '${ApiConstants.propertiesEndpoint}/${property.id}'
         : ApiConstants.propertiesEndpoint;
 
     var uri = Uri.parse('${ApiConstants.laravelApiBaseUrl}$endpoint');
-    var request = http.MultipartRequest(isUpdate ? 'PUT' : 'POST', uri);
+
+    // ================== PERUBAHAN METHOD REQUEST DI SINI ==================
+    // Selalu gunakan 'POST' untuk endpoint ini jika bisa melibatkan file,
+    // Laravel menangani POST multipart dengan lebih baik.
+    // Logika di backend (controller) akan membedakan create vs update jika perlu,
+    // atau rute yang berbeda akan menunjuk ke method yang berbeda.
+    // Dalam kasus ini, rute POST /properties/{id} akan menunjuk ke method update.
+    var request = http.MultipartRequest('POST', uri);
+    // ================== AKHIR PERUBAHAN METHOD REQUEST ==================
 
     request.headers['Authorization'] = 'Bearer $token';
     request.headers['Accept'] = 'application/json';
 
-    // Menggunakan data dari objek Property
     request.fields['title'] = property.title;
     request.fields['description'] = property.description;
     request.fields['price'] = property.price.toString();
@@ -55,24 +63,33 @@ class PropertyService {
     }
     request.fields['retainedImageUrls'] = jsonEncode(retainedImageUrls);
 
-    print('INFO: Jumlah file gambar baru yang akan dikirim: ${newSelectedImages.length}');
-    int imageIndex = 0; // Pindahkan inisialisasi index ke luar loop
+    if (isUpdate) {
+      print('DEBUG PropertyService: Sending POST request (for UPDATE) to $uri');
+      print('DEBUG PropertyService: Sending status for update: ${request.fields['status']}');
+      print('DEBUG PropertyService: RetainedImageUrls being sent: ${request.fields['retainedImageUrls']}');
+      print('DEBUG PropertyService: All fields being sent for update: ${request.fields}');
+    } else {
+      print('DEBUG PropertyService: Sending POST request (for CREATE) to $uri');
+      print('DEBUG PropertyService: All fields being sent for create: ${request.fields}');
+    }
+    print('DEBUG PropertyService: Number of new images to upload: ${newSelectedImages.length}');
+    
+    int imageIndex = 0;
     for (var imageFile in newSelectedImages) {
       try {
         Uint8List imageBytes = await imageFile.readAsBytes();
         request.files.add(
           http.MultipartFile.fromBytes(
-            'images[$imageIndex]', // Gunakan index yang diincrement dengan benar
+            'images[$imageIndex]', // Menggunakan indeks eksplisit untuk array file di backend
             imageBytes,
             filename: imageFile.name,
             contentType: MediaType('image', _getExtension(imageFile.name)),
           ),
         );
         print('INFO: File gambar ${imageFile.name} (index: $imageIndex) berhasil ditambahkan ke request.');
-        imageIndex++; // Increment index untuk gambar berikutnya
+        imageIndex++;
       } catch (e) {
         print('ERROR: Gagal membaca atau menambahkan file gambar ${imageFile.name}: $e');
-        // Anda mungkin ingin mengembalikan error atau melanjutkan tanpa file ini
       }
     }
 
@@ -81,9 +98,10 @@ class PropertyService {
       final response = await http.Response.fromStream(streamedResponse);
 
       if (response.statusCode == 200 || response.statusCode == 201) {
-        print('INFO: Properti berhasil dikirim. Status: ${response.statusCode}');
+        print('INFO: Properti berhasil dikirim. Status: ${response.statusCode}, Response: ${response.body}');
         return {'success': true, 'data': jsonDecode(response.body)};
       } else {
+        // ... (error handling sama)
         final errorBody = jsonDecode(response.body);
         String message = 'Terjadi kesalahan saat mengirim properti.';
         if (errorBody != null && errorBody is Map) {
@@ -94,7 +112,7 @@ class PropertyService {
         } else {
           message = response.body;
         }
-        print('ERROR: Gagal mengirim properti. Status: ${response.statusCode}, Pesan: $message');
+        print('ERROR: Gagal mengirim properti. Status: ${response.statusCode}, Pesan: $message, Body: ${response.body}');
         return {'success': false, 'message': message};
       }
     } catch (e) {
@@ -103,7 +121,7 @@ class PropertyService {
     }
   }
 
-  // Metode untuk mengambil properti pengguna
+  // ... (getUserProperties dan predictPropertyPrice tetap sama) ...
   Future<Map<String, dynamic>> getUserProperties(String token, {List<String>? statuses}) async {
     String statusQuery = '';
     if (statuses != null && statuses.isNotEmpty) {
@@ -127,7 +145,7 @@ class PropertyService {
         if (data is Map && data.containsKey('data') && data['data'] is List) {
           print("INFO: User properties fetched successfully.");
           return {'success': true, 'properties': List<Map<String, dynamic>>.from(data['data'])};
-        } else if (data is List) { // Jika API langsung mengembalikan array properti
+        } else if (data is List) { 
           print("INFO: User properties fetched successfully (direct array).");
           return {'success': true, 'properties': List<Map<String, dynamic>>.from(data)};
         }
@@ -143,12 +161,11 @@ class PropertyService {
     }
   }
 
-  // Metode untuk prediksi harga properti
   Future<Map<String, dynamic>> predictPropertyPrice({
     required int bathrooms,
     required int bedrooms,
     required int furnishing,
-    required double sizeMin, // Ini adalah nilai sqft
+    required double sizeMin, 
     required int verified,
     required int listingAgeCategory,
     required int viewType,
@@ -196,7 +213,7 @@ class PropertyService {
         } else {
           message = response.body;
         }
-        print("ERROR: Failed to predict price: ${response.statusCode} - Message: $message");
+        print("ERROR: Failed to predict price: ${response.statusCode} - Message: $message, Body: ${response.body}");
         return {'success': false, 'message': message};
       }
     } catch (e) {
@@ -205,7 +222,6 @@ class PropertyService {
     }
   }
 
-  // Helper untuk mendapatkan ekstensi file
   String _getExtension(String filename) {
     final ext = filename.split('.').last.toLowerCase();
     switch (ext) {
@@ -214,8 +230,10 @@ class PropertyService {
         return 'jpeg';
       case 'png':
         return 'png';
+      case 'webp':
+        return 'webp';
       default:
-        return 'jpeg'; // default fallback
+        return 'jpeg'; 
     }
   }
 }
