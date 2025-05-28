@@ -148,7 +148,7 @@ class Property extends ChangeNotifier {
         print("Warning: Unknown status string '$statusStringFromJson' received from backend for property ID ${json['_id'] ?? json['id'] ?? 'N/A'}. Defaulting to draft. Error: $e");
       }
     } else {
-        if (!(statusDynamicFromJson is bool)) { // Jangan cetak lagi jika sudah dicetak sebagai boolean
+        if (statusDynamicFromJson is! bool) { // Jangan cetak lagi jika sudah dicetak sebagai boolean
              print("Warning: Status string is null, empty, or unhandled non-string type for property ID ${json['_id'] ?? json['id'] ?? 'N/A'}. Defaulting to draft.");
         }
     }

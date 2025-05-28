@@ -55,8 +55,8 @@ class PropertyActionButtons extends StatelessWidget {
                 // Panggil callback `onSubmit` dengan `targetStatus` diatur ke `PropertyStatus.draft`.
                 onPressed: () => onSubmit(targetStatus: PropertyStatus.draft),
                 style: buttonStyle.copyWith(
-                  backgroundColor: MaterialStateProperty.all(Colors.blueGrey[700]), // Warna spesifik untuk Simpan Draft
-                  foregroundColor: MaterialStateProperty.all(Colors.white),
+                  backgroundColor: WidgetStateProperty.all(Colors.blueGrey[700]), // Warna spesifik untuk Simpan Draft
+                  foregroundColor: WidgetStateProperty.all(Colors.white),
                 ),
                 child: const Text("Simpan Draft"),
               ),
@@ -82,8 +82,8 @@ class PropertyActionButtons extends StatelessWidget {
                 // di form menjadi `PropertyStatus.draft` agar field bisa diedit kembali.
                 onPressed: onEdit,
                 style: buttonStyle.copyWith(
-                  backgroundColor: MaterialStateProperty.all(Colors.orange[700]), // Warna spesifik untuk Revisi
-                  foregroundColor: MaterialStateProperty.all(Colors.white),
+                  backgroundColor: WidgetStateProperty.all(Colors.orange[700]), // Warna spesifik untuk Revisi
+                  foregroundColor: WidgetStateProperty.all(Colors.white),
                 ),
                 child: const Text("Edit Ulang (Revisi)"),
               ),

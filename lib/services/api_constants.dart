@@ -1,16 +1,19 @@
-// lib/services/api_constants.dart
 class ApiConstants {
-  // Base URL untuk API Laravel Utama (misalnya untuk submit properti, auth, dll.)
   static const String laravelApiBaseUrl = 'http://127.0.0.1:8000/api';
 
-  // --- Base URL BARU untuk Flask API Prediksi ---
-  static const String flaskApiBaseUrl = 'http://127.0.0.1:5000'; // Sesuai dengan tempat Flask app berjalan
+  // --- Flask API Prediksi ---
+  static const String flaskApiBaseUrl = 'http://127.0.0.1:5000';
 
-  // Endpoint untuk API Laravel (akan digabung dengan laravelApiBaseUrl)
+  // Endpoint untuk API Laravel
   static const String propertiesEndpoint = '/properties';
   static const String userPropertiesEndpoint = '/user/properties';
   static const String registerEndpoint = '/register';
   static const String loginEndpoint = '/login';
+  static const String logoutEndpoint = '/logout';
+
+  // --- TAMBAHKAN ENDPOINT UNTUK PROFIL PENGGUNA ---
+  // Ini bisa digunakan untuk GET (ambil profil) dan PUT/POST (update profil)
+  static const String userProfileEndpoint = '/user/profile';
 
   // Endpoint untuk API Flask Prediksi (akan digabung dengan flaskApiBaseUrl)
   static const String predictPriceEndpoint = '/prediksi/create';

@@ -1,8 +1,7 @@
 // lib/widgets/property_price_prediction_modal.dart
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:provider/provider.dart';
-import 'package:real/provider/auth_provider.dart'; // Pastikan path ini benar
+// Pastikan path ini benar
 import 'package:real/services/property_service.dart'; // Pastikan path ini benar
 import 'package:intl/intl.dart'; // Untuk formatting angka (IDR)
 
@@ -87,7 +86,7 @@ Widget _buildNumberField({
 
 
 void showPredictionModal(BuildContext context, TextEditingController hargaManualController) {
-  final _formKey = GlobalKey<FormState>();
+  final formKey = GlobalKey<FormState>();
   final PropertyService propertyService = PropertyService();
 
   final kamarMandiCtrl = TextEditingController();
@@ -105,7 +104,7 @@ void showPredictionModal(BuildContext context, TextEditingController hargaManual
   int? kategoriUsiaListingValue;
   int? labelPropertiValue;
 
-  bool _isPredicting = false;
+  bool isPredicting = false;
   final double kursAedKeIdr = 4350; // GANTI DENGAN NILAI TUKAR AKTUAL ATAU MEKANISME DINAMIS
 
   // Opsi dropdowns (Kecuali 'Terverifikasi')
@@ -165,7 +164,7 @@ void showPredictionModal(BuildContext context, TextEditingController hargaManual
               bottom: MediaQuery.of(modalContext).viewInsets.bottom + 20,
             ),
             child: Form(
-              key: _formKey,
+              key: formKey,
               child: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -232,14 +231,14 @@ void showPredictionModal(BuildContext context, TextEditingController hargaManual
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton.icon(
-                        icon: _isPredicting
+                        icon: isPredicting
                             ? SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black87))
                             : Icon(Icons.online_prediction_outlined, color: Colors.black87),
                         label: Text("Prediksi Harga", style: GoogleFonts.poppins(fontWeight: FontWeight.w600, color: Colors.black87, fontSize: 15)),
-                        onPressed: _isPredicting ? null : () async {
-                          if (_formKey.currentState!.validate()) {
+                        onPressed: isPredicting ? null : () async {
+                          if (formKey.currentState!.validate()) {
                             setModalState(() {
-                              _isPredicting = true;
+                              isPredicting = true;
                               hargaPrediksiAedCtrl.clear();
                               hargaPrediksiIdrCtrl.clear();
                             });
@@ -255,7 +254,7 @@ void showPredictionModal(BuildContext context, TextEditingController hargaManual
                               titleKeyword: labelPropertiValue!,
                             );
 
-                            setModalState(() => _isPredicting = false);
+                            setModalState(() => isPredicting = false);
 
                             if (result['success'] == true && result['predicted_price'] != null) {
                               final predictedPriceAed = result['predicted_price'];

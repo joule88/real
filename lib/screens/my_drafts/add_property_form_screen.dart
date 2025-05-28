@@ -59,7 +59,7 @@ class _AddPropertyFormScreenState extends State<AddPropertyFormScreen> {
   bool _isPredictingPrice = false;
   String? _hargaPrediksiIdrFormatted;
 
-  final double _kursAedKeIdr = 4350;
+  final double _kursAedKeIdr = 4426;
   final _idrFormatter = NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0);
 
   final List<String> _tipePropertiOptions = [
@@ -658,7 +658,7 @@ class _AddPropertyFormScreenState extends State<AddPropertyFormScreen> {
                   value: _kondisiFurnishingValue,
                   options: kondisiFurnishingOptions,
                   enabled: canEditFields,
-                  onChanged: (dynamic? newValue) { // Selalu berikan fungsi non-null
+                  onChanged: (dynamic newValue) { // Selalu berikan fungsi non-null
                     if (canEditFields) {
                       setState(() => _kondisiFurnishingValue = newValue as int?);
                     }
@@ -669,7 +669,7 @@ class _AddPropertyFormScreenState extends State<AddPropertyFormScreen> {
                   value: _pemandanganSekitarValue,
                   options: pemandanganSekitarOptions,
                   enabled: canEditFields,
-                  onChanged: (dynamic? newValue) { // Selalu berikan fungsi non-null
+                  onChanged: (dynamic newValue) { // Selalu berikan fungsi non-null
                     if (canEditFields) {
                       setState(() => _pemandanganSekitarValue = newValue as int?);
                     }
@@ -680,7 +680,7 @@ class _AddPropertyFormScreenState extends State<AddPropertyFormScreen> {
                   value: _usiaPropertiValue,
                   options: usiaPropertiOptions,
                   enabled: canEditFields,
-                  onChanged: (dynamic? newValue) { // Selalu berikan fungsi non-null
+                  onChanged: (dynamic newValue) { // Selalu berikan fungsi non-null
                     if (canEditFields) {
                       setState(() => _usiaPropertiValue = newValue as int?);
                     }
@@ -691,7 +691,7 @@ class _AddPropertyFormScreenState extends State<AddPropertyFormScreen> {
                   value: _labelPropertiValue,
                   options: labelPropertiOptions,
                   enabled: canEditFields,
-                  onChanged: (dynamic? newValue) { // Selalu berikan fungsi non-null
+                  onChanged: (dynamic newValue) { // Selalu berikan fungsi non-null
                     if (canEditFields) {
                       setState(() => _labelPropertiValue = newValue as int?);
                     }
@@ -743,7 +743,7 @@ class _AddPropertyFormScreenState extends State<AddPropertyFormScreen> {
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          "Kurs AED ke IDR: ${_idrFormatter.format(_kursAedKeIdr)} (dapat berubah).",
+                          "Kurs 1 AED ke IDR: ${_idrFormatter.format(_kursAedKeIdr)} (dapat berubah).",
                           style: GoogleFonts.poppins(color: Colors.grey[700], fontSize: 12, fontStyle: FontStyle.italic),
                         ),
                          const SizedBox(height: 2),

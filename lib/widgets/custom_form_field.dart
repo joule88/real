@@ -78,7 +78,7 @@ class CustomDropdownMapField extends StatelessWidget {
   final String label;
   final dynamic value;
   final List<Map<String, dynamic>> options;
-  final ValueChanged<dynamic?> onChanged;
+  final ValueChanged<dynamic> onChanged;
   final bool enabled;
   final String? hint;
   final FormFieldValidator<dynamic>? validator;

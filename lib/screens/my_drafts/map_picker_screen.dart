@@ -171,7 +171,7 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
                     initialCenter: _currentMapCenter,
                     initialZoom: 16.0,
                     onPositionChanged: (position, hasGesture) {
-                      if (hasGesture && position.center != null) {
+                      if (hasGesture) {
                         // Update _selectedLocation saat peta digeser oleh pengguna
                         // Ini akan membuat marker di tengah "mengikuti"
                          if (_selectedLocation != position.center) { // Hanya update jika berbeda
