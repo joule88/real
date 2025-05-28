@@ -1,28 +1,35 @@
+// lib/widgets/textfield_login.dart
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-class CustomTextField extends StatefulWidget {
+class TextFieldLogin extends StatefulWidget {
   final String label;
   final String hintText;
-  final IconData icon;
+  final IconData? prefixIcon;
   final bool isPassword;
-  final TextEditingController? controller; // Tambahkan controller
+  final TextEditingController? controller;
+  final String? Function(String?)? validator;
+  final TextInputType? keyboardType;
+  final Widget? suffixIcon; // Untuk suffix jika isPassword false
 
-  const CustomTextField({
+  const TextFieldLogin({
     super.key,
     required this.label,
     required this.hintText,
-    required this.icon,
+    this.prefixIcon,
     this.isPassword = false,
-    this.controller, // Tambahkan controller
+    this.controller,
+    this.validator,
+    this.keyboardType,
+    this.suffixIcon, // Meskipun isPassword punya tombol internal, ini untuk fleksibilitas jika diperlukan
   });
 
   @override
-  State<CustomTextField> createState() => _CustomTextFieldState();
+  State<TextFieldLogin> createState() => _TextFieldLoginState();
 }
 
-class _CustomTextFieldState extends State<CustomTextField> {
-  bool _obscure = true;
+class _TextFieldLoginState extends State<TextFieldLogin> {
+  bool _obscureTextForPasswordField = true;
 
   @override
   Widget build(BuildContext context) {
@@ -32,7 +39,7 @@ class _CustomTextFieldState extends State<CustomTextField> {
         Text(
           widget.label,
           style: GoogleFonts.poppins(
-            fontSize: 16,
+            fontSize: 14,
             fontWeight: FontWeight.w600,
             color: const Color(0xFF182420),
           ),
@@ -40,20 +47,30 @@ class _CustomTextFieldState extends State<CustomTextField> {
         const SizedBox(height: 8),
         Container(
           height: 51,
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(horizontal: 20),
+          padding: const EdgeInsets.symmetric(horizontal: 12),
           decoration: BoxDecoration(
-            border: Border.all(color: const Color(0xFF5C5C5C), width: 1),
+            color: Colors.grey[100],
+            border: Border.all(
+              color: const Color(0xFF5C5C5C),
+              width: 1,
+            ),
             borderRadius: BorderRadius.circular(10),
           ),
           child: Row(
             children: [
-              Icon(widget.icon, color: const Color(0xFF5C5C5C)),
-              const SizedBox(width: 12),
+              if (widget.prefixIcon != null)
+                Padding(
+                  padding: const EdgeInsets.only(right: 8.0),
+                  child: Icon(
+                    widget.prefixIcon,
+                    color: Colors.grey[600],
+                  ),
+                ),
               Expanded(
-                child: TextField(
-                  controller: widget.controller, // Gunakan controller
-                  obscureText: widget.isPassword ? _obscure : false,
+                child: TextFormField( // Menggunakan TextFormField
+                  controller: widget.controller,
+                  obscureText: widget.isPassword ? _obscureTextForPasswordField : false,
+                  keyboardType: widget.keyboardType,
                   style: GoogleFonts.poppins(
                     fontSize: 15,
                     color: const Color(0xFF182420),
@@ -67,17 +84,28 @@ class _CustomTextFieldState extends State<CustomTextField> {
                       fontWeight: FontWeight.w500,
                     ),
                     border: InputBorder.none,
+                    isDense: true,
+                    contentPadding: const EdgeInsets.symmetric(vertical: 12.0),
                   ),
+                  validator: widget.validator, // Menggunakan validator dari parameter
                 ),
               ),
               if (widget.isPassword)
-                GestureDetector(
-                  onTap: () => setState(() => _obscure = !_obscure),
-                  child: Icon(
-                    _obscure ? Icons.visibility_off : Icons.visibility,
-                    color: const Color(0xFF5C5C5C),
+                IconButton(
+                  icon: Icon(
+                    _obscureTextForPasswordField ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                    color: Colors.grey[600],
                   ),
-                ),
+                  onPressed: () {
+                    setState(() {
+                      _obscureTextForPasswordField = !_obscureTextForPasswordField;
+                    });
+                  },
+                  splashRadius: 20,
+                  padding: EdgeInsets.zero,
+                )
+              else if (widget.suffixIcon != null) // Jika bukan password tapi ada suffixIcon
+                 widget.suffixIcon!,
             ],
           ),
         ),

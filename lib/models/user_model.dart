@@ -49,7 +49,7 @@ class User {
       bio: bio ?? this.bio,
       phone: phone ?? this.phone,
       profileImage: profileImage ?? this.profileImage,
-      token: this.token, // Pertahankan token yang ada pada objek User ini
+      token: token, // Pertahankan token yang ada pada objek User ini
     );
   }
 

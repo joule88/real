@@ -12,8 +12,7 @@ class ApiConstants {
   static const String logoutEndpoint = '/logout';
 
   // --- TAMBAHKAN ENDPOINT UNTUK PROFIL PENGGUNA ---
-  // Ini bisa digunakan untuk GET (ambil profil) dan PUT/POST (update profil)
-  static const String userProfileEndpoint = '/user/profile';
+  static const String userProfileEndpoint = '/profile';
 
   // Endpoint untuk API Flask Prediksi (akan digabung dengan flaskApiBaseUrl)
   static const String predictPriceEndpoint = '/prediksi/create';

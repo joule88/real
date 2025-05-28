@@ -1,10 +1,24 @@
 // lib/services/api_services.dart
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'api_constants.dart'; // Pastikan file ini ada dan benar
+import 'api_constants.dart';
 
 class ApiService {
-  static const String baseUrl = ApiConstants.laravelApiBaseUrl;
+  static String get _laravelBaseUrl => ApiConstants.laravelApiBaseUrl;
+
+  static Map<String, String> _getHeaders({String? token}) {
+    final headers = {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+    };
+    if (token != null) {
+      headers['Authorization'] = 'Bearer $token';
+    }
+    return headers;
+  }
+
+  // Fungsi helper _handleResponse TIDAK AKAN DIGUNAKAN untuk login/register
+  // karena struktur responsnya berbeda (tidak ada pembungkus 'data' di root).
 
   static Future<Map<String, dynamic>> registerUser({
     required String name,
@@ -13,191 +27,176 @@ class ApiService {
     required String phone,
     String? profileImage,
   }) async {
-    final response = await http.post(
-      Uri.parse('$baseUrl/register'), // Endpoint registrasi
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-      },
-      body: jsonEncode({
-        'name': name,
-        'email': email,
-        'password': password,
-        'phone': phone,
-        'profile_image': profileImage ?? '',
-      }),
-    );
-    print('Register - Status Code: ${response.statusCode}');
-    print('Register - Body: ${response.body}');
-    if (response.statusCode == 201) {
-      final data = jsonDecode(response.body);
-      return {
-        'success': true,
-        'message': data['message'] ?? 'Registrasi berhasil',
-        'data': data['data'], // ini data user/token
-      };
-    } else {
-      try {
-        final errorBody = jsonDecode(response.body);
-        return {
-          'success': false,
-          'message': errorBody['message'] ?? 'Registrasi gagal. Status: ${response.statusCode}',
-          'data': null,
-        };
-      } catch (e) {
-         return {
-          'success': false,
-          'message': 'Registrasi gagal. Respons tidak valid. Status: ${response.statusCode}',
-          'data': null,
-        };
-      }
-    }
-  }
-
-  // --- FUNGSI BARU UNTUK UPDATE PROFIL ---
-  static Future<Map<String, dynamic>> updateUserProfile({
-    required String token, // Token otentikasi pengguna
-    required String name,
-    required String bio,
-    // Anda bisa menambahkan field lain jika API mengizinkan (misal: phone, profile_image)
-  }) async {
-    // Asumsi endpoint update profil adalah '/user/profile' dan menggunakan method PUT
-    // Sesuaikan endpoint dan method (PUT/POST) jika berbeda di API Laravel Anda
-    final String updateProfileEndpoint = '$baseUrl/user/profile';
-
+    final String url = _laravelBaseUrl + ApiConstants.registerEndpoint;
     try {
-      final response = await http.put( // Atau http.post jika API Anda menggunakan POST
-        Uri.parse(updateProfileEndpoint),
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          'Authorization': 'Bearer $token', // Kirim token untuk otentikasi
-        },
+      final response = await http.post(
+        Uri.parse(url),
+        headers: _getHeaders(),
         body: jsonEncode({
           'name': name,
-          'bio': bio,
-          // 'phone': newPhone, // Jika Anda juga mengizinkan update nomor telepon
+          'email': email,
+          'password': password,
+          'phone': phone,
+          if (profileImage != null) 'profile_image': profileImage,
         }),
       );
+      print('Register - Status Code: ${response.statusCode}');
+      print('Register - Body: ${response.body}');
 
-      print('Update Profile - Status Code: ${response.statusCode}');
-      print('Update Profile - Body: ${response.body}');
-
-      final responseBody = jsonDecode(response.body);
-
-      if (response.statusCode == 200 || response.statusCode == 201) { // Sukses
-        return {
-          'success': true,
-          'message': responseBody['message'] ?? 'Profil berhasil diperbarui',
-          'data': responseBody['data'], // API mungkin mengembalikan data user yang sudah diupdate
-        };
+      final dynamic responseBody = jsonDecode(response.body);
+      if (responseBody is Map<String, dynamic>) {
+        if (response.statusCode == 201) { // Register sukses (201 Created)
+          return {
+            'success': true,
+            'message': responseBody['message'] ?? 'Registrasi berhasil',
+            // API Anda mengembalikan 'user' dan 'token' di root
+            'data': responseBody, // Kirim seluruh responseBody sebagai 'data'
+          };
+        } else {
+          return {
+            'success': false,
+            'message': responseBody['message'] ?? responseBody['error'] ?? 'Registrasi gagal. Status: ${response.statusCode}',
+            'errors': responseBody['errors'],
+            'data': null,
+          };
+        }
       } else {
-        // Gagal, coba parse pesan error dari API
-        return {
-          'success': false,
-          'message': responseBody['message'] ?? 'Gagal memperbarui profil. Status: ${response.statusCode}',
-          'errors': responseBody['errors'], // Jika API mengirimkan detail error validasi
-          'data': null,
-        };
+         return {'success': false, 'message': 'Respons registrasi tidak valid.', 'data': null};
       }
     } catch (e) {
-      // Error koneksi atau parsing JSON
-      print('Error in updateUserProfile: $e');
-      return {
-        'success': false,
-        'message': 'Terjadi kesalahan: $e',
-        'data': null,
-      };
+      print('Network error during registerUser: $e');
+      return {'success': false, 'message': 'Kesalahan jaringan saat registrasi: $e', 'data': null};
     }
   }
 
-  // --- Tambahkan fungsi API lainnya di sini (misalnya login, fetch properties, dll) ---
-  // Contoh fungsi login (jika belum ada)
   static Future<Map<String, dynamic>> loginUser({
     required String email,
     required String password,
   }) async {
-    final response = await http.post(
-      Uri.parse('$baseUrl/login'), // Endpoint login
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-      },
-      body: jsonEncode({
-        'email': email,
-        'password': password,
-      }),
-    );
-    print('Login - Status Code: ${response.statusCode}');
-    print('Login - Body: ${response.body}');
+    final String url = _laravelBaseUrl + ApiConstants.loginEndpoint;
+    try {
+      final response = await http.post(
+        Uri.parse(url),
+        headers: _getHeaders(),
+        body: jsonEncode({
+          'email': email,
+          'password': password,
+        }),
+      );
+      print('Login - Status Code: ${response.statusCode}');
+      print('Login - Body: ${response.body}');
 
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-      return {
-        'success': true,
-        'message': data['message'] ?? 'Login berhasil',
-        'data': data['data'], // ini biasanya berisi token dan data user
-      };
-    } else {
-       try {
-        final errorBody = jsonDecode(response.body);
-        return {
-          'success': false,
-          'message': errorBody['message'] ?? 'Login gagal. Status: ${response.statusCode}',
-          'data': null,
-        };
-      } catch (e) {
-         return {
-          'success': false,
-          'message': 'Login gagal. Respons tidak valid. Status: ${response.statusCode}',
-          'data': null,
-        };
+      final dynamic responseBody = jsonDecode(response.body);
+      if (responseBody is Map<String, dynamic>) {
+         if (response.statusCode == 200) { // Login sukses
+             return {
+               'success': true,
+               'message': responseBody['message'] ?? 'Login berhasil',
+               // API Anda mengembalikan 'token' dan 'user' di root
+               'data': responseBody, // Kirim seluruh responseBody sebagai 'data'
+             };
+         } else { // Gagal login (misal 401 Unauthorized)
+             return {
+               'success': false,
+               'message': responseBody['message'] ?? responseBody['error'] ?? 'Login gagal. Status: ${response.statusCode}',
+               'data': null,
+             };
+         }
+      } else {
+         return {'success': false, 'message': 'Respons login tidak valid.', 'data': null};
       }
+    } catch (e) {
+      print('Network error during loginUser: $e');
+      return {'success': false, 'message': 'Kesalahan jaringan saat login: $e', 'data': null};
     }
   }
 
-  // Contoh fungsi untuk mengambil data profil pengguna saat ini (jika diperlukan terpisah)
+  // Fungsi helper _handleResponseProfile untuk getCurrentUserProfile dan updateUserProfile
+  // karena API profile Anda MENGGUNAKAN pembungkus 'data'
+  static Map<String, dynamic> _handleResponseProfile(http.Response response, String operation) {
+     print('$operation - Status Code: ${response.statusCode}');
+     print('$operation - Body: ${response.body}');
+     try {
+       final dynamic responseBody = jsonDecode(response.body);
+       if (responseBody is Map<String, dynamic>) {
+         if (response.statusCode >= 200 && response.statusCode < 300) {
+           return {
+             'success': responseBody['success'] ?? true, // Ambil 'success' dari API jika ada
+             'message': responseBody['message'] ?? '$operation berhasil',
+             'data': responseBody['data'], // API profile Anda pakai 'data'
+           };
+         } else {
+           return {
+             'success': false,
+             'message': responseBody['message'] ?? responseBody['error'] ?? '$operation gagal. Status: ${response.statusCode}',
+             'errors': responseBody['errors'],
+             'data': null,
+           };
+         }
+       } else {
+         return {'success': false, 'message': '$operation gagal. Respons tidak valid (bukan JSON Map).', 'data': null};
+       }
+     } catch (e) {
+       print('Error parsing response for $operation: $e');
+       return {'success': false, 'message': '$operation gagal. Respons tidak dapat diproses.', 'data': null};
+     }
+  }
+
+
   static Future<Map<String, dynamic>> getCurrentUserProfile({
     required String token,
   }) async {
-    // Asumsi endpoint untuk mendapatkan profil adalah GET /api/user/profile
-    final String profileEndpoint = '$baseUrl/user/profile';
-
+    final String url = _laravelBaseUrl + ApiConstants.userProfileEndpoint;
     try {
       final response = await http.get(
-        Uri.parse(profileEndpoint),
-        headers: {
-          'Accept': 'application/json',
-          'Authorization': 'Bearer $token',
-        },
+        Uri.parse(url),
+        headers: _getHeaders(token: token),
       );
-
-      print('Get Profile - Status Code: ${response.statusCode}');
-      print('Get Profile - Body: ${response.body}');
-
-      final responseBody = jsonDecode(response.body);
-
-      if (response.statusCode == 200) {
-        return {
-          'success': true,
-          'message': responseBody['message'] ?? 'Data profil berhasil diambil',
-          'data': responseBody['data'], // Data pengguna
-        };
-      } else {
-        return {
-          'success': false,
-          'message': responseBody['message'] ?? 'Gagal mengambil data profil. Status: ${response.statusCode}',
-          'data': null,
-        };
-      }
+      return _handleResponseProfile(response, 'Ambil Profil Pengguna'); // Gunakan helper baru
     } catch (e) {
-      print('Error in getCurrentUserProfile: $e');
-      return {
-        'success': false,
-        'message': 'Terjadi kesalahan saat mengambil profil: $e',
-        'data': null,
-      };
+      print('Network error during getCurrentUserProfile: $e');
+      return {'success': false, 'message': 'Kesalahan jaringan saat mengambil profil: $e', 'data': null};
     }
   }
 
+  static Future<Map<String, dynamic>> updateUserProfile({
+    required String token,
+    required String name,
+    required String bio,
+  }) async {
+    final String url = _laravelBaseUrl + ApiConstants.userProfileEndpoint;
+    try {
+      final response = await http.put( // Asumsi PUT
+        Uri.parse(url),
+        headers: _getHeaders(token: token),
+        body: jsonEncode({
+          'name': name,
+          'bio': bio,
+        }),
+      );
+      // API update profil Anda mungkin juga mengembalikan data user di dalam 'data'
+      return _handleResponseProfile(response, 'Update Profil Pengguna'); // Gunakan helper baru
+    } catch (e) {
+      print('Network error during updateUserProfile: $e');
+      return {'success': false, 'message': 'Kesalahan jaringan saat update profil: $e', 'data': null};
+    }
+  }
+
+ static Future<Map<String, dynamic>> logoutUser({
+     required String token,
+ }) async {
+     final String url = _laravelBaseUrl + ApiConstants.logoutEndpoint;
+     try {
+     final response = await http.post(
+         Uri.parse(url),
+         headers: _getHeaders(token: token),
+     );
+     // Logout mungkin tidak punya 'data' di respons, sesuaikan jika perlu
+     // Untuk _handleResponseProfile, jika tidak ada 'data', akan jadi null
+     return _handleResponseProfile(response, 'Logout Pengguna');
+     } catch (e) {
+     print('Network error during logoutUser: $e');
+     return {'success': false, 'message': 'Kesalahan jaringan saat logout: $e', 'data': null};
+     }
+ }
 }

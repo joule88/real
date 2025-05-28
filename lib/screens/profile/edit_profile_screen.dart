@@ -1,256 +1,294 @@
-// // lib/screens/profile/edit_profile_screen.dart
-// import 'package:flutter/material.dart';
-// import 'package:provider/provider.dart';
+// lib/screens/profile/edit_profile_screen.dart
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:google_fonts/google_fonts.dart'; // Untuk styling jika perlu
 
-// // GANTI 'nama_proyek_anda' dengan nama folder proyek Anda yang sebenarnya
-// import 'package:real/models/user_model.dart';
-// import 'package:real/provider/auth_provider.dart';
-// // Jika Anda punya widget form field kustom, import di sini
-// // import 'package:nama_proyek_anda/widgets/custom_form_field.dart';
+// Sesuaikan path import ini jika berbeda di proyek Anda
+import 'package:real/models/user_model.dart';
+import 'package:real/provider/auth_provider.dart';
+// Anda mungkin punya widget text field kustom, jika ada, import di sini
+// import 'package:real/widgets/textfield_login.dart'; // Atau widget form field lain
 
-// class EditProfileScreen extends StatefulWidget {
-//   final User currentUser;
+class EditProfileScreen extends StatefulWidget {
+  final User currentUser; // Menerima data user saat ini
 
-//   const EditProfileScreen({super.key, required this.currentUser});
+  const EditProfileScreen({super.key, required this.currentUser});
 
-//   @override
-//   State<EditProfileScreen> createState() => _EditProfileScreenState();
-// }
+  @override
+  State<EditProfileScreen> createState() => _EditProfileScreenState();
+}
 
-// class _EditProfileScreenState extends State<EditProfileScreen> {
-//   final _formKey = GlobalKey<FormState>();
-//   late TextEditingController _nameController;
-//   late TextEditingController _bioController;
+class _EditProfileScreenState extends State<EditProfileScreen> {
+  final _formKey = GlobalKey<FormState>();
+  late TextEditingController _nameController;
+  late TextEditingController _bioController;
+  // Email tidak diedit, jadi tidak perlu controller, cukup tampilkan dari widget.currentUser.email
 
-//   bool _isLoading = false;
+  bool _isSaving = false; // State untuk loading tombol simpan
 
-//   @override
-//   void initState() {
-//     super.initState();
-//     // 1. Inisialisasi Controller: Sudah benar
-//     _nameController = TextEditingController(text: widget.currentUser.name);
-//     _bioController = TextEditingController(text: widget.currentUser.bio);
-//   }
+  // Definisikan warna tema Anda jika ingin digunakan di sini
+  final Color themeColor = const Color(0xFFDAF365);
+  final Color textOnThemeColor = Colors.black87;
 
-//   @override
-//   void dispose() {
-//     // 7. Dispose Controller: Sudah benar
-//     _nameController.dispose();
-//     _bioController.dispose();
-//     super.dispose();
-//   }
+  @override
+  void initState() {
+    super.initState();
+    _nameController = TextEditingController(text: widget.currentUser.name);
+    // Untuk bio, jika bisa null di model, tangani dengan ?? ''
+    _bioController = TextEditingController(text: widget.currentUser.bio);
+  }
 
-//   Future<void> _submitForm() async {
-//     // Cek 'mounted' sebelum operasi async untuk menghindari error jika widget sudah di-dispose
-//     if (!mounted) return;
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _bioController.dispose();
+    super.dispose();
+  }
 
-//     if (_formKey.currentState!.validate()) {
-//       setState(() {
-//         _isLoading = true; // 4. Loading State: Sudah benar
-//       });
+  Future<void> _submitForm() async {
+    if (_isSaving) return; // Mencegah submit ganda
 
-//       final authProvider = Provider.of<AuthProvider>(context, listen: false);
-//       final newName = _nameController.text.trim();
-//       final newBio = _bioController.text.trim();
+    if (_formKey.currentState?.validate() ?? false) {
+      if (mounted) {
+        setState(() {
+          _isSaving = true;
+        });
+      } else {
+        return;
+      }
 
-//       // 2. Pemanggilan AuthProvider: Sudah benar
-//       final Map<String, dynamic> result = await authProvider.updateUserProfile(
-//         name: newName,
-//         bio: newBio,
-//       );
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      final newName = _nameController.text.trim();
+      final newBio = _bioController.text.trim();
 
-//       // Cek 'mounted' lagi setelah operasi async
-//       if (!mounted) return;
+      print('EditProfileScreen: Menyimpan profil -> Nama: $newName, Bio: $newBio');
 
-//       setState(() {
-//         _isLoading = false;
-//       });
+      Map<String, dynamic>? result;
+      try {
+        result = await authProvider.updateUserProfile(
+          name: newName,
+          bio: newBio,
+        );
+        print('EditProfileScreen: Hasil dari authProvider.updateUserProfile: $result');
+      } catch (e) {
+        print('EditProfileScreen: Exception saat memanggil authProvider.updateUserProfile: $e');
+        result = {'success': false, 'message': 'Terjadi kesalahan: $e'};
+      }
 
-//       // 3. Penanganan Respons: Sudah cukup baik
-//       if (result['success'] == true) {
-//         ScaffoldMessenger.of(context).showSnackBar(
-//           SnackBar(
-//             content: Text(result['message'] ?? 'Profil berhasil diperbarui!'),
-//             backgroundColor: Colors.green, // Feedback visual yang baik
-//           ),
-//         );
-//         // 8. Navigasi Kembali: Kirim 'true' untuk menandakan update
-//         Navigator.pop(context, true);
-//       } else {
-//         String errorMessage = result['message'] ?? 'Gagal memperbarui profil.';
-//         // Tambahan: Menampilkan detail error validasi jika ada
-//         if (result['errors'] != null && result['errors'] is Map) {
-//           final errorsMap = result['errors'] as Map;
-//           if (errorsMap.isNotEmpty) {
-//             // Mengambil semua pesan error dari map dan menggabungkannya
-//             // API Laravel biasanya mengirimkan error validasi dalam format: {'field': ['message1', 'message2']}
-//             StringBuffer errorDetails = StringBuffer();
-//             errorsMap.forEach((field, messages) {
-//               if (messages is List && messages.isNotEmpty) {
-//                 errorDetails.writeln('- ${messages.join(', ')}');
-//               }
-//             });
-//             if (errorDetails.isNotEmpty) {
-//               errorMessage += '\n\nDetail:\n${errorDetails.toString()}';
-//             }
-//           }
-//         }
-//         ScaffoldMessenger.of(context).showSnackBar(
-//           SnackBar(
-//             content: Text(errorMessage),
-//             backgroundColor: Colors.red, // Feedback visual yang baik
-//           ),
-//         );
-//       }
-//     }
-//   }
+      if (!mounted) return;
 
-//   void _handleChangePassword() {
-//     // 6. Tombol Ubah Password: Masih placeholder, ini oke untuk sekarang
-//     print('Tombol Ubah Password ditekan');
-//     ScaffoldMessenger.of(context).showSnackBar(
-//       const SnackBar(content: Text('Fitur Ubah Password belum diimplementasikan.')),
-//     );
-//     // Nanti: Navigasi ke layar baru atau tampilkan dialog untuk ubah password
-//     // Navigator.push(context, MaterialPageRoute(builder: (context) => ChangePasswordScreen()));
-//   }
+      if (result != null) {
+        if (result['success'] == true) {
+          print('EditProfileScreen: Update SUKSES. Pesan: ${result['message']}');
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(result['message'] ?? 'Profil berhasil diperbarui!'),
+              backgroundColor: Colors.green,
+            ),
+          );
+          // Kembali ke ProfileScreen dan kirim 'true' untuk menandakan ada update
+          Navigator.pop(context, true);
+        } else {
+          final String errorMessage = result['message'] ?? 'Gagal memperbarui profil.';
+          print('EditProfileScreen: Update GAGAL. Pesan: $errorMessage');
+          if (result['errors'] != null && result['errors'] is Map) {
+            // Anda bisa memformat error validasi dari API di sini jika ada
+            // final errorsMap = result['errors'] as Map;
+            // ... (logika format error)
+          }
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(errorMessage),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      } else {
+        print('EditProfileScreen: Hasil update tidak diketahui karena exception.');
+         ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Proses update gagal karena kesalahan tidak diketahui.'),
+              backgroundColor: Colors.orange,
+            ),
+          );
+      }
 
-//   @override
-//   Widget build(BuildContext context) {
-//     final theme = Theme.of(context); // Untuk styling yang konsisten dengan tema aplikasi
+      if (mounted) {
+        setState(() {
+          _isSaving = false;
+        });
+      }
+    } else {
+      if (_isSaving && mounted) {
+         setState(() { _isSaving = false; });
+      }
+    }
+  }
 
-//     return Scaffold(
-//       appBar: AppBar(
-//         title: const Text('Edit Profil'),
-//         leading: IconButton(
-//           icon: const Icon(Icons.arrow_back),
-//           onPressed: () {
-//             Navigator.pop(context, false); // Kirim 'false' jika tidak ada perubahan
-//           },
-//         ),
-//       ),
-//       body: SingleChildScrollView( // Agar bisa di-scroll jika konten melebihi layar
-//         padding: const EdgeInsets.all(16.0),
-//         child: Form(
-//           key: _formKey,
-//           child: Column(
-//             crossAxisAlignment: CrossAxisAlignment.stretch, // Tombol jadi full-width
-//             children: <Widget>[
-//               // Menampilkan Email (Tidak Bisa Diedit)
-//               Card(
-//                 elevation: 1,
-//                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-//                 margin: const EdgeInsets.only(bottom: 20),
-//                 child: Padding(
-//                   padding: const EdgeInsets.all(16.0),
-//                   child: Column(
-//                     crossAxisAlignment: CrossAxisAlignment.start,
-//                     children: [
-//                       Text(
-//                         'Email (Tidak dapat diubah)',
-//                         style: theme.textTheme.labelSmall?.copyWith( // Bisa pakai labelSmall atau labelMedium
-//                           color: Colors.grey[700],
-//                           fontWeight: FontWeight.bold,
-//                         ),
-//                       ),
-//                       const SizedBox(height: 6),
-//                       Text(
-//                         widget.currentUser.email,
-//                         style: theme.textTheme.titleMedium?.copyWith(color: Colors.black54),
-//                       ),
-//                     ],
-//                   ),
-//                 ),
-//               ),
+  void _handleChangePassword() {
+    // TODO: Navigasi ke layar ubah password atau tampilkan dialog
+    // Ini akan kita implementasikan di Bagian berikutnya (Ubah Password)
+    print('Tombol Ubah Password ditekan (belum diimplementasikan).');
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Fitur Ubah Password belum diimplementasikan.')),
+    );
+  }
 
-//               // Field Nama
-//               TextFormField(
-//                 controller: _nameController,
-//                 decoration: InputDecoration(
-//                   labelText: 'Nama Pengguna',
-//                   hintText: 'Masukkan nama pengguna Anda',
-//                   border: const OutlineInputBorder(),
-//                   prefixIcon: const Icon(Icons.person_outline),
-//                   // fillColor: theme.inputDecorationTheme.fillColor, // Opsional: styling dari tema
-//                   // filled: theme.inputDecorationTheme.filled,
-//                 ),
-//                 // 5. Validasi Form: Bisa ditambahkan lebih detail
-//                 validator: (value) {
-//                   if (value == null || value.trim().isEmpty) {
-//                     return 'Nama tidak boleh kosong';
-//                   }
-//                   if (value.trim().length < 3) {
-//                     return 'Nama minimal 3 karakter';
-//                   }
-//                   // Anda bisa menambahkan validasi lain jika perlu (misal, karakter alfanumerik)
-//                   return null;
-//                 },
-//                 textInputAction: TextInputAction.next, // Pindah ke field berikutnya saat enter
-//               ),
-//               const SizedBox(height: 20),
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(
+          'Edit Profil Saya',
+          style: GoogleFonts.poppins(fontWeight: FontWeight.bold, color: Colors.black),
+        ),
+        backgroundColor: Colors.white,
+        iconTheme: const IconThemeData(color: Colors.black), // Warna ikon back
+        elevation: 1,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            if (_isSaving) return; // Jangan pop jika sedang saving
+            Navigator.pop(context, false); // Kirim 'false' jika tidak ada perubahan atau batal
+          },
+        ),
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(20.0),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: <Widget>[
+              // Menampilkan Email (Tidak Bisa Diedit)
+              Card(
+                elevation: 0.5,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  side: BorderSide(color: Colors.grey[300]!)
+                ),
+                margin: const EdgeInsets.only(bottom: 24),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Email (Tidak dapat diubah)',
+                        style: GoogleFonts.poppins(
+                          fontSize: 12,
+                          color: Colors.grey[700],
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        widget.currentUser.email,
+                        style: GoogleFonts.poppins(fontSize: 15, color: Colors.black54, fontWeight: FontWeight.w500),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
 
-//               // Field Bio
-//               TextFormField(
-//                 controller: _bioController,
-//                 decoration: InputDecoration(
-//                   labelText: 'Bio',
-//                   hintText: 'Ceritakan tentang diri Anda...',
-//                   border: const OutlineInputBorder(),
-//                   prefixIcon: const Icon(Icons.info_outline),
-//                   // fillColor: theme.inputDecorationTheme.fillColor,
-//                   // filled: theme.inputDecorationTheme.filled,
-//                 ),
-//                 maxLines: 3,
-//                 maxLength: 150, // Batasan karakter untuk bio
-//                 validator: (value) {
-//                   // Bio bisa opsional, tidak ada validasi wajib kosong
-//                   // Bisa tambahkan validasi panjang jika diisi
-//                   // if (value != null && value.isNotEmpty && value.length > 150) {
-//                   //   return 'Bio maksimal 150 karakter';
-//                   // }
-//                   return null;
-//                 },
-//                 textInputAction: TextInputAction.done, // Selesai input, bisa submit form
-//                 onFieldSubmitted: (_) { // Submit form jika user tekan "done" di keyboard
-//                   if (!_isLoading) { // Hanya submit jika tidak sedang loading
-//                     _submitForm();
-//                   }
-//                 },
-//               ),
-//               const SizedBox(height: 30),
+              // Field Nama
+              // Menggunakan widget TextFieldLogin yang sudah ada jika sesuai,
+              // atau TextFormField standar jika lebih cocok.
+              // Untuk konsistensi, kita buat TextFormField standar di sini.
+              Text(
+                "Nama Pengguna",
+                style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w600, color: const Color(0xFF182420)),
+              ),
+              const SizedBox(height: 8),
+              TextFormField(
+                controller: _nameController,
+                decoration: InputDecoration(
+                  hintText: 'Masukkan nama pengguna Anda',
+                  prefixIcon: Icon(Icons.person_outline, color: Colors.grey[600]),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                  filled: true,
+                  fillColor: Colors.grey[100],
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                ),
+                style: GoogleFonts.poppins(fontSize: 15, fontWeight: FontWeight.w500),
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return 'Nama tidak boleh kosong';
+                  }
+                  if (value.trim().length < 3) {
+                     return 'Nama minimal 3 karakter';
+                  }
+                  return null;
+                },
+                textInputAction: TextInputAction.next,
+              ),
+              const SizedBox(height: 20),
 
-//               // Tombol Simpan Perubahan
-//               _isLoading
-//                   ? const Center(child: CircularProgressIndicator())
-//                   : ElevatedButton.icon(
-//                       icon: const Icon(Icons.save_alt_outlined),
-//                       label: const Text('Simpan Perubahan'),
-//                       onPressed: _submitForm,
-//                       style: ElevatedButton.styleFrom(
-//                         padding: const EdgeInsets.symmetric(vertical: 14), // Sedikit lebih tinggi
-//                         textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-//                         // backgroundColor: theme.primaryColor, // Konsisten dengan tema
-//                         // foregroundColor: theme.colorScheme.onPrimary,
-//                       ),
-//                     ),
-//               const SizedBox(height: 20),
+              // Field Bio
+              Text(
+                "Bio",
+                style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w600, color: const Color(0xFF182420)),
+              ),
+              const SizedBox(height: 8),
+              TextFormField(
+                controller: _bioController,
+                decoration: InputDecoration(
+                  hintText: 'Ceritakan tentang diri Anda...',
+                  prefixIcon: Icon(Icons.info_outline, color: Colors.grey[600]),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                  filled: true,
+                  fillColor: Colors.grey[100],
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                ),
+                style: GoogleFonts.poppins(fontSize: 15, fontWeight: FontWeight.w500),
+                maxLines: 4, // Bio bisa beberapa baris
+                maxLength: 200, // Batasi panjang bio
+                validator: (value) {
+                  // Bio bisa opsional
+                  return null;
+                },
+                textInputAction: TextInputAction.done,
+                onFieldSubmitted: (_) {
+                  if (!_isSaving) _submitForm();
+                },
+              ),
+              const SizedBox(height: 30),
 
-//               // Tombol Ubah Password
-//               OutlinedButton.icon(
-//                 icon: const Icon(Icons.lock_outline),
-//                 label: const Text('Ubah Password'),
-//                 onPressed: _handleChangePassword,
-//                 style: OutlinedButton.styleFrom(
-//                   padding: const EdgeInsets.symmetric(vertical: 14),
-//                   textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-//                   // side: BorderSide(color: theme.primaryColor), // Konsisten dengan tema
-//                   // foregroundColor: theme.primaryColor,
-//                 ),
-//               ),
-//             ],
-//           ),
-//         ),
-//       ),
-//     );
-//   }
-// }
+              // Tombol Simpan Perubahan
+              _isSaving
+                  ? Center(child: CircularProgressIndicator(color: themeColor))
+                  : ElevatedButton.icon(
+                      icon: const Icon(Icons.save_alt_outlined, color: Colors.black), // Ikon putih
+                      label: Text('Simpan Perubahan', style: GoogleFonts.poppins(color: Colors.black, fontWeight: FontWeight.w600)), // Teks putih
+                      onPressed: _isSaving ? null : _submitForm,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: themeColor, // Warna tema Anda
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        elevation: 2,
+                      ),
+                    ),
+              const SizedBox(height: 16),
+
+              // Tombol Ubah Password
+              OutlinedButton.icon(
+                icon: Icon(Icons.lock_outline, color: Colors.grey[700]),
+                label: Text('Ubah Password', style: GoogleFonts.poppins(color: Colors.grey[700], fontWeight: FontWeight.w600)),
+                onPressed: _isSaving ? null : _handleChangePassword, // Nonaktifkan jika sedang menyimpan
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                   shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                  side: BorderSide(color: Colors.grey[400]!),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
