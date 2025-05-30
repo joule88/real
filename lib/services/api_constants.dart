@@ -12,6 +12,7 @@ class ApiConstants {
   static const String logoutEndpoint = '/logout';
   static const String userProfileEndpoint = '/profile';
   static const String changePasswordEndpoint = '/profile/change-password';
+  static const String publicPropertiesEndpoint = '/properties/public';
 
   // Endpoint untuk API Flask Prediksi (akan digabung dengan flaskApiBaseUrl)
   static const String predictPriceEndpoint = '/prediksi/create';

@@ -1,14 +1,14 @@
 // lib/services/api_services.dart
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'api_constants.dart'; // Pastikan ApiConstants memiliki changePasswordEndpoint
+import 'api_constants.dart';
 
 class ApiService {
   static String get _laravelBaseUrl => ApiConstants.laravelApiBaseUrl;
 
   static Map<String, String> _getHeaders({String? token}) {
     final headers = {
-      'Content-Type': 'application/json; charset=UTF-8', // Tambahkan charset
+      'Content-Type': 'application/json; charset=UTF-8',
       'Accept': 'application/json',
     };
     if (token != null) {
@@ -46,7 +46,7 @@ class ApiService {
           return {
             'success': true,
             'message': responseBody['message'] ?? 'Registrasi berhasil',
-            'data': responseBody, 
+            'data': responseBody,
           };
         } else {
           return {
@@ -84,13 +84,13 @@ class ApiService {
 
       final dynamic responseBody = jsonDecode(response.body);
       if (responseBody is Map<String, dynamic>) {
-          if (response.statusCode == 200) { 
+          if (response.statusCode == 200) {
               return {
                 'success': true,
                 'message': responseBody['message'] ?? 'Login berhasil',
-                'data': responseBody, 
+                'data': responseBody,
               };
-          } else { 
+          } else {
               return {
                 'success': false,
                 'message': responseBody['message'] ?? responseBody['error'] ?? 'Login gagal. Status: ${response.statusCode}',
@@ -106,8 +106,6 @@ class ApiService {
     }
   }
 
-  // Fungsi helper _handleResponseProfile untuk getCurrentUserProfile dan updateUserProfile
-  // karena API profile Anda MENGGUNAKAN pembungkus 'data'
   static Map<String, dynamic> _handleResponseProfile(http.Response response, String operation) {
       print('ApiService $operation - Status Code: ${response.statusCode}');
       print('ApiService $operation - Body: ${response.body}');
@@ -116,9 +114,9 @@ class ApiService {
         if (responseBody is Map<String, dynamic>) {
           if (response.statusCode >= 200 && response.statusCode < 300) {
             return {
-              'success': responseBody['success'] ?? true, 
+              'success': responseBody['success'] ?? true,
               'message': responseBody['message'] ?? '$operation berhasil',
-              'data': responseBody['data'], 
+              'data': responseBody['data'],
             };
           } else {
             return {
@@ -136,7 +134,6 @@ class ApiService {
         return {'success': false, 'message': '$operation gagal. Respons tidak dapat diproses.', 'data': null};
       }
   }
-
 
   static Future<Map<String, dynamic>> getCurrentUserProfile({
     required String token,
@@ -159,9 +156,9 @@ class ApiService {
     required String name,
     required String bio,
   }) async {
-    final String url = _laravelBaseUrl + ApiConstants.userProfileEndpoint; // Endpoint update profil sama dengan get profil
+    final String url = _laravelBaseUrl + ApiConstants.userProfileEndpoint;
     try {
-      final response = await http.put( // Menggunakan PUT untuk update
+      final response = await http.put(
         Uri.parse(url),
         headers: _getHeaders(token: token),
         body: jsonEncode({
@@ -169,7 +166,7 @@ class ApiService {
           'bio': bio,
         }),
       );
-      return _handleResponseProfile(response, 'Update Profil Pengguna'); 
+      return _handleResponseProfile(response, 'Update Profil Pengguna');
     } catch (e) {
       print('ApiService Network error during updateUserProfile: $e');
       return {'success': false, 'message': 'Kesalahan jaringan saat update profil: $e', 'data': null};
@@ -181,13 +178,10 @@ class ApiService {
   }) async {
       final String url = _laravelBaseUrl + ApiConstants.logoutEndpoint;
       try {
-        final response = await http.post( // Logout biasanya POST
+        final response = await http.post(
           Uri.parse(url),
           headers: _getHeaders(token: token),
         );
-        // Logout mungkin tidak mengembalikan 'data', jadi _handleResponseProfile mungkin perlu penyesuaian
-        // atau kita handle secara spesifik di sini.
-        // Untuk sekarang, kita asumsikan API logout juga mengembalikan struktur 'success' dan 'message'.
         print('ApiService Logout - Status Code: ${response.statusCode}');
         print('ApiService Logout - Body: ${response.body}');
         try {
@@ -196,13 +190,11 @@ class ApiService {
                  return {
                     'success': responseBody['success'] ?? (response.statusCode == 200),
                     'message': responseBody['message'] ?? 'Logout berhasil',
-                    // 'data' mungkin tidak ada atau null, biarkan saja
                  };
             } else {
                  return {'success': false, 'message': 'Respons logout tidak valid.'};
             }
         } catch (e) {
-            // Jika body kosong atau bukan JSON, tapi status 200, anggap sukses
             if (response.statusCode == 200) {
                 return {'success': true, 'message': 'Logout berhasil (respons kosong).'} ;
             }
@@ -214,17 +206,14 @@ class ApiService {
       }
   }
 
-  // --- METHOD BARU UNTUK UBAH PASSWORD ---
   static Future<Map<String, dynamic>> changeUserPassword({
     required String token,
     required String currentPassword,
     required String newPassword,
     required String newPasswordConfirmation,
   }) async {
-    // Pastikan Anda sudah mendefinisikan changePasswordEndpoint di ApiConstants
-    // Contoh: static const String changePasswordEndpoint = '/profile/change-password';
-    final String url = _laravelBaseUrl + (ApiConstants.changePasswordEndpoint ?? '/profile/change-password'); 
-    
+    final String url = _laravelBaseUrl + (ApiConstants.changePasswordEndpoint);
+
     try {
       final response = await http.post(
         Uri.parse(url),
@@ -239,42 +228,97 @@ class ApiService {
       print('ApiService ChangePassword - Status Code: ${response.statusCode}');
       print('ApiService ChangePassword - Body: ${response.body}');
 
-      // Penanganan respons untuk changePassword
-      // API Laravel untuk change password biasanya mengembalikan:
-      // - 200 OK dengan { "success": true, "message": "..." }
-      // - 400 Bad Request dengan { "success": false, "message": "Password lama Anda salah." }
-      // - 422 Unprocessable Entity dengan { "success": false, "message": "...", "errors": { ... } }
-      // - 401 Unauthorized jika token tidak valid (sudah ditangani oleh middleware auth:api)
-      
       try {
           final dynamic responseBody = jsonDecode(response.body);
           if (responseBody is Map<String, dynamic>) {
-            // Ambil 'success' flag dari respons jika ada, jika tidak, tentukan berdasarkan statusCode
             bool success = responseBody['success'] ?? (response.statusCode == 200);
             String message = responseBody['message'] ?? (success ? 'Password berhasil diubah.' : 'Gagal mengubah password.');
-            
+
             return {
               'success': success,
               'message': message,
-              'errors': responseBody['errors'], // Kirim errors jika ada (untuk validasi)
-              // 'data' biasanya tidak ada untuk change password, jadi tidak perlu
+              'errors': responseBody['errors'],
             };
           } else {
-            // Jika respons bukan JSON Map yang valid
              return {'success': false, 'message': 'Respons ubah password tidak valid.'};
           }
       } catch (e) {
-          // Jika gagal parse JSON, tapi status code menandakan sukses (jarang terjadi untuk API yang baik)
           if (response.statusCode == 200) {
               return {'success': true, 'message': 'Password berhasil diubah (respons tidak terstruktur).'} ;
           }
           print('ApiService Error parsing response for ChangePassword: $e');
           return {'success': false, 'message': 'Respons ubah password tidak dapat diproses.'};
       }
-
     } catch (e) {
       print('ApiService Network error during changeUserPassword: $e');
       return {'success': false, 'message': 'Kesalahan jaringan saat mengubah password: $e'};
     }
   }
+
+  // +++ METHOD BARU UNTUK MENGAMBIL PROPERTI PUBLIK (APPROVED) +++
+  static Future<Map<String, dynamic>> getPublicProperties({int page = 1}) async {
+    // Pastikan ApiConstants.publicPropertiesEndpoint sudah didefinisikan
+    // Jika belum, tambahkan di api_constants.dart:
+    // static const String publicPropertiesEndpoint = '/properties/public';
+    final String url = '$_laravelBaseUrl${ApiConstants.publicPropertiesEndpoint}?page=$page';
+
+    print('ApiService: Fetching public properties from $url');
+
+    try {
+      final response = await http.get(
+        Uri.parse(url),
+        headers: _getHeaders(), // Tidak memerlukan token untuk API publik ini
+      );
+
+      print('ApiService GetPublicProperties - Status Code: ${response.statusCode}');
+      print('ApiService GetPublicProperties - Body: ${response.body}');
+
+      final dynamic responseBody = jsonDecode(response.body);
+
+      if (responseBody is Map<String, dynamic>) {
+        if (response.statusCode == 200 && responseBody['success'] == true) {
+          // API Laravel dengan paginate() akan mengembalikan data dalam struktur:
+          // responseBody['data']['data'] untuk list itemnya
+          // responseBody['data']['current_page'], dll untuk info paginasi
+          if (responseBody.containsKey('data') && responseBody['data'] is Map) {
+             final Map<String, dynamic> paginatedData = responseBody['data'];
+             if (paginatedData.containsKey('data') && paginatedData['data'] is List) {
+                return {
+                  'success': true,
+                  'message': responseBody['message'] ?? 'Properti publik berhasil diambil.',
+                  'properties': List<Map<String, dynamic>>.from(paginatedData['data']), // List properti
+                  'currentPage': paginatedData['current_page'],
+                  'lastPage': paginatedData['last_page'],
+                  'total': paginatedData['total'],
+                };
+             }
+          }
+          // Fallback jika struktur tidak seperti yang diharapkan tapi success true
+          print('ApiService GetPublicProperties - Format data paginasi tidak sesuai, namun success: true.');
+          return {
+            'success': true,
+            'message': responseBody['message'] ?? 'Data diterima namun format tidak standar.',
+            'properties': [], // Kembalikan list kosong jika format salah
+            'currentPage': 1, // Info paginasi default
+            'lastPage': 1,
+            'total': 0,
+          };
+
+        } else {
+          // Gagal mengambil data atau API mengembalikan success: false
+          return {
+            'success': false,
+            'message': responseBody['message'] ?? 'Gagal mengambil properti publik. Status: ${response.statusCode}',
+          };
+        }
+      } else {
+        // Respons bukan JSON Map yang valid
+        return {'success': false, 'message': 'Respons API properti publik tidak valid.'};
+      }
+    } catch (e) {
+      print('ApiService Network error during getPublicProperties: $e');
+      return {'success': false, 'message': 'Kesalahan jaringan saat mengambil properti publik: $e'};
+    }
+  }
+  // +++ AKHIR METHOD BARU +++
 }
