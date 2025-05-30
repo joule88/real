@@ -3,7 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-// 1. Custom TextFormField
+// 1. Custom TextFormField (Tidak ada perubahan di sini terkait error tersebut)
 class CustomTextFormField extends StatelessWidget {
   final String label;
   final TextEditingController controller;
@@ -12,7 +12,7 @@ class CustomTextFormField extends StatelessWidget {
   final bool enabled;
   final String? hint;
   final FormFieldValidator<String>? validator;
-  final ValueChanged<String>? onChanged;
+  final ValueChanged<String>? onChanged; // Tetap String? karena TextFormField Flutter menangani ini
   final Widget? suffixIcon;
 
   const CustomTextFormField({
@@ -42,6 +42,7 @@ class CustomTextFormField extends StatelessWidget {
             keyboardType: keyboardType,
             maxLines: maxLines,
             enabled: enabled,
+            style: GoogleFonts.poppins(color: enabled ? Colors.black87 : Colors.grey[700]),
             decoration: InputDecoration(
               filled: true,
               fillColor: enabled ? Colors.grey[100] : Colors.grey[200],
@@ -78,7 +79,7 @@ class CustomDropdownMapField extends StatelessWidget {
   final String label;
   final dynamic value;
   final List<Map<String, dynamic>> options;
-  final ValueChanged<dynamic> onChanged;
+  final ValueChanged<dynamic>? onChanged; // <--- UBAH INI menjadi nullable (?)
   final bool enabled;
   final String? hint;
   final FormFieldValidator<dynamic>? validator;
@@ -89,7 +90,7 @@ class CustomDropdownMapField extends StatelessWidget {
     required this.label,
     required this.value,
     required this.options,
-    required this.onChanged,
+    this.onChanged, // <--- TIDAK lagi 'required' jika nullable dan bisa null
     this.enabled = true,
     this.hint,
     this.validator,
@@ -105,6 +106,7 @@ class CustomDropdownMapField extends StatelessWidget {
           Text(label, style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w600)),
           const SizedBox(height: 8),
           DropdownButtonFormField<dynamic>(
+            style: GoogleFonts.poppins(color: enabled ? Colors.black87 : Colors.grey[700], fontSize: 15),
             decoration: InputDecoration(
               filled: true,
               fillColor: enabled ? Colors.grey[100] : Colors.grey[200],
@@ -138,7 +140,7 @@ class CustomDropdownStringField extends StatelessWidget {
   final String label;
   final String? value;
   final List<String> options;
-  final ValueChanged<String?> onChanged;
+  final ValueChanged<String?>? onChanged; // <--- UBAH INI menjadi nullable (?)
   final bool enabled;
   final String? hint;
   final FormFieldValidator<String>? validator;
@@ -148,7 +150,7 @@ class CustomDropdownStringField extends StatelessWidget {
     required this.label,
     required this.value,
     required this.options,
-    required this.onChanged,
+    this.onChanged, // <--- TIDAK lagi 'required' jika nullable dan bisa null
     this.enabled = true,
     this.hint,
     this.validator,
@@ -164,6 +166,7 @@ class CustomDropdownStringField extends StatelessWidget {
           Text(label, style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w600)),
           const SizedBox(height: 8),
           DropdownButtonFormField<String>(
+            style: GoogleFonts.poppins(color: enabled ? Colors.black87 : Colors.grey[700], fontSize: 15),
             decoration: InputDecoration(
               filled: true,
               fillColor: enabled ? Colors.grey[100] : Colors.grey[200],
@@ -225,7 +228,6 @@ class _NumberInputWithControlsState extends State<NumberInputWithControls> {
     if (widget.controller.text.isEmpty || int.tryParse(widget.controller.text) == null) {
       widget.controller.text = widget.minValue.toString();
     }
-    // Listener untuk memastikan nilai selalu dalam rentang saat diedit manual
     widget.controller.addListener(_validateManualInput);
   }
 
@@ -238,7 +240,7 @@ class _NumberInputWithControlsState extends State<NumberInputWithControls> {
   void _validateManualInput() {
     if (!widget.enabled) return;
     final text = widget.controller.text;
-    if (text.isEmpty) return; // Biarkan kosong untuk validasi TextFormField
+    if (text.isEmpty) return;
 
     final value = int.tryParse(text);
     if (value != null) {
@@ -249,6 +251,11 @@ class _NumberInputWithControlsState extends State<NumberInputWithControls> {
         widget.controller.text = widget.maxValue.toString();
         widget.controller.selection = TextSelection.fromPosition(TextPosition(offset: widget.controller.text.length));
       }
+    } else { // Jika input tidak bisa di-parse sebagai integer (misal ada titik atau karakter non-numerik)
+        // Anda bisa memutuskan untuk menghapus karakter terakhir atau mengembalikan ke nilai valid sebelumnya.
+        // Untuk sederhana, kita bisa set ke minValue jika parse gagal.
+        // Atau biarkan TextFormField validator yang menangani pesan error lebih detail.
+        // widget.controller.text = widget.minValue.toString();
     }
   }
 
@@ -285,14 +292,10 @@ class _NumberInputWithControlsState extends State<NumberInputWithControls> {
           Text(widget.label, style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w600)),
           const SizedBox(height: 8),
           Container(
-            height: 50, // Tinggi tetap untuk konsistensi
+            height: 50,
             decoration: BoxDecoration(
               color: widget.enabled ? Colors.grey[100] : Colors.grey[200],
               borderRadius: BorderRadius.circular(10),
-              // border: Border.all( // Opsional: tambahkan border tipis jika suka
-              //   color: widget.enabled ? Colors.grey[400]! : Colors.grey[300]!,
-              //   width: 1.0,
-              // ),
             ),
             child: Row(
               children: [
@@ -303,10 +306,10 @@ class _NumberInputWithControlsState extends State<NumberInputWithControls> {
                     bottomLeft: Radius.circular(10),
                   ),
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 12.0), // Padding untuk area tap
+                    padding: const EdgeInsets.symmetric(horizontal: 12.0),
                     child: Icon(
                       Icons.remove,
-                      size: 20, // Ukuran ikon disesuaikan
+                      size: 20, 
                       color: widget.enabled ? Theme.of(context).primaryColorDark : Colors.grey,
                     ),
                   ),
@@ -320,15 +323,15 @@ class _NumberInputWithControlsState extends State<NumberInputWithControls> {
                     style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w500, color: widget.enabled ? Colors.black87 : Colors.grey[700]),
                     decoration: InputDecoration(
                       border: InputBorder.none,
-                      contentPadding: const EdgeInsets.symmetric(vertical: 0), // Kurangi padding vertikal internal
-                      fillColor: Colors.transparent, // Sudah diatur di container
+                      contentPadding: const EdgeInsets.symmetric(vertical: 0), 
+                      fillColor: Colors.transparent, 
                       filled: true,
-                      counterText: "", // Menghilangkan counter default
+                      counterText: "", 
                     ),
-                    maxLength: 2, // Batasi input maksimal 2 digit (0-99)
+                    maxLength: 2, 
                     validator: (value) {
                       if (value == null || value.isEmpty) {
-                        return 'Wajib';
+                        return 'Wajib'; // Pesan error singkat untuk UI yang lebih rapi
                       }
                       final n = int.tryParse(value);
                       if (n == null) {
@@ -351,10 +354,10 @@ class _NumberInputWithControlsState extends State<NumberInputWithControls> {
                     bottomRight: Radius.circular(10),
                   ),
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 12.0), // Padding untuk area tap
+                    padding: const EdgeInsets.symmetric(horizontal: 12.0),
                     child: Icon(
                       Icons.add,
-                      size: 20, // Ukuran ikon disesuaikan
+                      size: 20, 
                       color: widget.enabled ? Theme.of(context).primaryColorDark : Colors.grey,
                     ),
                   ),

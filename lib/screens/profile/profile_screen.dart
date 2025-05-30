@@ -3,12 +3,12 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 
-// Sesuaikan path import ini jika berbeda di proyek Anda
 import 'package:real/models/user_model.dart';
 import 'package:real/provider/auth_provider.dart';
-import 'package:real/screens/profile/edit_profile_screen.dart'; // Untuk navigasi
-import 'package:real/models/property.dart'; // Jika masih menggunakan dummy property
-import 'package:real/widgets/property_card_profile.dart'; // Jika masih menggunakan dummy property
+import 'package:real/provider/property_provider.dart'; // Pastikan ini diimpor
+import 'package:real/screens/profile/edit_profile_screen.dart';
+import 'package:real/models/property.dart';
+import 'package:real/widgets/property_card_profile.dart';
 import 'package:real/screens/my_drafts/my_drafts_screen.dart';
 import 'package:real/screens/profile/my_property_detail_screen.dart';
 
@@ -20,38 +20,29 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  final List<Property> _myApprovedProperties = [
-    Property(
-      id: 'approvedProp1',
-      title: 'Rumah Keluarga Idaman (TAYANG)',
-      description: 'Deskripsi rumah tayang...',
-      uploader: 'Anderson',
-      imageUrl: 'https://images.pexels.com/photos/106399/pexels-photo-106399.jpeg',
-      price: 1200000,
-      address: 'Jl. Merdeka No. 10',
-      bedrooms: 3, bathrooms: 2, areaSqft: 150, propertyType: "Rumah",
-      furnishings: "Semi Furnished", status: PropertyStatus.approved,
-      isFavorite: false, bookmarkCount: 25, viewsCount: 1500, inquiriesCount: 12,
-      approvalDate: DateTime.now().subtract(const Duration(days: 30)),
-    ),
-  ];
-
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
-      if (authProvider.isAuthenticated && (authProvider.user?.bio == null || authProvider.user!.bio.isEmpty)) {
-        print('ProfileScreen: Fetching user profile in initState because bio might be missing/empty.');
-        authProvider.fetchUserProfile().catchError((error) {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Gagal memuat detail profil: $error')),
-            );
-          }
-        });
-      } else if (authProvider.isAuthenticated) {
-        print('ProfileScreen: User is authenticated, bio: "${authProvider.user?.bio}". Fetch skipped if bio exists.');
+      if (authProvider.isAuthenticated && authProvider.token != null) {
+        // Fetch profil pengguna
+        if (authProvider.user?.bio == null || (authProvider.user?.bio != null && authProvider.user!.bio.isEmpty)) {
+          print('ProfileScreen: Fetching user profile in initState because bio might be missing/empty.');
+          authProvider.fetchUserProfile().catchError((error) {
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Gagal memuat detail profil: $error')),
+              );
+            }
+          });
+        }
+        // Fetch properti approved pengguna
+        print('ProfileScreen: Fetching user approved properties.');
+        Provider.of<PropertyProvider>(context, listen: false)
+            .fetchUserApprovedProperties(authProvider.token!);
+      } else {
+        print('ProfileScreen: User not authenticated or token is null. Skipping fetches.');
       }
     });
   }
@@ -62,6 +53,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
       await authProvider.logout();
       print('ProfileScreen: Logout berhasil.');
        if (mounted) {
+         // Navigasi ke LoginScreen atau halaman awal setelah logout jika diperlukan
+         // Navigator.of(context).pushNamedAndRemoveUntil('/login', (Route<dynamic> route) => false);
          ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Anda telah logout.')),
         );
@@ -76,6 +69,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
+  Future<void> _refreshProfileData() async {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    if (authProvider.isAuthenticated && authProvider.token != null) {
+      print('ProfileScreen: Refreshing profile data...');
+      // Gunakan Future.wait untuk menjalankan keduanya secara paralel
+      await Future.wait([
+        authProvider.fetchUserProfile(),
+        Provider.of<PropertyProvider>(context, listen: false)
+            .fetchUserApprovedProperties(authProvider.token!),
+      ]);
+      print('ProfileScreen: Profile data refreshed.');
+       if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Data profil diperbarui.'), duration: Duration(seconds: 2)),
+        );
+      }
+    }
+  }
+
+
   @override
   Widget build(BuildContext context) {
     final authProvider = Provider.of<AuthProvider>(context);
@@ -83,7 +96,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final bool isLoadingUser = authProvider.isLoading;
 
     final Color themeColor = const Color(0xFFDAF365);
-    final Color textOnThemeColor = Colors.black87; // Warna teks untuk kontras dengan themeColor
+    final Color textOnThemeColor = Colors.black87;
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -119,7 +132,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ElevatedButton(
                         onPressed: () {
                           if (authProvider.isAuthenticated) {
-                            authProvider.fetchUserProfile();
+                             _refreshProfileData(); // Coba muat ulang semua data
                           }
                         },
                         child: const Text('Coba Lagi'),
@@ -128,7 +141,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                 )
               : RefreshIndicator(
-                  onRefresh: () => authProvider.fetchUserProfile(),
+                  onRefresh: _refreshProfileData,
                   child: ListView(
                     padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 15.0),
                     children: [
@@ -174,17 +187,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ],
                       ),
                       const SizedBox(height: 25),
-
-                      // --- MODIFIKASI TOMBOL DI SINI ---
                       Row(
                         children: [
                           Expanded(
-                            child: ElevatedButton.icon( // Diubah menjadi ElevatedButton
-                              icon: Icon(Icons.edit_outlined, color: textOnThemeColor), // Warna ikon disesuaikan
+                            child: ElevatedButton.icon(
+                              icon: Icon(Icons.edit_outlined, color: textOnThemeColor),
                               label: Text("Edit Profil",
                                   style: GoogleFonts.poppins(
                                       fontWeight: FontWeight.w600,
-                                      color: textOnThemeColor)), // Warna teks disesuaikan
+                                      color: textOnThemeColor)),
                               onPressed: () {
                                 Navigator.push(
                                   context,
@@ -195,12 +206,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 ).then((dataUpdated) {
                                   if (dataUpdated == true) {
                                     print('ProfileScreen: Kembali dari Edit Profil dengan update.');
+                                     // Tidak perlu refresh manual di sini jika AuthProvider sudah notifyListeners
+                                     // dan UI profil (nama, bio) sudah di-consume dari AuthProvider.
+                                     // Jika ada data lain yang perlu di-refresh, panggil _refreshProfileData()
                                   }
                                 });
                               },
                               style: ElevatedButton.styleFrom(
-                                  backgroundColor: themeColor, // Menggunakan themeColor
-                                  elevation: 2, // Tambahkan sedikit elevasi agar menonjol
+                                  backgroundColor: themeColor,
+                                  elevation: 2,
                                   padding: const EdgeInsets.symmetric(vertical: 12),
                                   shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(10))),
@@ -209,11 +223,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           const SizedBox(width: 15),
                           Expanded(
                             child: ElevatedButton.icon(
-                              icon: Icon(Icons.article_outlined, color: textOnThemeColor), // Warna ikon disesuaikan
+                              icon: Icon(Icons.article_outlined, color: textOnThemeColor),
                               label: Text("Kelola Iklan",
                                   style: GoogleFonts.poppins(
                                       fontWeight: FontWeight.w600,
-                                      color: textOnThemeColor)), // Warna teks disesuaikan
+                                      color: textOnThemeColor)),
                               onPressed: () {
                                 Navigator.push(
                                   context,
@@ -222,8 +236,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 );
                               },
                               style: ElevatedButton.styleFrom(
-                                  backgroundColor: themeColor, // Diubah menjadi themeColor
-                                  elevation: 2, // Tambahkan sedikit elevasi
+                                  backgroundColor: themeColor,
+                                  elevation: 2,
                                   padding: const EdgeInsets.symmetric(vertical: 12),
                                   shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(10))),
@@ -231,7 +245,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           ),
                         ],
                       ),
-                      // --- AKHIR MODIFIKASI TOMBOL ---
                       const SizedBox(height: 30),
 
                       Text(
@@ -244,8 +257,38 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                       const SizedBox(height: 15),
 
-                      _myApprovedProperties.isEmpty
-                          ? Center(
+                      Consumer<PropertyProvider>(
+                        builder: (context, propertyProvider, child) {
+                          if (propertyProvider.isLoadingUserApprovedProperties) {
+                            return const Center(child: Padding(
+                              padding: EdgeInsets.all(16.0),
+                              child: CircularProgressIndicator(),
+                            ));
+                          }
+                          if (propertyProvider.userApprovedPropertiesError != null) {
+                            return Center(
+                              child: Padding(
+                                padding: const EdgeInsets.all(16.0),
+                                child: Column( // Tambah tombol coba lagi
+                                  children: [
+                                    Text('Error: ${propertyProvider.userApprovedPropertiesError}'),
+                                    const SizedBox(height: 10),
+                                    ElevatedButton(
+                                      onPressed: () {
+                                         if (authProvider.isAuthenticated && authProvider.token != null) {
+                                          Provider.of<PropertyProvider>(context, listen: false)
+                                            .fetchUserApprovedProperties(authProvider.token!);
+                                         }
+                                      },
+                                      child: const Text('Coba Lagi'),
+                                    )
+                                  ],
+                                ),
+                              ),
+                            );
+                          }
+                          if (propertyProvider.userApprovedProperties.isEmpty) {
+                            return Center(
                               child: Padding(
                                 padding: const EdgeInsets.symmetric(vertical: 30.0),
                                 child: Column(
@@ -260,32 +303,37 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   ],
                                 ),
                               ),
-                            )
-                          : ListView.builder(
-                              shrinkWrap: true,
-                              physics: const NeverScrollableScrollPhysics(),
-                              itemCount: _myApprovedProperties.length,
-                              itemBuilder: (context, index) {
-                                final property = _myApprovedProperties[index];
-                                return Padding(
-                                  padding: const EdgeInsets.only(bottom: 15.0),
-                                  child: PropertyCardProfile(
-                                    property: property,
-                                    isHorizontalVariant: false,
-                                    showEditIcon: false,
-                                    onTap: () {
-                                      Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (context) => MyPropertyDetailScreen(
-                                              property: property),
-                                        ),
-                                      );
-                                    },
-                                  ),
-                                );
-                              },
-                            ),
+                            );
+                          }
+
+                          return ListView.builder(
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            itemCount: propertyProvider.userApprovedProperties.length,
+                            itemBuilder: (context, index) {
+                              final property =
+                                  propertyProvider.userApprovedProperties[index];
+                              return Padding(
+                                padding: const EdgeInsets.only(bottom: 15.0),
+                                child: PropertyCardProfile( // Menggunakan PropertyCardProfile
+                                  property: property,
+                                  isHorizontalVariant: false,
+                                  showEditIcon: false,
+                                  onTap: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) =>
+                                            MyPropertyDetailScreen(property: property),
+                                      ),
+                                    );
+                                  },
+                                ),
+                              );
+                            },
+                          );
+                        },
+                      ),
                     ],
                   ),
                 ),

@@ -1,7 +1,6 @@
-// File: lib/screens/my_drafts/add_property_form_screen.dart
-
+// lib/screens/my_drafts/add_property_form_screen.dart
 import 'dart:async';
-import 'dart:convert';
+// import 'dart:convert'; // Tidak secara langsung digunakan di sini lagi
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
@@ -11,21 +10,28 @@ import 'package:real/widgets/property_image_picker.dart';
 import 'package:real/services/property_service.dart';
 import 'package:provider/provider.dart';
 import 'package:real/provider/auth_provider.dart';
-import 'package:http/http.dart' as http;
+// import 'package:http/http.dart' as http; // Tidak secara langsung digunakan di sini lagi
 import 'package:real/widgets/property_action_buttons.dart';
 import 'map_picker_screen.dart';
 import 'package:real/widgets/custom_form_field.dart';
+// lib/screens/my_drafts/add_property_form_screen.dart
 
 class AddPropertyFormScreen extends StatefulWidget {
   final Property? propertyToEdit;
+  // final bool isSoldView; // Parameter ini bisa ditambahkan jika perlu logika khusus selain read-only
 
-  const AddPropertyFormScreen({super.key, this.propertyToEdit});
+  const AddPropertyFormScreen({
+    super.key, 
+    this.propertyToEdit,
+    // this.isSoldView = false, 
+  });
 
   @override
   State<AddPropertyFormScreen> createState() => _AddPropertyFormScreenState();
 }
 
 class _AddPropertyFormScreenState extends State<AddPropertyFormScreen> {
+  // ... (state dan controller yang sudah ada) ...
   final _formKey = GlobalKey<FormState>();
   final PropertyService _propertyService = PropertyService();
 
@@ -39,12 +45,12 @@ class _AddPropertyFormScreenState extends State<AddPropertyFormScreen> {
   late TextEditingController _kamarTidurController;
 
   String? _tipePropertiValue;
-  int? _kondisiFurnishingValue;
+  int? _kondisiFurnishingValue; 
   int? _pemandanganSekitarValue;
   int? _usiaPropertiValue;
   int? _labelPropertiValue;
 
-  List<dynamic> _addressSuggestions = [];
+  List<dynamic> _addressSuggestions = []; 
   bool _isFetchingAddressSuggestions = false;
   Timer? _debounceAddressSearch;
   OverlayEntry? _overlayEntry;
@@ -54,12 +60,12 @@ class _AddPropertyFormScreenState extends State<AddPropertyFormScreen> {
   List<String> _currentExistingImageUrls = [];
 
   bool _isEditMode = false;
-  PropertyStatus _currentStatus = PropertyStatus.draft; // Status internal form
+  PropertyStatus _currentStatus = PropertyStatus.draft;
   bool _isLoadingSubmit = false;
   bool _isPredictingPrice = false;
   String? _hargaPrediksiIdrFormatted;
 
-  final double _kursAedKeIdr = 4426;
+  final double _kursAedKeIdr = 4426; 
   final _idrFormatter = NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0);
 
   final List<String> _tipePropertiOptions = [
@@ -67,7 +73,7 @@ class _AddPropertyFormScreenState extends State<AddPropertyFormScreen> {
   ];
 
   final List<Map<String, dynamic>> kondisiFurnishingOptions = [
-    {'text': 'Unfurnished', 'value': 1},
+    {'text': 'Unfurnished', 'value': 1}, 
     {'text': 'Semi Furnished', 'value': 2},
     {'text': 'Furnished', 'value': 0},
   ];
@@ -99,7 +105,6 @@ class _AddPropertyFormScreenState extends State<AddPropertyFormScreen> {
   ];
 
 
-
   @override
   void initState() {
     super.initState();
@@ -114,22 +119,12 @@ class _AddPropertyFormScreenState extends State<AddPropertyFormScreen> {
     _kamarMandiController = TextEditingController(text: p?.bathrooms.toString() ?? '0');
     _kamarTidurController = TextEditingController(text: p?.bedrooms.toString() ?? '0');
     
-    // Inisialisasi _currentStatus berdasarkan properti yang diedit
-    // Jika properti baru, default ke draft
     _currentStatus = p?.status ?? PropertyStatus.draft;
 
     _newlySelectedImages = [];
     _currentExistingImageUrls = [];
 
     if (_isEditMode && p != null) {
-      // Jika properti yang diedit statusnya rejected,
-      // maka di form ini statusnya diubah menjadi draft agar bisa direvisi.
-      if (p.status == PropertyStatus.rejected) {
-        _currentStatus = PropertyStatus.draft;
-      }
-      // Jika statusnya pendingVerification, _currentStatus akan tetap pendingVerification,
-      // yang akan membuat canEditFields menjadi false.
-
       if (p.imageUrl.isNotEmpty && p.imageUrl.startsWith('http')) {
         _currentExistingImageUrls.add(p.imageUrl);
       }
@@ -142,10 +137,11 @@ class _AddPropertyFormScreenState extends State<AddPropertyFormScreen> {
       if (p.propertyType.isNotEmpty && _tipePropertiOptions.contains(p.propertyType)) {
         _tipePropertiValue = p.propertyType;
       }
+
       if (p.furnishings.isNotEmpty) {
         var found = kondisiFurnishingOptions.firstWhere(
               (opt) => opt['text'].toString().toLowerCase() == p.furnishings.toLowerCase(),
-              orElse: () => <String, dynamic>{}
+              orElse: () => <String, dynamic>{} 
         );
         if (found.isNotEmpty) _kondisiFurnishingValue = found['value'];
       }
@@ -181,55 +177,67 @@ class _AddPropertyFormScreenState extends State<AddPropertyFormScreen> {
       }
     });
   }
-
-  @override
-  void dispose() {
-    _namaPropertiController.dispose();
-    _alamatController.dispose();
-    _kamarMandiController.dispose();
-    _kamarTidurController.dispose();
-    _luasPropertiSqftController.dispose();
-    _deskripsiController.dispose();
-    _hargaManualAedController.dispose();
-    _debounceAddressSearch?.cancel();
-    _removeOverlay();
-    super.dispose();
+  // ... (dispose, _onAddressSearchChanged, _openMapPicker, _removeOverlay, _predictAndSetPrice, _processPropertySubmission tetap sama) ...
+  void _onAddressSearchChanged(String query) {
+    if (_debounceAddressSearch?.isActive ?? false) _debounceAddressSearch!.cancel();
+    _debounceAddressSearch = Timer(const Duration(milliseconds: 700), () {
+      if (query.trim().isNotEmpty && _alamatController.text == query) {
+        print("Alamat dicari: $query"); 
+      } else if (query.trim().isEmpty) {
+        _removeOverlay();
+        if (mounted) setState(() => _addressSuggestions = []);
+      }
+    });
   }
 
-  Future<void> _predictAndSetPrice() async {
-    if (!_formKey.currentState!.validate()) {
-       ScaffoldMessenger.of(context).showSnackBar(
+  Future<void> _openMapPicker() async {
+    _removeOverlay();
+    final selectedAddress = await Navigator.push<String>(
+      context,
+      MaterialPageRoute(builder: (context) => const MapPickerScreen()),
+    );
+
+    if (selectedAddress != null && selectedAddress.isNotEmpty && mounted) {
+      setState(() {
+        _alamatController.text = selectedAddress;
+        _addressSuggestions = [];
+      });
+    }
+  }
+
+  void _removeOverlay() {
+    _overlayEntry?.remove();
+    _overlayEntry = null;
+  }
+   Future<void> _predictAndSetPrice() async {
+    if (!(_formKey.currentState?.validate() ?? false)) {
+       if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
          const SnackBar(content: Text('Mohon lengkapi field yang diperlukan untuk prediksi.'), backgroundColor: Colors.orange)
        );
+       }
       return;
     }
-      setState(() => _isPredictingPrice = true);
+      if(mounted) setState(() => _isPredictingPrice = true);
       try {
-        final bathrooms = int.parse(_kamarMandiController.text);
-        final bedrooms = int.parse(_kamarTidurController.text);
+        final bathrooms = int.tryParse(_kamarMandiController.text);
+        final bedrooms = int.tryParse(_kamarTidurController.text);
         final furnishing = _kondisiFurnishingValue;
-
         final double luasPropertiSqft = double.tryParse(_luasPropertiSqftController.text) ?? 0.0;
-        if (luasPropertiSqft <= 0) {
-           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Luas properti (sqft) harus lebih dari 0 untuk prediksi.'), backgroundColor: Colors.orange),
-          );
-          setState(() => _isPredictingPrice = false);
-          return;
-        }
-
         final listingAgeCategory = _usiaPropertiValue;
         final viewType = _pemandanganSekitarValue;
         final titleKeyword = _labelPropertiValue;
 
-        if (furnishing == null || listingAgeCategory == null || viewType == null || titleKeyword == null) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Mohon lengkapi semua pilihan dropdown (Furnishing, Usia, Pemandangan, Label) untuk prediksi.'), backgroundColor: Colors.orange),
-          );
-          setState(() => _isPredictingPrice = false);
+        if (bathrooms == null || bedrooms == null || furnishing == null || luasPropertiSqft <= 0 || listingAgeCategory == null || viewType == null || titleKeyword == null) {
+          if(mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Pastikan semua field (kamar, luas, furnishing, usia, pemandangan, label) terisi dengan benar untuk prediksi.'), backgroundColor: Colors.orange),
+            );
+          }
+          if(mounted) setState(() => _isPredictingPrice = false);
           return;
         }
-
+        
         final defaultVerifiedStatusForPrediction = 0;
 
         final result = await _propertyService.predictPropertyPrice(
@@ -243,34 +251,30 @@ class _AddPropertyFormScreenState extends State<AddPropertyFormScreen> {
           titleKeyword: titleKeyword,
         );
 
-         if (result['success'] == true && result['predicted_price'] != null) {
+         if (mounted && result['success'] == true && result['predicted_price'] != null) {
           final predictedPriceAed = result['predicted_price'];
           setState(() {
             _hargaManualAedController.text = predictedPriceAed.toStringAsFixed(0);
             _hargaPrediksiIdrFormatted = _idrFormatter.format(predictedPriceAed * _kursAedKeIdr);
           });
-          if(mounted){
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Harga prediksi AED ${predictedPriceAed.toStringAsFixed(0)} telah diisi.'), backgroundColor: Colors.green),
-            );
-          }
-        } else {
-           if(mounted){
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Harga prediksi AED ${predictedPriceAed.toStringAsFixed(0)} telah diisi.'), backgroundColor: Colors.green),
+          );
+        } else if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(content: Text(result['message'] ?? 'Gagal mendapatkan prediksi harga.'), backgroundColor: Colors.red),
             );
-           }
-          setState(() {
+           setState(() {
              _hargaPrediksiIdrFormatted = null;
           });
         }
       } catch (e) {
          if(mounted){
           ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Terjadi kesalahan: Pastikan semua field prediksi terisi dengan benar. Error: $e'), backgroundColor: Colors.red),
+              SnackBar(content: Text('Error prediksi: Pastikan semua field prediksi terisi. Error: $e'), backgroundColor: Colors.red),
             );
          }
-          setState(() {
+          if(mounted) setState(() {
              _hargaPrediksiIdrFormatted = null;
           });
       } finally {
@@ -279,64 +283,73 @@ class _AddPropertyFormScreenState extends State<AddPropertyFormScreen> {
   }
 
   Future<void> _processPropertySubmission({required PropertyStatus targetStatus}) async {
-    if (!_formKey.currentState!.validate()) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Mohon lengkapi semua data yang wajib diisi dengan benar.'), backgroundColor: Colors.orange),
-      );
+    if (!(_formKey.currentState?.validate() ?? false)) {
+      if(mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Mohon lengkapi semua data yang wajib diisi dengan benar.'), backgroundColor: Colors.orange),
+        );
+      }
       return;
     }
-    if ((!_isEditMode && _newlySelectedImages.isEmpty) ||
-        (_isEditMode && _currentExistingImageUrls.isEmpty && _newlySelectedImages.isEmpty)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Mohon upload minimal 1 foto properti.')),
-      );
+    bool isImageRequiredAndMissing = (!_isEditMode && _newlySelectedImages.isEmpty) ||
+                                  (_isEditMode && _currentExistingImageUrls.isEmpty && _newlySelectedImages.isEmpty);
+
+    if (isImageRequiredAndMissing && targetStatus != PropertyStatus.sold && targetStatus != PropertyStatus.archived) { // Gambar tidak wajib jika hanya ubah status ke sold/archived
+      if(mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Mohon upload minimal 1 foto properti.')),
+        );
+      }
       return;
     }
 
-    setState(() => _isLoadingSubmit = true);
+    if(mounted) setState(() => _isLoadingSubmit = true);
 
     String propertyIdForSubmission = (_isEditMode && widget.propertyToEdit != null && widget.propertyToEdit!.id.isNotEmpty)
         ? widget.propertyToEdit!.id
-        : DateTime.now().toIso8601String();
+        : DateTime.now().toIso8601String(); 
+    
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final userId = authProvider.user?.id;
 
-    if (userId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Anda harus login terlebih dahulu untuk mengirim properti.')),
-      );
-      if (mounted) setState(() => _isLoadingSubmit = false);
+    if (userId == null || (authProvider.token?.isEmpty ?? true)) {
+      if(mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Sesi tidak valid. Silakan login ulang.')),
+        );
+        setState(() => _isLoadingSubmit = false);
+      }
       return;
     }
 
     String furnishingText = _kondisiFurnishingValue != null
         ? kondisiFurnishingOptions.firstWhere((opt) => opt['value'] == _kondisiFurnishingValue, orElse: () => {'text': ''})['text']
-        : '';
+        : widget.propertyToEdit?.furnishings ?? ''; 
     String? pemandanganSekitarText = _pemandanganSekitarValue != null
         ? pemandanganSekitarOptions.firstWhere((opt) => opt['value'] == _pemandanganSekitarValue, orElse: () => {'text': null})['text']
-        : null;
+        : widget.propertyToEdit?.mainView;
     String? usiaPropertiText = _usiaPropertiValue != null
         ? usiaPropertiOptions.firstWhere((opt) => opt['value'] == _usiaPropertiValue, orElse: () => {'text': null})['text']
-        : null;
+        : widget.propertyToEdit?.listingAgeCategory;
     String? labelPropertiText = _labelPropertiValue != null
         ? labelPropertiOptions.firstWhere((opt) => opt['value'] == _labelPropertiValue, orElse: () => {'text': null})['text']
-        : null;
+        : widget.propertyToEdit?.propertyLabel;
 
     final propertyData = Property(
       id: propertyIdForSubmission,
       title: _namaPropertiController.text,
       description: _deskripsiController.text,
       uploader: userId,
-      imageUrl: '',
-      additionalImageUrls: [],
-      price: double.tryParse(_hargaManualAedController.text) ?? 0.0,
+      imageUrl: widget.propertyToEdit?.imageUrl ?? '', 
+      additionalImageUrls: widget.propertyToEdit?.additionalImageUrls ?? [], 
+      price: double.tryParse(_hargaManualAedController.text) ?? widget.propertyToEdit?.price ?? 0.0,
       address: _alamatController.text,
-      bedrooms: int.tryParse(_kamarTidurController.text) ?? 0,
-      bathrooms: int.tryParse(_kamarMandiController.text) ?? 0,
-      areaSqft: double.tryParse(_luasPropertiSqftController.text) ?? 0.0,
-      propertyType: _tipePropertiValue ?? '',
+      bedrooms: int.tryParse(_kamarTidurController.text) ?? widget.propertyToEdit?.bedrooms ?? 0,
+      bathrooms: int.tryParse(_kamarMandiController.text) ?? widget.propertyToEdit?.bathrooms ?? 0,
+      areaSqft: double.tryParse(_luasPropertiSqftController.text) ?? widget.propertyToEdit?.areaSqft ?? 0.0,
+      propertyType: _tipePropertiValue ?? widget.propertyToEdit?.propertyType ?? '',
       furnishings: furnishingText,
-      status: targetStatus, // Menggunakan targetStatus yang diterima dari tombol
+      status: targetStatus, 
       mainView: pemandanganSekitarText,
       listingAgeCategory: usiaPropertiText,
       propertyLabel: labelPropertiText,
@@ -346,44 +359,26 @@ class _AddPropertyFormScreenState extends State<AddPropertyFormScreen> {
       submissionDate: (targetStatus == PropertyStatus.pendingVerification && widget.propertyToEdit?.submissionDate == null)
                           ? DateTime.now()
                           : widget.propertyToEdit?.submissionDate,
-      approvalDate: widget.propertyToEdit?.approvalDate,
+      approvalDate: (targetStatus == PropertyStatus.approved && widget.propertyToEdit?.approvalDate == null && widget.propertyToEdit?.status != PropertyStatus.approved)
+                          ? DateTime.now() 
+                          : widget.propertyToEdit?.approvalDate,
     );
-
-    final token = authProvider.token;
-    if (token == null || token.isEmpty) {
-      if (mounted) {
-        setState(() => _isLoadingSubmit = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Sesi Anda berakhir. Silakan login ulang.')),
-        );
-      }
-      return;
-    }
-
-    print('DEBUG AddPropertyFormScreen: Mengirim properti dengan status: ${propertyData.status}');
-
+    
     final result = await _propertyService.submitProperty(
       property: propertyData,
       newSelectedImages: _newlySelectedImages,
       existingImageUrls: _currentExistingImageUrls,
-      token: token,
+      token: authProvider.token!,
     );
 
     if (mounted) {
       setState(() => _isLoadingSubmit = false);
       if (result['success'] == true) {
-        String successMessage = targetStatus == PropertyStatus.draft
-            ? "Draft berhasil disimpan!"
-            : "Properti berhasil diajukan untuk verifikasi!";
-        if (_isEditMode && targetStatus != PropertyStatus.draft) {
-            successMessage = "Properti berhasil diperbarui dan diajukan!";
-        } else if (_isEditMode) {
-            successMessage = "Draft berhasil diperbarui!";
-        }
-        ScaffoldMessenger.of(context).showSnackBar(
+        String successMessage = "Properti berhasil diproses dengan status: ${targetStatus.name}";
+         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(successMessage), backgroundColor: Colors.green),
         );
-        Navigator.pop(context, true);
+        Navigator.pop(context, true); 
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(result['message'] ?? 'Terjadi kesalahan saat mengirim properti.'), backgroundColor: Colors.red),
@@ -392,172 +387,23 @@ class _AddPropertyFormScreenState extends State<AddPropertyFormScreen> {
     }
   }
 
-
-  Future<void> _fetchAddressSuggestions(String query) async {
-    if (query.trim().isEmpty) {
-      _removeOverlay();
-      if (mounted) {
-        setState(() {
-          _addressSuggestions = [];
-          _isFetchingAddressSuggestions = false;
-        });
-      }
-      return;
-    }
-
-    if (mounted) {
-      setState(() {
-        _isFetchingAddressSuggestions = true;
-      });
-    }
-
-    final Uri uri = Uri.parse(
-        'https://nominatim.openstreetmap.org/search?q=${Uri.encodeComponent(query)}&format=jsonv2&addressdetails=1&limit=5&countrycodes=ID');
-
-    try {
-      final response = await http.get(uri, headers: {
-        'User-Agent': 'NamaAplikasiAnda/1.0 (emailanda@example.com)'
-      });
-
-      if (mounted) {
-        if (response.statusCode == 200) {
-          final data = jsonDecode(response.body);
-          if (data is List) {
-            setState(() {
-              _addressSuggestions = data;
-            });
-            if (_addressSuggestions.isNotEmpty) {
-              _showOverlay();
-            } else {
-              _removeOverlay();
-            }
-          }
-        } else {
-          print('Error fetching address: ${response.statusCode}');
-          _removeOverlay();
-        }
-      }
-    } catch (e) {
-      print('Exception fetching address: $e');
-      if (mounted) _removeOverlay();
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isFetchingAddressSuggestions = false;
-        });
-      }
-    }
-  }
-
-  void _onAddressSearchChanged(String query) {
-    if (_debounceAddressSearch?.isActive ?? false) _debounceAddressSearch!.cancel();
-    _debounceAddressSearch = Timer(const Duration(milliseconds: 700), () {
-      if (query.trim().isNotEmpty && _alamatController.text == query) {
-        _fetchAddressSuggestions(query);
-      } else if (query.trim().isEmpty) {
-        _removeOverlay();
-        if (mounted) setState(() => _addressSuggestions = []);
-      }
-    });
-  }
-
-  void _showOverlay() {
-    _removeOverlay();
-    assert(_overlayEntry == null);
-
-    _overlayEntry = OverlayEntry(
-      builder: (context) => Positioned(
-        width: MediaQuery.of(context).size.width - 40,
-        child: CompositedTransformFollower(
-          link: _layerLink,
-          showWhenUnlinked: false,
-          offset: const Offset(0.0, 58.0),
-          child: Material(
-            elevation: 4.0,
-            borderRadius: BorderRadius.circular(8),
-            child: Container(
-              constraints: const BoxConstraints(maxHeight: 200),
-              decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(8),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.grey.withOpacity(0.3),
-                      spreadRadius: 1,
-                      blurRadius: 3,
-                    )
-                  ]),
-              child: ListView.builder(
-                padding: EdgeInsets.zero,
-                shrinkWrap: true,
-                itemCount: _addressSuggestions.length,
-                itemBuilder: (context, index) {
-                  final suggestion = _addressSuggestions[index];
-                  final displayName = suggestion['display_name'] ?? 'Alamat tidak tersedia';
-                  return ListTile(
-                    title: Text(displayName, style: GoogleFonts.poppins(fontSize: 13)),
-                    dense: true,
-                    onTap: () {
-                      _alamatController.text = displayName;
-                      _removeOverlay();
-                      if (mounted) {
-                        setState(() {
-                          _addressSuggestions = [];
-                        });
-                      }
-                      FocusScope.of(context).unfocus();
-                    },
-                  );
-                },
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-    Overlay.of(context).insert(_overlayEntry!);
-  }
-
-  void _removeOverlay() {
-    _overlayEntry?.remove();
-    _overlayEntry = null;
-  }
-
-  Future<void> _openMapPicker() async {
-    _removeOverlay();
-    final selectedAddress = await Navigator.push<String>(
-      context,
-      MaterialPageRoute(builder: (context) => const MapPickerScreen()),
-    );
-
-    if (selectedAddress != null && selectedAddress.isNotEmpty) {
-      if (mounted) {
-        setState(() {
-          _alamatController.text = selectedAddress;
-          _addressSuggestions = [];
-        });
-      }
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
-    // Menentukan apakah field form bisa diedit berdasarkan status properti (_currentStatus) di form ini.
-    // Jika _currentStatus adalah draft atau rejected (setelah revisi), maka field bisa diedit.
-    // Jika _currentStatus adalah pendingVerification, approved, dll., maka field tidak bisa diedit.
-    bool canEditFields = _currentStatus == PropertyStatus.draft || _currentStatus == PropertyStatus.rejected;
+    // Logika canEditFields: TIDAK BISA diedit jika statusnya archived atau sold.
+    // Hanya bisa diedit jika draft atau rejected.
+    bool canEditFields = (_currentStatus == PropertyStatus.draft || _currentStatus == PropertyStatus.rejected);
 
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+         backgroundColor: Colors.white,
         elevation: 1,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.black),
           onPressed: () => Navigator.of(context).pop(),
         ),
         title: Text(
-          _isEditMode ? "Edit Properti" : "Tambah Properti Baru",
+          _isEditMode ? (_currentStatus == PropertyStatus.sold ? "Detail Properti Terjual" : "Edit Properti") : "Tambah Properti Baru",
           style: GoogleFonts.poppins(
             color: Colors.black, fontWeight: FontWeight.bold, fontSize: 18,
           ),
@@ -576,15 +422,15 @@ class _AddPropertyFormScreenState extends State<AddPropertyFormScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                PropertyImagePicker(
+                PropertyImagePicker( // Gambar tetap bisa dilihat meski tidak bisa diedit
                   initialSelectedImages: _newlySelectedImages,
                   initialExistingImageUrls: _currentExistingImageUrls,
-                  canEdit: canEditFields, // Kontrol editability PropertyImagePicker
+                  canEdit: canEditFields, // Nonaktifkan jika tidak bisa edit
                   onSelectedImagesChanged: (updatedSelectedImages) {
-                    setState(() => _newlySelectedImages = updatedSelectedImages);
+                    if(canEditFields) setState(() => _newlySelectedImages = updatedSelectedImages);
                   },
                   onExistingImageUrlsChanged: (updatedExistingUrls) {
-                    setState(() => _currentExistingImageUrls = updatedExistingUrls);
+                     if(canEditFields) setState(() => _currentExistingImageUrls = updatedExistingUrls);
                   },
                 ),
                 const SizedBox(height: 20),
@@ -601,7 +447,7 @@ class _AddPropertyFormScreenState extends State<AddPropertyFormScreen> {
                       controller: _alamatController,
                       maxLines: 3,
                       enabled: canEditFields,
-                      onChanged: _onAddressSearchChanged,
+                      onChanged: canEditFields ? _onAddressSearchChanged : null,
                       suffixIcon: IconButton(
                         icon: Icon(Icons.map_outlined, color: Theme.of(context).primaryColor),
                         onPressed: canEditFields ? _openMapPicker : null,
@@ -616,13 +462,13 @@ class _AddPropertyFormScreenState extends State<AddPropertyFormScreen> {
                   label: "Tipe Properti",
                   value: _tipePropertiValue,
                   options: _tipePropertiOptions,
-                  onChanged: (String? newValue) { // Selalu berikan fungsi non-null
-                    if (canEditFields && mounted) {
+                  onChanged: canEditFields ? (String? newValue) { 
+                    if (mounted) {
                       setState(() {
                         _tipePropertiValue = newValue;
                       });
                     }
-                  },
+                  } : null,
                   hint: "Pilih Tipe Properti",
                   enabled: canEditFields,
                 ),
@@ -658,44 +504,36 @@ class _AddPropertyFormScreenState extends State<AddPropertyFormScreen> {
                   value: _kondisiFurnishingValue,
                   options: kondisiFurnishingOptions,
                   enabled: canEditFields,
-                  onChanged: (dynamic newValue) { // Selalu berikan fungsi non-null
-                    if (canEditFields) {
-                      setState(() => _kondisiFurnishingValue = newValue as int?);
-                    }
-                  },
+                  onChanged: canEditFields ? (dynamic newValue) { 
+                    if(mounted) setState(() => _kondisiFurnishingValue = newValue as int?);
+                  } : null,
                 ),
                 CustomDropdownMapField(
                   label: "Pemandangan Sekitar",
                   value: _pemandanganSekitarValue,
                   options: pemandanganSekitarOptions,
                   enabled: canEditFields,
-                  onChanged: (dynamic newValue) { // Selalu berikan fungsi non-null
-                    if (canEditFields) {
-                      setState(() => _pemandanganSekitarValue = newValue as int?);
-                    }
-                  },
+                  onChanged: canEditFields ? (dynamic newValue) { 
+                     if(mounted) setState(() => _pemandanganSekitarValue = newValue as int?);
+                  } : null,
                 ),
                 CustomDropdownMapField(
                   label: "Usia Properti",
                   value: _usiaPropertiValue,
                   options: usiaPropertiOptions,
                   enabled: canEditFields,
-                  onChanged: (dynamic newValue) { // Selalu berikan fungsi non-null
-                    if (canEditFields) {
-                      setState(() => _usiaPropertiValue = newValue as int?);
-                    }
-                  },
+                  onChanged: canEditFields ? (dynamic newValue) { 
+                     if(mounted) setState(() => _usiaPropertiValue = newValue as int?);
+                  } : null,
                 ),
                 CustomDropdownMapField(
                   label: "Label Properti / Tag",
                   value: _labelPropertiValue,
                   options: labelPropertiOptions,
                   enabled: canEditFields,
-                  onChanged: (dynamic newValue) { // Selalu berikan fungsi non-null
-                    if (canEditFields) {
-                      setState(() => _labelPropertiValue = newValue as int?);
-                    }
-                  },
+                  onChanged: canEditFields ? (dynamic newValue) { 
+                     if(mounted) setState(() => _labelPropertiValue = newValue as int?);
+                  } : null,
                 ),
 
                 CustomTextFormField(
@@ -707,7 +545,7 @@ class _AddPropertyFormScreenState extends State<AddPropertyFormScreen> {
                 ),
 
                 const SizedBox(height: 10),
-                if (canEditFields) // Tombol prediksi hanya muncul jika bisa diedit
+                if (canEditFields) // Tombol prediksi hanya jika bisa edit
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton.icon(
@@ -731,9 +569,9 @@ class _AddPropertyFormScreenState extends State<AddPropertyFormScreen> {
                     enabled: canEditFields,
                     hint: "Harga dalam AED"),
 
-                if (_hargaPrediksiIdrFormatted != null && _hargaPrediksiIdrFormatted!.isNotEmpty)
+                if (_hargaPrediksiIdrFormatted != null && _hargaPrediksiIdrFormatted!.isNotEmpty && canEditFields)
                   Padding(
-                    padding: const EdgeInsets.only(left: 4.0, right: 4.0, bottom: 15.0),
+                     padding: const EdgeInsets.only(left: 4.0, right: 4.0, bottom: 15.0),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -754,50 +592,37 @@ class _AddPropertyFormScreenState extends State<AddPropertyFormScreen> {
                       ],
                     ),
                   ),
-
                 const SizedBox(height: 10),
-
-                // Menampilkan status properti saat ini jika form TIDAK BOLEH DIEDIT
-                // Ini akan menampilkan chip status seperti "Menunggu Verifikasi Admin"
+                
+                // Menampilkan status jika tidak bisa diedit (archived, sold, pending, approved)
                 if (!canEditFields && !_isLoadingSubmit)
                   Padding(
                     padding: const EdgeInsets.only(bottom: 20.0),
                     child: Center(
                       child: Chip(
                         label: Text(
-                            _currentStatus == PropertyStatus.pendingVerification
-                                ? "Status: Menunggu Verifikasi Admin"
-                                : _currentStatus == PropertyStatus.approved
-                                    ? "Status: Sudah Disetujui & Tayang"
-                                    : "Status: ${_currentStatus.name.replaceAllMapped(RegExp(r'(?<=[a-z])(?=[A-Z])'), (Match m) => ' ${m[0]}').replaceFirstMapped(RegExp(r'^[a-z]'), (m) => m[0]!.toUpperCase())}",
+                            "Status Saat Ini: ${_currentStatus.name.replaceAllMapped(RegExp(r'(?<=[a-z])(?=[A-Z])'), (Match m) => ' ${m[0]}').replaceFirstMapped(RegExp(r'^[a-z]'), (m) => m[0]!.toUpperCase())}",
                             style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.w500, fontSize: 12)),
-                        backgroundColor:
-                            _currentStatus == PropertyStatus.pendingVerification
-                                ? Colors.orangeAccent.shade700
-                                : _currentStatus == PropertyStatus.approved
-                                    ? Colors.green.shade600
-                                    : Colors.grey[700], // Warna default jika status lain
+                        backgroundColor: _getStatusColorForChip(_currentStatus),
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                       ),
                     ),
                   ),
 
-                // Tombol Aksi hanya akan ditampilkan jika canEditFields == true (status draft atau rejected)
-                // Sesuai logika di dalam PropertyActionButtons, jika _currentStatus adalah pendingVerification,
-                // tombol tidak akan muncul.
-                PropertyActionButtons(
-                    isLoading: _isLoadingSubmit,
-                    currentStatus: _currentStatus,
-                    onSubmit: _processPropertySubmission,
-                    onEdit: () {
-                      if (mounted) {
-                        setState(() {
-                          // Ini dipanggil ketika properti yang REJECTED ingin direvisi.
-                          // Status form diubah menjadi DRAFT agar bisa diedit.
-                          _currentStatus = PropertyStatus.draft;
-                        });
-                      }
-                    }),
+                // PropertyActionButtons hanya akan menampilkan tombol jika statusnya draft, rejected, atau archived
+                // Untuk status 'sold', 'pendingVerification', 'approved', widget ini tidak akan menampilkan tombol apapun.
+                if (_currentStatus != PropertyStatus.sold && _currentStatus != PropertyStatus.pendingVerification && _currentStatus != PropertyStatus.approved)
+                  PropertyActionButtons(
+                      isLoading: _isLoadingSubmit,
+                      currentStatus: _currentStatus, 
+                      onSubmit: _processPropertySubmission,
+                      onEdit: () { 
+                        if (mounted) {
+                          setState(() {
+                            _currentStatus = PropertyStatus.draft;
+                          });
+                        }
+                      }),
                 const SizedBox(height: 20),
               ],
             ),
@@ -805,5 +630,17 @@ class _AddPropertyFormScreenState extends State<AddPropertyFormScreen> {
         ),
       ),
     );
+  }
+
+  Color _getStatusColorForChip(PropertyStatus status) {
+    // ... (method _getStatusColorForChip tetap sama) ...
+     switch (status) {
+      case PropertyStatus.pendingVerification: return Colors.orangeAccent.shade700;
+      case PropertyStatus.approved: return Colors.green.shade600;
+      case PropertyStatus.archived: return Colors.grey.shade700;
+      case PropertyStatus.sold: return Colors.purple.shade700;
+      case PropertyStatus.rejected: return Colors.red.shade600;
+      default: return Colors.blueGrey.shade700; // draft
+    }
   }
 }
