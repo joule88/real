@@ -5,6 +5,7 @@ import 'package:real/provider/auth_provider.dart';
 import 'package:real/screens/login/register.dart';
 import 'package:real/widgets/textfield_login.dart'; // Pastikan ini sudah diimpor
 import 'package:google_fonts/google_fonts.dart';
+import 'package:real/screens/login/forgot_password_screen.dart';
 // import 'package:real/screens/main_screen.dart'; // Tidak perlu jika navigasi via Consumer
 
 class LoginScreen extends StatefulWidget {
@@ -127,7 +128,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     style: GoogleFonts.poppins(
                       fontSize: 28,
                       fontWeight: FontWeight.bold,
-                      color: const Color.fromARGB(255, 0, 0, 0), // Menggunakan themeColor
+                      color: const Color.fromARGB(255, 0, 0, 0),
                     ),
                   ),
                   const SizedBox(height: 8),
@@ -141,9 +142,9 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   const SizedBox(height: 40),
                   TextFieldLogin(
-                    label: 'Email', // Menggunakan parameter label
+                    label: 'Email',
                     controller: _emailController,
-                    hintText: 'user@gmail.com', // Hint text
+                    hintText: 'user@gmail.com',
                     prefixIcon: Icons.email_outlined,
                     keyboardType: TextInputType.emailAddress,
                     validator: (value) {
@@ -158,11 +159,11 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   const SizedBox(height: 20),
                   TextFieldLogin(
-                    label: 'Password', // Menggunakan parameter label
+                    label: 'Password',
                     controller: _passwordController,
-                    hintText: 'Password Anda', // Hint text
+                    hintText: 'Password Anda',
                     prefixIcon: Icons.lock_outline,
-                    isPassword: true, // Ini akan mengaktifkan tombol visibility internal
+                    isPassword: true,
                     validator: (value) {
                       if (value == null || value.isEmpty) {
                         return 'Password tidak boleh kosong';
@@ -173,25 +174,48 @@ class _LoginScreenState extends State<LoginScreen> {
                       return null;
                     },
                   ),
-                  const SizedBox(height: 30),
+                  // POSISI LUPA PASSWORD YANG BENAR
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      TextButton(
+                        onPressed: _isLoginButtonLoading ? null : () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (context) => const ForgotPasswordScreen()),
+                          );
+                        },
+                        child: Text(
+                          'Lupa Password?',
+                          style: GoogleFonts.poppins(
+                            fontWeight: FontWeight.w600,
+                            color: const Color(0xFF5C5C5C),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  // TOMBOL MASUK YANG SUDAH DIPERBAIKI
                   _isLoginButtonLoading
                       ? Center(child: CircularProgressIndicator(color: themeColor))
                       : ElevatedButton(
                           onPressed: _isLoginButtonLoading ? null : _login,
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: themeColor, // Menggunakan themeColor
+                            backgroundColor: themeColor,
                             padding: const EdgeInsets.symmetric(vertical: 16),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
                             ),
                             elevation: 3,
                           ),
+                          // Widget Text 'Masuk' dipindahkan ke dalam child
                           child: Text(
                             'Masuk',
                             style: GoogleFonts.poppins(
                               fontSize: 18,
                               fontWeight: FontWeight.w600,
-                              color: textOnThemeColor, // Teks di atas themeColor
+                              color: textOnThemeColor,
                             ),
                           ),
                         ),

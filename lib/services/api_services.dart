@@ -206,6 +206,70 @@ class ApiService {
       }
   }
 
+    // --- FUNGSI BARU UNTUK ALUR LUPA PASSWORD ---
+
+  static Future<Map<String, dynamic>> requestResetCode({required String email}) async {
+    final String url = _laravelBaseUrl + ApiConstants.forgotPasswordEndpoint;
+    try {
+      final response = await http.post(
+        Uri.parse(url),
+        headers: _getHeaders(),
+        body: jsonEncode({'email': email}),
+      );
+      print('ApiService requestResetCode - Status: ${response.statusCode}, Body: ${response.body}');
+      return jsonDecode(response.body);
+    } catch (e) {
+      print('ApiService Network error during requestResetCode: $e');
+      return {'success': false, 'message': 'Kesalahan jaringan. Silakan coba lagi.'};
+    }
+  }
+
+  static Future<Map<String, dynamic>> verifyResetCode({
+    required String email,
+    required String code,
+  }) async {
+    final String url = _laravelBaseUrl + ApiConstants.verifyCodeEndpoint;
+    try {
+      final response = await http.post(
+        Uri.parse(url),
+        headers: _getHeaders(),
+        body: jsonEncode({'email': email, 'code': code}),
+      );
+      print('ApiService verifyResetCode - Status: ${response.statusCode}, Body: ${response.body}');
+      return jsonDecode(response.body);
+    } catch (e) {
+      print('ApiService Network error during verifyResetCode: $e');
+      return {'success': false, 'message': 'Kesalahan Jaringan: $e'};
+    }
+  }
+
+  static Future<Map<String, dynamic>> resetPasswordWithCode({
+    required String email,
+    required String code,
+    required String password,
+    required String passwordConfirmation,
+  }) async {
+     final String url = _laravelBaseUrl + ApiConstants.resetPasswordWithCodeEndpoint;
+    try {
+      final response = await http.post(
+        Uri.parse(url),
+        headers: _getHeaders(),
+        body: jsonEncode({
+          'email': email,
+          'code': code,
+          'password': password,
+          'password_confirmation': passwordConfirmation,
+        }),
+      );
+      print('ApiService resetPasswordWithCode - Status: ${response.statusCode}, Body: ${response.body}');
+      return jsonDecode(response.body);
+    } catch (e) {
+      print('ApiService Network error during resetPasswordWithCode: $e');
+      return {'success': false, 'message': 'Kesalahan Jaringan: $e'};
+    }
+  }
+  
+
   static Future<Map<String, dynamic>> changeUserPassword({
     required String token,
     required String currentPassword,
