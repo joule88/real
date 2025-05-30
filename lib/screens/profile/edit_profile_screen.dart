@@ -322,10 +322,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               actionsPadding: const EdgeInsets.fromLTRB(20, 10, 20, 16),
               actions: <Widget>[
                 TextButton(
-                  child: Text('Batal', style: GoogleFonts.poppins(color: Colors.grey[700], fontWeight: FontWeight.w500)),
                   onPressed: _isChangingPassword ? null : () {
                     Navigator.of(dialogContext).pop();
                   },
+                  child: Text('Batal', style: GoogleFonts.poppins(color: Colors.grey[700], fontWeight: FontWeight.w500)),
                 ),
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(

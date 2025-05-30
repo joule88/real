@@ -7,7 +7,6 @@ import 'package:real/models/user_model.dart';
 import 'package:real/provider/auth_provider.dart';
 import 'package:real/provider/property_provider.dart'; // Pastikan ini diimpor
 import 'package:real/screens/profile/edit_profile_screen.dart';
-import 'package:real/models/property.dart';
 import 'package:real/widgets/property_card_profile.dart';
 import 'package:real/screens/my_drafts/my_drafts_screen.dart';
 import 'package:real/screens/profile/my_property_detail_screen.dart';

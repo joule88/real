@@ -255,13 +255,22 @@ class ApiService {
     }
   }
 
-  // +++ METHOD BARU UNTUK MENGAMBIL PROPERTI PUBLIK (APPROVED) +++
-  static Future<Map<String, dynamic>> getPublicProperties({int page = 1}) async {
-    // Pastikan ApiConstants.publicPropertiesEndpoint sudah didefinisikan
-    // Jika belum, tambahkan di api_constants.dart:
-    // static const String publicPropertiesEndpoint = '/properties/public';
-    final String url = '$_laravelBaseUrl${ApiConstants.publicPropertiesEndpoint}?page=$page';
+  // --- MODIFIKASI METHOD getPublicProperties ---
+  static Future<Map<String, dynamic>> getPublicProperties({
+    int page = 1,
+    String? keyword, // Tambahkan parameter keyword opsional
+  }) async {
+    String endpoint = ApiConstants.publicPropertiesEndpoint;
+    String queryParams = '?page=$page'; // Selalu ada parameter page
 
+    if (keyword != null && keyword.isNotEmpty) {
+      // Pastikan keyword di-encode dengan benar untuk URL
+      queryParams += '&keyword=${Uri.encodeQueryComponent(keyword)}'; 
+    }
+
+    // Gabungkan base URL, endpoint, dan queryParams
+    final String url = '$_laravelBaseUrl$endpoint$queryParams';
+    
     print('ApiService: Fetching public properties from $url');
 
     try {
@@ -277,9 +286,6 @@ class ApiService {
 
       if (responseBody is Map<String, dynamic>) {
         if (response.statusCode == 200 && responseBody['success'] == true) {
-          // API Laravel dengan paginate() akan mengembalikan data dalam struktur:
-          // responseBody['data']['data'] untuk list itemnya
-          // responseBody['data']['current_page'], dll untuk info paginasi
           if (responseBody.containsKey('data') && responseBody['data'] is Map) {
              final Map<String, dynamic> paginatedData = responseBody['data'];
              if (paginatedData.containsKey('data') && paginatedData['data'] is List) {
@@ -293,26 +299,22 @@ class ApiService {
                 };
              }
           }
-          // Fallback jika struktur tidak seperti yang diharapkan tapi success true
           print('ApiService GetPublicProperties - Format data paginasi tidak sesuai, namun success: true.');
           return {
             'success': true,
             'message': responseBody['message'] ?? 'Data diterima namun format tidak standar.',
-            'properties': [], // Kembalikan list kosong jika format salah
-            'currentPage': 1, // Info paginasi default
+            'properties': [], 
+            'currentPage': 1, 
             'lastPage': 1,
             'total': 0,
           };
-
         } else {
-          // Gagal mengambil data atau API mengembalikan success: false
           return {
             'success': false,
             'message': responseBody['message'] ?? 'Gagal mengambil properti publik. Status: ${response.statusCode}',
           };
         }
       } else {
-        // Respons bukan JSON Map yang valid
         return {'success': false, 'message': 'Respons API properti publik tidak valid.'};
       }
     } catch (e) {
@@ -320,5 +322,5 @@ class ApiService {
       return {'success': false, 'message': 'Kesalahan jaringan saat mengambil properti publik: $e'};
     }
   }
-  // +++ AKHIR METHOD BARU +++
+  // --- AKHIR MODIFIKASI ---
 }

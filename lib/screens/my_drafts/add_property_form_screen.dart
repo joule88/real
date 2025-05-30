@@ -51,7 +51,7 @@ class _AddPropertyFormScreenState extends State<AddPropertyFormScreen> {
   int? _labelPropertiValue;
 
   List<dynamic> _addressSuggestions = []; 
-  bool _isFetchingAddressSuggestions = false;
+  final bool _isFetchingAddressSuggestions = false;
   Timer? _debounceAddressSearch;
   OverlayEntry? _overlayEntry;
   final LayerLink _layerLink = LayerLink();
@@ -274,9 +274,11 @@ class _AddPropertyFormScreenState extends State<AddPropertyFormScreen> {
               SnackBar(content: Text('Error prediksi: Pastikan semua field prediksi terisi. Error: $e'), backgroundColor: Colors.red),
             );
          }
-          if(mounted) setState(() {
+          if(mounted) {
+            setState(() {
              _hargaPrediksiIdrFormatted = null;
           });
+          }
       } finally {
         if(mounted) setState(() => _isPredictingPrice = false);
       }
