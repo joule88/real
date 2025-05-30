@@ -84,35 +84,25 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
       if (!mounted) return;
 
-      if (result != null) {
-        if (result['success'] == true) {
-          print('Register.dart: Registrasi SUKSES. Pesan: ${result['message']}');
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(result['message'] ?? 'Registrasi berhasil! Silakan login.'),
-              backgroundColor: Colors.green,
-            ),
-          );
-          Navigator.pop(context); // Kembali ke halaman login
-        } else {
-          print('Register.dart: Registrasi GAGAL. Pesan: ${result['message']}');
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(result['message'] ?? 'Registrasi gagal. Mohon coba lagi.'),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
-      } else {
-        print('Register.dart: Hasil registrasi tidak diketahui karena exception.');
+      if (result['success'] == true) {
+        print('Register.dart: Registrasi SUKSES. Pesan: ${result['message']}');
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Proses registrasi gagal karena kesalahan tidak diketahui.'),
-            backgroundColor: Colors.orange,
+          SnackBar(
+            content: Text(result['message'] ?? 'Registrasi berhasil! Silakan login.'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        Navigator.pop(context); // Kembali ke halaman login
+      } else {
+        print('Register.dart: Registrasi GAGAL. Pesan: ${result['message']}');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(result['message'] ?? 'Registrasi gagal. Mohon coba lagi.'),
+            backgroundColor: Colors.red,
           ),
         );
       }
-
+    
       if (mounted) {
         setState(() {
           _isRegisterButtonLoading = false;

@@ -9,8 +9,8 @@ import 'package:real/provider/auth_provider.dart';
 import 'package:real/screens/profile/edit_profile_screen.dart'; // Untuk navigasi
 import 'package:real/models/property.dart'; // Jika masih menggunakan dummy property
 import 'package:real/widgets/property_card_profile.dart'; // Jika masih menggunakan dummy property
-import 'package:real/screens/my_drafts/my_drafts_screen.dart'; // Jika masih menggunakan dummy property
-import 'package:real/screens/profile/my_property_detail_screen.dart'; // Jika masih menggunakan dummy property
+import 'package:real/screens/my_drafts/my_drafts_screen.dart';
+import 'package:real/screens/profile/my_property_detail_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -20,10 +20,7 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  // Data properti dummy (bisa dihapus atau diganti dengan data dinamis nanti)
   final List<Property> _myApprovedProperties = [
-    // ... (data dummy properti Anda bisa tetap di sini untuk sementara)
-    // Contoh:
     Property(
       id: 'approvedProp1',
       title: 'Rumah Keluarga Idaman (TAYANG)',
@@ -42,28 +39,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   void initState() {
     super.initState();
-    // Panggil fetchUserProfile saat layar ini pertama kali dibuka
-    // untuk memastikan data user (terutama bio) adalah yang terbaru.
-    // Kita gunakan addPostFrameCallback agar dipanggil setelah build pertama selesai.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
-      // Hanya fetch jika user sudah ada (misalnya dari login)
-      // atau jika Anda ingin memastikan data selalu fresh.
-      // Jika API login Anda tidak mengembalikan bio, fetch di sini jadi penting.
       if (authProvider.isAuthenticated && (authProvider.user?.bio == null || authProvider.user!.bio.isEmpty)) {
         print('ProfileScreen: Fetching user profile in initState because bio might be missing/empty.');
         authProvider.fetchUserProfile().catchError((error) {
-          // Handle error jika gagal fetch user, misalnya tampilkan snackbar
-          if (mounted) { // Selalu cek mounted dalam callback async
+          if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(content: Text('Gagal memuat detail profil: $error')),
             );
           }
         });
       } else if (authProvider.isAuthenticated) {
-        // Jika bio sudah ada, mungkin tidak perlu fetch ulang setiap saat,
-        // kecuali Anda ingin data selalu paling update.
-        // Untuk sekarang, kita bisa fetch jika bio kosong.
         print('ProfileScreen: User is authenticated, bio: "${authProvider.user?.bio}". Fetch skipped if bio exists.');
       }
     });
@@ -73,8 +60,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     try {
       await authProvider.logout();
-      // Navigasi ke halaman login setelah logout (Consumer di main.dart akan handle ini)
-      // Jadi tidak perlu navigasi manual di sini.
       print('ProfileScreen: Logout berhasil.');
        if (mounted) {
          ScaffoldMessenger.of(context).showSnackBar(
@@ -93,14 +78,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Mengambil user dan status loading dari AuthProvider
-    // Kita listen: true di sini agar UI rebuild saat user atau isLoading berubah
     final authProvider = Provider.of<AuthProvider>(context);
     final User? user = authProvider.user;
-    final bool isLoadingUser = authProvider.isLoading; // Untuk loading data user
+    final bool isLoadingUser = authProvider.isLoading;
 
-    // Definisikan warna tema Anda di sini atau ambil dari Theme.of(context) jika sudah ada
-    final Color themeColor = const Color(0xFFDAF365); // Warna tema Anda
+    final Color themeColor = const Color(0xFFDAF365);
+    final Color textOnThemeColor = Colors.black87; // Warna teks untuk kontras dengan themeColor
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -110,7 +93,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         title: Text(
           "Profil Saya",
           style: GoogleFonts.poppins(
-            color: Colors.black, // Bisa juga themeColor atau Colors.black87
+            color: Colors.black,
             fontWeight: FontWeight.bold,
             fontSize: 20,
           ),
@@ -124,9 +107,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
         ],
       ),
-      body: isLoadingUser && user == null // Tampilkan loading jika sedang fetch user dan user belum ada
+      body: isLoadingUser && user == null
           ? Center(child: CircularProgressIndicator(color: themeColor))
-          : user == null // Jika tidak loading tapi user tetap null (misalnya belum login atau error fetch parah)
+          : user == null
               ? Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -135,11 +118,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       const SizedBox(height: 10),
                       ElevatedButton(
                         onPressed: () {
-                          // Coba fetch lagi atau arahkan ke login jika perlu
                           if (authProvider.isAuthenticated) {
                             authProvider.fetchUserProfile();
-                          } else {
-                            // Arahkan ke login jika belum authenticated (seharusnya tidak sampai sini jika main.dart benar)
                           }
                         },
                         child: const Text('Coba Lagi'),
@@ -147,24 +127,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ],
                   ),
                 )
-              // Jika user ada, tampilkan data profil
-              : RefreshIndicator( // Untuk pull-to-refresh data profil
+              : RefreshIndicator(
                   onRefresh: () => authProvider.fetchUserProfile(),
-                  child: ListView( // Ganti Padding dengan ListView agar bisa di-scroll jika konten panjang
+                  child: ListView(
                     padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 15.0),
                     children: [
-                      // 1. Info Pengguna
                       Row(
                         children: [
                           CircleAvatar(
-                            radius: 40, // Sedikit lebih besar
+                            radius: 40,
                             backgroundImage: (user.profileImage.isNotEmpty && Uri.tryParse(user.profileImage)?.isAbsolute == true)
                                 ? NetworkImage(user.profileImage)
-                                : const AssetImage('assets/images/boy.jpg') as ImageProvider, // Fallback
+                                : const AssetImage('assets/images/boy.jpg') as ImageProvider,
                             backgroundColor: Colors.grey[200],
                             onBackgroundImageError: (exception, stackTrace) {
                               print('Error loading profile image: $exception');
-                              // Tidak perlu setState di sini, CircleAvatar akan fallback ke child
                             },
                             child: (user.profileImage.isEmpty || Uri.tryParse(user.profileImage)?.isAbsolute != true)
                                 ? Icon(Icons.person, size: 40, color: Colors.grey[400])
@@ -176,7 +153,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  user.name, // Ambil dari user.name
+                                  user.name,
                                   style: GoogleFonts.poppins(
                                       fontSize: 18,
                                       fontWeight: FontWeight.bold,
@@ -185,7 +162,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
-                                  user.bio.isNotEmpty ? user.bio : 'Belum ada bio.', // Ambil dari user.bio
+                                  user.bio.isNotEmpty ? user.bio : 'Belum ada bio.',
                                   style: GoogleFonts.poppins(
                                       fontSize: 14, color: Colors.grey[600]),
                                   maxLines: 3,
@@ -198,38 +175,33 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                       const SizedBox(height: 25),
 
-                      // 2. Tombol Edit Profile & Kelola Iklan
+                      // --- MODIFIKASI TOMBOL DI SINI ---
                       Row(
                         children: [
                           Expanded(
-                            child: OutlinedButton.icon(
-                              icon: Icon(Icons.edit_outlined, color: Colors.black),
+                            child: ElevatedButton.icon( // Diubah menjadi ElevatedButton
+                              icon: Icon(Icons.edit_outlined, color: textOnThemeColor), // Warna ikon disesuaikan
                               label: Text("Edit Profil",
                                   style: GoogleFonts.poppins(
                                       fontWeight: FontWeight.w600,
-                                      color: const Color.fromARGB(255, 0, 0, 0))), // Warna tema
+                                      color: textOnThemeColor)), // Warna teks disesuaikan
                               onPressed: () {
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
                                     builder: (context) =>
-                                        EditProfileScreen(currentUser: user), // Kirim data user saat ini
+                                        EditProfileScreen(currentUser: user),
                                   ),
                                 ).then((dataUpdated) {
                                   if (dataUpdated == true) {
-                                    // Data di AuthProvider seharusnya sudah terupdate dan notifyListeners sudah dipanggil.
-                                    // Consumer di sini akan otomatis rebuild.
-                                    // Jika Anda ingin memastikan data terbaru dari server, bisa panggil fetch lagi.
-                                    // authProvider.fetchUserProfile();
-                                    // Atau cukup setState jika hanya mengandalkan data dari AuthProvider yang sudah diupdate:
-                                    // setState(() {}); // Tidak selalu perlu jika Provider listen:true
                                     print('ProfileScreen: Kembali dari Edit Profil dengan update.');
                                   }
                                 });
                               },
-                              style: OutlinedButton.styleFrom(
+                              style: ElevatedButton.styleFrom(
+                                  backgroundColor: themeColor, // Menggunakan themeColor
+                                  elevation: 2, // Tambahkan sedikit elevasi agar menonjol
                                   padding: const EdgeInsets.symmetric(vertical: 12),
-                                  side: BorderSide(color: themeColor.withOpacity(0.5)), // Border dengan warna tema
                                   shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(10))),
                             ),
@@ -237,11 +209,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           const SizedBox(width: 15),
                           Expanded(
                             child: ElevatedButton.icon(
-                              icon: Icon(Icons.article_outlined, color: Colors.black87),
+                              icon: Icon(Icons.article_outlined, color: textOnThemeColor), // Warna ikon disesuaikan
                               label: Text("Kelola Iklan",
                                   style: GoogleFonts.poppins(
                                       fontWeight: FontWeight.w600,
-                                      color: Colors.black87)),
+                                      color: textOnThemeColor)), // Warna teks disesuaikan
                               onPressed: () {
                                 Navigator.push(
                                   context,
@@ -250,8 +222,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 );
                               },
                               style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.grey[200],
-                                  elevation: 0,
+                                  backgroundColor: themeColor, // Diubah menjadi themeColor
+                                  elevation: 2, // Tambahkan sedikit elevasi
                                   padding: const EdgeInsets.symmetric(vertical: 12),
                                   shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(10))),
@@ -259,9 +231,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           ),
                         ],
                       ),
+                      // --- AKHIR MODIFIKASI TOMBOL ---
                       const SizedBox(height: 30),
 
-                      // Bagian Properti Saya (masih menggunakan data dummy)
                       Text(
                         "Properti Saya (Tayang)",
                         style: GoogleFonts.poppins(
@@ -274,7 +246,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
                       _myApprovedProperties.isEmpty
                           ? Center(
-                              child: Padding( // Beri padding agar tidak terlalu mepet
+                              child: Padding(
                                 padding: const EdgeInsets.symmetric(vertical: 30.0),
                                 child: Column(
                                   mainAxisAlignment: MainAxisAlignment.center,
@@ -290,8 +262,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               ),
                             )
                           : ListView.builder(
-                              shrinkWrap: true, // Penting jika ListView di dalam Column/ListView lain
-                              physics: const NeverScrollableScrollPhysics(), // Agar scroll utama dari ListView luar
+                              shrinkWrap: true,
+                              physics: const NeverScrollableScrollPhysics(),
                               itemCount: _myApprovedProperties.length,
                               itemBuilder: (context, index) {
                                 final property = _myApprovedProperties[index];
