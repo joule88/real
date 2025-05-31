@@ -39,6 +39,9 @@ class Property extends ChangeNotifier {
   int viewsCount;
   int inquiriesCount;
 
+  // Field BARU untuk statistik tampilan detail
+  Map<String, dynamic> viewStatistics;
+
   Property({
     required this.id,
     required this.title,
@@ -64,6 +67,7 @@ class Property extends ChangeNotifier {
     this.mainView,
     this.listingAgeCategory,
     this.propertyLabel,
+    this.viewStatistics = const {}, // Inisialisasi field baru
   }) : _isFavorite = isFavorite;
 
   factory Property.empty() {
@@ -112,14 +116,15 @@ class Property extends ChangeNotifier {
     PropertyStatus? status,
     bool? isFavorite,
     String? rejectionReason,
-    ValueGetter<DateTime?>? submissionDate, // Untuk handle null
-    ValueGetter<DateTime?>? approvalDate,   // Untuk handle null
+    ValueGetter<DateTime?>? submissionDate,
+    ValueGetter<DateTime?>? approvalDate,
     int? bookmarkCount,
     int? viewsCount,
     int? inquiriesCount,
     ValueGetter<String?>? mainView,
     ValueGetter<String?>? listingAgeCategory,
     ValueGetter<String?>? propertyLabel,
+    Map<String, dynamic>? viewStatistics,
   }) {
     return Property(
       id: id ?? this.id,
@@ -136,8 +141,8 @@ class Property extends ChangeNotifier {
       propertyType: propertyType ?? this.propertyType,
       furnishings: furnishings ?? this.furnishings,
       status: status ?? this.status,
-      isFavorite: isFavorite ?? _isFavorite,
-      rejectionReason: rejectionReason ?? this.rejectionReason,
+      isFavorite: isFavorite != null ? isFavorite : _isFavorite,
+      rejectionReason: rejectionReason != null ? rejectionReason : this.rejectionReason,
       submissionDate: submissionDate != null ? submissionDate() : this.submissionDate,
       approvalDate: approvalDate != null ? approvalDate() : this.approvalDate,
       bookmarkCount: bookmarkCount ?? this.bookmarkCount,
@@ -146,6 +151,7 @@ class Property extends ChangeNotifier {
       mainView: mainView != null ? mainView() : this.mainView,
       listingAgeCategory: listingAgeCategory != null ? listingAgeCategory() : this.listingAgeCategory,
       propertyLabel: propertyLabel != null ? propertyLabel() : this.propertyLabel,
+      viewStatistics: viewStatistics ?? this.viewStatistics,
     );
   }
 
@@ -258,11 +264,14 @@ class Property extends ChangeNotifier {
       rejectionReason: json['rejectionReason'],
       // isFavorite: json['is_favorite'] ?? false, // Sesuaikan dengan nama field di JSON jika ada
       bookmarkCount: (json['bookmarkCount'] as num?)?.toInt() ?? 0,
-      viewsCount: (json['viewsCount'] as num?)?.toInt() ?? 0,
+      viewsCount: (json['total_views_count'] as num?)?.toInt() ?? 0,
       inquiriesCount: (json['inquiriesCount'] as num?)?.toInt() ?? 0,
       mainView: json['mainView'],
       listingAgeCategory: json['listingAgeCategory'] as String?,
       propertyLabel: json['propertyLabel'] as String?,
+      viewStatistics: json['view_statistics'] is Map<String, dynamic>
+        ? Map<String, dynamic>.from(json['view_statistics'])
+        : const {},
     );
   }
 
@@ -291,6 +300,7 @@ class Property extends ChangeNotifier {
       'mainView': mainView,
       'listingAgeCategory': listingAgeCategory,
       'propertyLabel': propertyLabel,
+      // 'view_statistics': viewStatistics, // Biasanya tidak dikirim balik ke API saat update properti
     };
   }
 

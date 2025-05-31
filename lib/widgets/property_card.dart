@@ -1,50 +1,69 @@
+// lib/widgets/property_card.dart
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:real/models/property.dart';
+import 'package:real/provider/auth_provider.dart';
+import 'package:real/provider/property_provider.dart';
 import 'package:real/screens/detail/detailpost.dart';
 import 'package:real/widgets/bookmark_button.dart';
-import 'package:eva_icons_flutter/eva_icons_flutter.dart';
 
 class PropertyCard extends StatelessWidget {
   final Property property;
-  final bool
-      isHorizontalVariant;
-  final bool showEditIcon;
-  final VoidCallback? onEditPressed;
+  final bool isHorizontalVariant;
 
   const PropertyCard({
     super.key,
     required this.property,
     this.isHorizontalVariant = true,
-    this.showEditIcon = false, // Defaultnya false, jadi tetap ikon bookmark
-    this.onEditPressed,
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) { // 'context' tersedia di sini
     final currencyFormatter =
-        NumberFormat.currency(locale: 'en_US', symbol: '\$', decimalDigits: 2);
-
+        NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0);
     final cardWidth = isHorizontalVariant ? 320.0 : double.infinity;
     final imageHeight = isHorizontalVariant ? 160.0 : 180.0;
 
     return GestureDetector(
-      onTap: () {
-        if (showEditIcon && onEditPressed != null) {
-          // Jika ini adalah mode edit dan ada callback, panggil callback edit
-          onEditPressed!();
-        } else {
-          // Perilaku default: navigasi ke halaman detail
+      onTap: () async {
+        print("PropertyCard diklik, ID properti: ${property.id}");
+        final propertyProvider = Provider.of<PropertyProvider>(context, listen: false);
+        final authProvider = Provider.of<AuthProvider>(context, listen: false);
+
+        showDialog(
+          context: context, // 'context' dari build method digunakan di sini
+          barrierDismissible: false,
+          builder: (BuildContext dialogContext) { // Ini adalah context baru untuk dialog
+            return const Center(child: CircularProgressIndicator());
+          },
+        );
+
+        Property? freshPropertyData = await propertyProvider.fetchPublicPropertyDetail(
+          property.id,
+          authProvider.token
+        );
+
+        if (context.mounted) {
+           Navigator.pop(context); // Gunakan 'context' dari build method
+        }
+
+        if (freshPropertyData != null && context.mounted) {
+          print("Navigating to PropertyDetailPage with fresh data for ${freshPropertyData.id}. Total Views: ${freshPropertyData.viewsCount}");
           Navigator.push(
-            context,
+            context, // 'context' dari build method
             MaterialPageRoute(
-              builder: (context) => ChangeNotifierProvider.value(
-                value: property,
-                child: PropertyDetailPage(property: property),
+              builder: (context) => ChangeNotifierProvider.value( // Ini 'context' baru dari builder MaterialPageRoute
+                   value: freshPropertyData,
+                   child: PropertyDetailPage(property: freshPropertyData),
               ),
             ),
+          );
+        } else if (context.mounted) {
+          print("Failed to fetch fresh property data for ${property.id}");
+          ScaffoldMessenger.of(context).showSnackBar( // 'context' dari build method
+            const SnackBar(content: Text('Gagal memuat detail properti. Coba lagi nanti.')),
           );
         }
       },
@@ -59,10 +78,10 @@ class PropertyCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(15),
           boxShadow: [
             BoxShadow(
-              color: Colors.grey.withOpacity(0.2),
+              color: Colors.grey.withOpacity(0.12),
               spreadRadius: 1,
-              blurRadius: 5,
-              offset: const Offset(0, 2),
+              blurRadius: 6,
+              offset: const Offset(0, 3),
             ),
           ],
         ),
@@ -76,55 +95,21 @@ class PropertyCard extends StatelessWidget {
                     topLeft: Radius.circular(15),
                     topRight: Radius.circular(15),
                   ),
-                  child: Image.network(
-                    property.imageUrl,
-                    height: imageHeight,
-                    width: double.infinity,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) => Container(
-                        height: imageHeight,
-                        color: Colors.grey[300],
-                        child: const Center(
-                            child: Icon(Icons.broken_image,
-                                color: Colors.grey))),
-                    loadingBuilder: (BuildContext context, Widget child,
-                        ImageChunkEvent? loadingProgress) {
-                      if (loadingProgress == null) return child;
-                      return Container(
-                        height: imageHeight,
-                        color: Colors.grey[300],
-                        child: Center(
-                          child: CircularProgressIndicator(
-                            value: loadingProgress.expectedTotalBytes != null
-                                ? loadingProgress.cumulativeBytesLoaded /
-                                    loadingProgress.expectedTotalBytes!
-                                : null,
-                            strokeWidth: 2,
-                          ),
-                        ),
-                      );
-                    },
-                  ),
+                  child: (property.imageUrl.isNotEmpty && Uri.tryParse(property.imageUrl)?.isAbsolute == true)
+                      ? Image.network(
+                          property.imageUrl,
+                          height: imageHeight,
+                          width: double.infinity,
+                          fit: BoxFit.cover,
+                          errorBuilder: (imgContext, error, stackTrace) => // 'imgContext' adalah BuildContext dari errorBuilder
+                              _imageErrorPlaceholder(imgContext, imageHeight), // Teruskan context
+                          loadingBuilder: (imgContext, child, loadingProgress) { // 'imgContext' adalah BuildContext dari loadingBuilder
+                            if (loadingProgress == null) return child;
+                            return _imageLoadingPlaceholder(imgContext, imageHeight, loadingProgress); // Teruskan context
+                          },
+                        )
+                      : _imageErrorPlaceholder(context, imageHeight, iconSize: 60), // Teruskan context dari build method
                 ),
-                // Bagian ini tidak lagi diperlukan jika ikon bookmark/edit ada di bawah
-                // Positioned(
-                //   top: 8,
-                //   right: 8,
-                //   child: showEditIcon
-                //       ? IconButton(
-                //           icon: Icon(EvaIcons.editOutline, color: Colors.white, size: 28),
-                //           onPressed: onEditPressed ?? () {
-                //             // TODO: Implementasi aksi edit
-                //             print("Edit property: ${property.title}");
-                //           },
-                //         )
-                //       : BookmarkButton(
-                //           isBookmarked: property.isFavorite,
-                //           onPressed: () {
-                //             property.toggleFavorite();
-                //           },
-                //         ),
-                // ),
               ],
             ),
             Padding(
@@ -135,68 +120,46 @@ class PropertyCard extends StatelessWidget {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Expanded( // Agar harga tidak overflow jika terlalu panjang
+                      Expanded(
                         child: Text(
                           currencyFormatter.format(property.price),
                           style: GoogleFonts.poppins(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
-                            color: Colors.black,
+                            color: Colors.black87,
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
-                      // Tampilkan ikon Edit atau Bookmark berdasarkan showEditIcon
-                      if (showEditIcon)
-                        GestureDetector(
-                          onTap: onEditPressed ??
-                              () {
-                                // TODO: Implementasi aksi default jika onEditPressed null
-                                // Misalnya navigasi ke halaman edit properti
-                                print("Edit property: ${property.title}");
-                                // Contoh navigasi (buat halaman EditPropertyScreen nanti)
-                                // Navigator.push(context, MaterialPageRoute(builder: (context) => EditPropertyScreen(property: property)));
-                              },
-                          child: const Icon(
-                            EvaIcons.editOutline, // Atau Icons.edit
-                            color: Colors.black,
-                            size: 26,
-                          ),
-                        )
-                      else
-                        BookmarkButton(
-                          isBookmarked: property.isFavorite,
-                          onPressed: () {
-                            // Akses Provider untuk toggle favorite jika menggunakan Provider
-                            // Provider.of<PropertyProvider>(context, listen: false).toggleFavorite(property.id);
-                            // Jika tidak, panggil langsung method di model (seperti yang sudah ada)
-                            property.toggleFavorite();
-                          },
-                        ),
+                      BookmarkButton(
+                        isBookmarked: property.isFavorite,
+                        onPressed: () {
+                          property.toggleFavorite();
+                        },
+                      ),
                     ],
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    property.address, // Langsung gunakan property.address
+                    property.address.isNotEmpty ? property.address : "Alamat tidak tersedia",
                     style: GoogleFonts.poppins(
-                      fontSize: 12,
+                      fontSize: 11.5,
                       color: Colors.grey[700],
                     ),
-                    maxLines: 1, // Atau 2
+                    maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 10),
                   Row(
-                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      _buildDetailItem(Icons.king_bed_outlined,
-                          '${property.bedrooms} Kamar Tidur'),
-                      const SizedBox(width: 10),
-                      _buildDetailItem(Icons.bathtub_outlined,
-                          '${property.bathrooms} Kamar Mandi'),
-                      const SizedBox(width: 10),
-                      _buildDetailItem(Icons.straighten_outlined,
+                      _buildDetailItem(context, Icons.king_bed_outlined, // Teruskan context
+                          '${property.bedrooms} Kamar'),
+                      _buildDetailSeparator(),
+                      _buildDetailItem(context, Icons.bathtub_outlined, // Teruskan context
+                          '${property.bathrooms} WC'),
+                      _buildDetailSeparator(),
+                      _buildDetailItem(context, Icons.aspect_ratio_outlined, // Teruskan context
                           '${property.areaSqft.toStringAsFixed(0)} sqft'),
                     ],
                   ),
@@ -209,20 +172,62 @@ class PropertyCard extends StatelessWidget {
     );
   }
 
-  Widget _buildDetailItem(IconData icon, String text) {
+  // --- PERUBAHAN DI SINI: Tambahkan BuildContext context sebagai parameter ---
+  Widget _buildDetailItem(BuildContext context, IconData icon, String text) {
     return Row(
+      mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, size: 14, color: Colors.grey[600]),
+        Icon(icon, size: 13, color: Colors.grey[600]),
         const SizedBox(width: 4),
         Text(
           text,
           style: GoogleFonts.poppins(
-            fontSize: 10,
-            color: Colors.grey[700],
+            fontSize: 9.5,
+            color: Colors.grey[800],
             fontWeight: FontWeight.w500,
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildDetailSeparator() {
+    return Container(
+      height: 10,
+      width: 1,
+      color: Colors.grey[300],
+      margin: const EdgeInsets.symmetric(horizontal: 8),
+    );
+  }
+
+  // --- PERUBAHAN DI SINI: Tambahkan BuildContext context sebagai parameter ---
+  Widget _imageLoadingPlaceholder(BuildContext context, double height, ImageChunkEvent? loadingProgress){
+    return Container(
+        height: height,
+        width: double.infinity,
+        color: Colors.grey[200],
+        child: Center(
+        child: CircularProgressIndicator(
+            value: loadingProgress != null && loadingProgress.expectedTotalBytes != null
+                ? loadingProgress.cumulativeBytesLoaded /
+                    loadingProgress.expectedTotalBytes!
+                : null,
+            strokeWidth: 2.0,
+            color: Theme.of(context).primaryColor.withOpacity(0.6), // Sekarang 'context' tersedia
+        ),
+        ),
+    );
+  }
+
+  // --- PERUBAHAN DI SINI: Tambahkan BuildContext context sebagai parameter ---
+  Widget _imageErrorPlaceholder(BuildContext context, double height, {double iconSize = 50}){
+      return Container(
+        height: height,
+        width: double.infinity,
+        color: Colors.grey[200],
+        child: Center(
+            child: Icon(Icons.apartment_rounded,
+                size: iconSize, color: Theme.of(context).disabledColor.withOpacity(0.5))), // Menggunakan Theme untuk warna ikon
     );
   }
 }

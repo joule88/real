@@ -1,11 +1,13 @@
 // lib/provider/property_provider.dart
 import 'package:flutter/material.dart';
 import '../models/property.dart';
-import '../services/property_service.dart'; // Untuk _propertyService instance
-import '../services/api_services.dart';   // Untuk fetchPublicProperties dan searchProperties
+import '../services/property_service.dart';
+import '../services/api_services.dart';
+import '../services/api_constants.dart'; // Pastikan path ini benar
+import 'dart:convert';                 // Untuk jsonDecode
+import 'package:http/http.dart' as http; // Untuk http.get
 
 class PropertyProvider extends ChangeNotifier {
-  // State untuk properti yang dikelola pengguna (draft, pending, rejected, archived)
   List<Property> _userProperties = [];
   bool _isLoadingUserProperties = false;
   String? _userPropertiesError;
@@ -14,7 +16,6 @@ class PropertyProvider extends ChangeNotifier {
   bool get isLoadingUserProperties => _isLoadingUserProperties;
   String? get userPropertiesError => _userPropertiesError;
 
-  // State untuk properti approved pengguna (yang tayang di profil)
   List<Property> _userApprovedProperties = [];
   bool _isLoadingUserApprovedProperties = false;
   String? _userApprovedPropertiesError;
@@ -23,7 +24,6 @@ class PropertyProvider extends ChangeNotifier {
   bool get isLoadingUserApprovedProperties => _isLoadingUserApprovedProperties;
   String? get userApprovedPropertiesError => _userApprovedPropertiesError;
 
-  // --- STATE UNTUK PROPERTI SOLD PENGGUNA ---
   List<Property> _userSoldProperties = [];
   bool _isLoadingUserSoldProperties = false;
   String? _userSoldPropertiesError;
@@ -31,11 +31,9 @@ class PropertyProvider extends ChangeNotifier {
   List<Property> get userSoldProperties => _userSoldProperties;
   bool get isLoadingUserSoldProperties => _isLoadingUserSoldProperties;
   String? get userSoldPropertiesError => _userSoldPropertiesError;
-  // --- AKHIR STATE UNTUK SOLD ---
 
   final PropertyService _propertyService = PropertyService();
 
-  // State untuk properti publik (Beranda - tanpa keyword)
   List<Property> _publicProperties = [];
   bool _isLoadingPublicProperties = false;
   String? _publicPropertiesError;
@@ -48,21 +46,88 @@ class PropertyProvider extends ChangeNotifier {
   String? get publicPropertiesError => _publicPropertiesError;
   bool get hasMorePublicProperties => _hasMorePublicProperties;
 
-  // --- STATE BARU KHUSUS UNTUK HASIL PENCARIAN PROPERTI ---
   List<Property> _searchedProperties = [];
-  bool _isLoadingSearch = false; // Loading state khusus untuk search
-  String? _searchError;        // Error message khusus untuk search
+  bool _isLoadingSearch = false;
+  String? _searchError;
   int _searchResultCurrentPage = 1;
   int _searchResultLastPage = 1;
   bool _hasMoreSearchResults = true;
-  String _currentSearchKeyword = ""; // Menyimpan keyword pencarian terakhir
+  String _currentSearchKeyword = "";
 
   List<Property> get searchedProperties => _searchedProperties;
   bool get isLoadingSearch => _isLoadingSearch;
   String? get searchError => _searchError;
   bool get hasMoreSearchResults => _hasMoreSearchResults;
   String get currentSearchKeyword => _currentSearchKeyword;
-  // --- AKHIR STATE BARU UNTUK HASIL PENCARIAN ---
+
+  // --- 👇 METHOD BARU DITAMBAHKAN DI SINI 👇 ---
+  Future<Property?> fetchPublicPropertyDetail(String propertyId, String? token) async {
+    // Endpoint ini di Laravel (showPublicProperty) akan mencatat view
+    final url = Uri.parse('${ApiConstants.laravelApiBaseUrl}/properties/public/$propertyId');
+    print('PropertyProvider: Memanggil fetchPublicPropertyDetail untuk ID $propertyId dari $url');
+
+    try {
+      final headers = {
+        'Accept': 'application/json',
+      };
+      // Token bisa jadi tidak wajib untuk endpoint publik ini,
+      // tapi backend bisa menggunakannya untuk mencatat user_id jika ada (auth('api')->check()).
+      if (token != null) {
+        headers['Authorization'] = 'Bearer $token';
+      }
+
+      final response = await http.get(url, headers: headers);
+
+      print('PropertyProvider: Status respons fetchPublicPropertyDetail: ${response.statusCode}');
+      // Sebaiknya jangan print body jika responsnya besar, kecuali untuk debugging singkat
+      // print('PropertyProvider: Body respons fetchPublicPropertyDetail: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final responseData = jsonDecode(response.body);
+        if (responseData['success'] == true && responseData['data'] != null) {
+          // Data properti yang diterima dari backend sudah termasuk total viewsCount terbaru
+          // (jika backend Anda mengirimkan field viewsCount/total_views_count yang terupdate).
+          final property = Property.fromJson(responseData['data'] as Map<String, dynamic>);
+          print('PropertyProvider: Properti publik ${property.id} berhasil diambil. Total Views dari backend: ${property.viewsCount}');
+          
+          // Helper untuk memperbarui properti yang sama di list lokal (jika ada)
+          // agar viewsCount-nya konsisten jika ditampilkan di list setelah detail dibuka.
+          _updatePropertyInLocalLists(property);
+
+          return property;
+        } else {
+          print('PropertyProvider: Gagal mengambil detail properti publik - Pesan dari server: ${responseData['message']}');
+          return null;
+        }
+      } else {
+        print('PropertyProvider: Error mengambil detail properti publik - Status: ${response.statusCode}, Body: ${response.body}');
+        return null;
+      }
+    } catch (e) {
+      print('PropertyProvider: Exception saat mengambil detail properti publik - $e');
+      return null;
+    }
+  }
+
+  // Helper method untuk update properti di list lokal (opsional tapi bagus untuk konsistensi UI)
+  void _updatePropertyInLocalLists(Property updatedProperty) {
+    // Update di _publicProperties
+    int indexInPublic = _publicProperties.indexWhere((p) => p.id == updatedProperty.id);
+    if (indexInPublic != -1) {
+      // Ganti objek lama dengan yang baru yang memiliki viewsCount terupdate
+      _publicProperties[indexInPublic] = updatedProperty;
+    }
+    // Update di _searchedProperties
+    int indexInSearch = _searchedProperties.indexWhere((p) => p.id == updatedProperty.id);
+    if (indexInSearch != -1) {
+      _searchedProperties[indexInSearch] = updatedProperty;
+    }
+    // Anda mungkin tidak perlu notifyListeners() di sini jika perubahan ini tidak langsung
+    // mempengaruhi UI list yang sedang aktif ditampilkan. Jika mempengaruhi, maka panggil.
+    // notifyListeners();
+  }
+  // --- 👆 METHOD BARU SELESAI DI SINI 👆 ---
+
 
   Future<void> fetchUserManageableProperties(String token) async {
     _isLoadingUserProperties = true;
@@ -92,7 +157,6 @@ class PropertyProvider extends ChangeNotifier {
   }
 
   Future<void> fetchUserApprovedProperties(String token) async {
-    // ... (implementasi Anda yang sudah ada, tetap sama) ...
     _isLoadingUserApprovedProperties = true;
     _userApprovedPropertiesError = null;
     _userApprovedProperties = [];
@@ -124,7 +188,6 @@ class PropertyProvider extends ChangeNotifier {
   }
 
   Future<void> fetchUserSoldProperties(String token) async {
-    // ... (implementasi Anda yang sudah ada, tetap sama) ...
     _isLoadingUserSoldProperties = true;
     _userSoldPropertiesError = null;
     _userSoldProperties = [];
@@ -133,7 +196,7 @@ class PropertyProvider extends ChangeNotifier {
     try {
       final result = await _propertyService.getUserProperties(
         token,
-        statuses: ['sold'], 
+        statuses: ['sold'],
       );
 
       if (result['success'] == true) {
@@ -157,24 +220,22 @@ class PropertyProvider extends ChangeNotifier {
       notifyListeners();
     }
   }
-  
-  // Method ini untuk Beranda (tanpa keyword)
+
   Future<void> fetchPublicProperties({bool loadMore = false}) async {
-    if (_isLoadingPublicProperties && !loadMore) return; 
-    if (loadMore && !_hasMorePublicProperties) return; 
-    if (loadMore && _isLoadingPublicProperties) return; 
+    if (_isLoadingPublicProperties && !loadMore) return;
+    if (loadMore && !_hasMorePublicProperties) return;
+    if (loadMore && _isLoadingPublicProperties) return;
 
     _isLoadingPublicProperties = true;
     if (!loadMore) {
       _publicPropertiesError = null;
       _publicPropertiesCurrentPage = 1;
-      _publicProperties = []; 
+      _publicProperties = [];
       _hasMorePublicProperties = true;
     }
     notifyListeners();
 
     try {
-      // Memanggil ApiService.getPublicProperties TANPA keyword untuk Beranda
       final result = await ApiService.getPublicProperties(page: _publicPropertiesCurrentPage);
 
       if (result['success'] == true) {
@@ -191,24 +252,24 @@ class PropertyProvider extends ChangeNotifier {
 
         int apiCurrentPage = result['currentPage'] as int? ?? _publicPropertiesCurrentPage;
         _publicPropertiesLastPage = result['lastPage'] as int? ?? _publicPropertiesLastPage;
-        
+
         if (fetchedProperties.isNotEmpty) {
             _hasMorePublicProperties = apiCurrentPage < _publicPropertiesLastPage;
-            _publicPropertiesCurrentPage = apiCurrentPage + 1; 
+            _publicPropertiesCurrentPage = apiCurrentPage + 1;
         } else {
-            _hasMorePublicProperties = false; 
+            _hasMorePublicProperties = false;
         }
-        
+
         if (_publicProperties.isEmpty && !loadMore) {
           print('PropertyProvider: Tidak ada properti publik yang ditemukan (halaman pertama kosong).');
         }
       } else {
         _publicPropertiesError = result['message'] ?? 'Gagal mengambil properti publik.';
-        _hasMorePublicProperties = false; 
+        _hasMorePublicProperties = false;
       }
     } catch (e) {
       _publicPropertiesError = 'Terjadi kesalahan jaringan saat mengambil properti publik: $e';
-      _hasMorePublicProperties = false; 
+      _hasMorePublicProperties = false;
       print('PropertyProvider fetchPublicProperties Exception: $e');
     } finally {
       _isLoadingPublicProperties = false;
@@ -216,9 +277,7 @@ class PropertyProvider extends ChangeNotifier {
     }
   }
 
-  // +++ METHOD BARU UNTUK PENCARIAN PROPERTI BERDASARKAN KEYWORD +++
   Future<void> performKeywordSearch(String keyword, {bool loadMore = false}) async {
-    // Mencegah pemanggilan berulang jika sedang loading atau sudah tidak ada data lagi
     if (_isLoadingSearch && !loadMore) return;
     if (loadMore && !_hasMoreSearchResults) return;
     if (loadMore && _isLoadingSearch) return;
@@ -226,21 +285,18 @@ class PropertyProvider extends ChangeNotifier {
     _isLoadingSearch = true;
 
     if (!loadMore) {
-      // Jika ini adalah pencarian baru (bukan loadMore)
       _searchError = null;
-      _searchResultCurrentPage = 1; // Reset halaman ke 1
-      _searchedProperties = [];     // Kosongkan hasil pencarian sebelumnya
-      _currentSearchKeyword = keyword; // Simpan keyword yang sedang dicari
-      _hasMoreSearchResults = true;   // Asumsikan ada hasil sampai API mengkonfirmasi
+      _searchResultCurrentPage = 1;
+      _searchedProperties = [];
+      _currentSearchKeyword = keyword;
+      _hasMoreSearchResults = true;
     }
-    // Jika loadMore, _currentSearchKeyword dan _searchResultCurrentPage sudah berisi nilai dari pencarian sebelumnya.
-    notifyListeners(); // Update UI untuk menampilkan loading
+    notifyListeners();
 
     try {
-      // Panggil ApiService.getPublicProperties dengan menyertakan keyword
       final result = await ApiService.getPublicProperties(
         page: _searchResultCurrentPage,
-        keyword: _currentSearchKeyword, // Gunakan keyword yang tersimpan untuk konsistensi loadMore
+        keyword: _currentSearchKeyword,
       );
 
       if (result['success'] == true) {
@@ -250,33 +306,31 @@ class PropertyProvider extends ChangeNotifier {
             .toList();
 
         if (loadMore) {
-          _searchedProperties.addAll(fetchedProperties); // Tambahkan ke list yang sudah ada
+          _searchedProperties.addAll(fetchedProperties);
         } else {
-          _searchedProperties = fetchedProperties; // Ganti list dengan yang baru
+          _searchedProperties = fetchedProperties;
         }
 
-        // Update info paginasi untuk hasil pencarian
         int apiCurrentPage = result['currentPage'] as int? ?? _searchResultCurrentPage;
         _searchResultLastPage = result['lastPage'] as int? ?? _searchResultLastPage;
 
         if (fetchedProperties.isNotEmpty) {
           _hasMoreSearchResults = apiCurrentPage < _searchResultLastPage;
-          _searchResultCurrentPage = apiCurrentPage + 1; // Siapkan untuk halaman berikutnya
+          _searchResultCurrentPage = apiCurrentPage + 1;
         } else {
-          _hasMoreSearchResults = false; // Tidak ada data lagi yang di-fetch di halaman ini
+          _hasMoreSearchResults = false;
         }
 
         if (_searchedProperties.isEmpty && !loadMore) {
           print('PropertyProvider: Tidak ada properti ditemukan untuk keyword: "$_currentSearchKeyword"');
-          // _searchError = 'Tidak ada properti ditemukan untuk "$_currentSearchKeyword".'; // Opsional: set pesan jika tidak ada hasil
         }
       } else {
         _searchError = result['message'] ?? 'Gagal melakukan pencarian properti.';
-        _hasMoreSearchResults = false; // Jika API gagal, anggap tidak ada halaman lagi
+        _hasMoreSearchResults = false;
       }
     } catch (e) {
       _searchError = 'Terjadi kesalahan jaringan saat pencarian: $e';
-      _hasMoreSearchResults = false; // Jika exception, anggap tidak ada halaman lagi
+      _hasMoreSearchResults = false;
       print('PropertyProvider performKeywordSearch Exception: $e');
     } finally {
       _isLoadingSearch = false;
@@ -284,7 +338,6 @@ class PropertyProvider extends ChangeNotifier {
     }
   }
 
-  // Method untuk membersihkan hasil pencarian (dipanggil dari SearchScreen)
   void clearSearchResults() {
     _searchedProperties = [];
     _searchError = null;
@@ -292,14 +345,12 @@ class PropertyProvider extends ChangeNotifier {
     _searchResultCurrentPage = 1;
     _searchResultLastPage = 1;
     _hasMoreSearchResults = true;
-    _isLoadingSearch = false; // Pastikan loading juga false
+    _isLoadingSearch = false;
     notifyListeners();
     print('PropertyProvider: Hasil pencarian telah dibersihkan.');
   }
-  // +++ AKHIR METHOD BARU UNTUK PENCARIAN +++
 
   void updatePropertyListsState(Property updatedProperty) {
-    // ... (implementasi Anda yang sudah ada, tetap sama) ...
     int indexInUserProperties = _userProperties.indexWhere((p) => p.id == updatedProperty.id);
     bool isInManageableGroup = [
       PropertyStatus.draft,
@@ -314,7 +365,7 @@ class PropertyProvider extends ChangeNotifier {
       } else {
         _userProperties.add(updatedProperty);
       }
-    } else { 
+    } else {
       if (indexInUserProperties != -1) {
         _userProperties.removeAt(indexInUserProperties);
       }
@@ -327,7 +378,7 @@ class PropertyProvider extends ChangeNotifier {
       } else {
         _userApprovedProperties.add(updatedProperty);
       }
-    } else { 
+    } else {
       if (indexInApprovedProperties != -1) {
         _userApprovedProperties.removeAt(indexInApprovedProperties);
       }
@@ -340,7 +391,7 @@ class PropertyProvider extends ChangeNotifier {
       } else {
         _userSoldProperties.add(updatedProperty);
       }
-    } else { 
+    } else {
       if (indexInSoldProperties != -1) {
         _userSoldProperties.removeAt(indexInSoldProperties);
       }
@@ -349,9 +400,8 @@ class PropertyProvider extends ChangeNotifier {
   }
 
   Future<Map<String, dynamic>> updatePropertyStatus(String propertyId, PropertyStatus newStatus, String token) async {
-    // ... (implementasi Anda yang sudah ada, tetap sama) ...
     Property? propertyToUpdate;
-    
+
     int approvedIdx = _userApprovedProperties.indexWhere((p) => p.id == propertyId);
     if (approvedIdx != -1) {
       propertyToUpdate = _userApprovedProperties[approvedIdx];
@@ -366,33 +416,90 @@ class PropertyProvider extends ChangeNotifier {
         }
       }
     }
-    
+
     if (propertyToUpdate == null) {
         return {'success': false, 'message': 'Properti tidak ditemukan untuk diupdate statusnya.'};
     }
 
-    Property propertyWithNewStatus = propertyToUpdate.copyWith(status: newStatus);
-    
+    // Buat objek baru dengan status yang diperbarui
+    Property propertyWithNewStatus = propertyToUpdate.copyWith(
+      status: newStatus,
+      // Jika status berubah ke pendingVerification, set submissionDate
+      submissionDate: () => newStatus == PropertyStatus.pendingVerification ? DateTime.now() : propertyToUpdate!.submissionDate,
+      // Jika status berubah ke approved, set approvalDate
+      approvalDate: () => newStatus == PropertyStatus.approved ? DateTime.now() : propertyToUpdate!.approvalDate,
+    );
+
     print('Updating status for property ${propertyWithNewStatus.id} from ${propertyToUpdate.status.name} to ${newStatus.name}');
 
     final result = await _propertyService.submitProperty(
-      property: propertyWithNewStatus, 
-      newSelectedImages: [],
+      property: propertyWithNewStatus,
+      newSelectedImages: [], // Tidak ada gambar baru saat hanya update status
       existingImageUrls: propertyToUpdate.imageUrl.isNotEmpty ? [propertyToUpdate.imageUrl, ...propertyToUpdate.additionalImageUrls] : [],
       token: token
     );
 
     if (result['success'] == true) {
-      updatePropertyListsState(propertyWithNewStatus); 
+      // Ambil data properti terbaru dari respons API jika ada, atau gunakan propertyWithNewStatus
+      Property finalUpdatedProperty = result['data'] != null && result['data']['data'] != null
+        ? Property.fromJson(result['data']['data'] as Map<String, dynamic>)
+        : propertyWithNewStatus;
+
+      updatePropertyListsState(finalUpdatedProperty);
     }
     return result;
   }
 
   void removePropertyById(String propertyId) {
-    // ... (implementasi Anda yang sudah ada, tetap sama) ...
     _userProperties.removeWhere((p) => p.id == propertyId);
     _userApprovedProperties.removeWhere((p) => p.id == propertyId);
-    _userSoldProperties.removeWhere((p) => p.id == propertyId); 
+    _userSoldProperties.removeWhere((p) => p.id == propertyId);
     notifyListeners();
   }
+
+  Future<Map<String, dynamic>?> fetchPropertyStatistics(String propertyId, String? token) async {
+    if (token == null) {
+      print('PropertyProvider: Token is null, cannot fetch statistics.');
+      return null;
+    }
+    // Pastikan ApiConstants.laravelApiBaseUrl sudah benar
+    final url = Uri.parse('${ApiConstants.laravelApiBaseUrl}/properties/$propertyId/statistics');
+    print('PropertyProvider: Fetching statistics from $url');
+
+    try {
+      final response = await http.get(
+        url,
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Accept': 'application/json',
+        },
+      );
+      print('PropertyProvider (fetchPropertyStatistics): Status Respons: ${response.statusCode}');
+       print('PropertyProvider (fetchPropertyStatistics): Body Respons: ${response.body}'); // Ini penting!
+      // print('PropertyProvider: Statistics response body: ${response.body}'); // Hati-hati jika body besar
+
+      if (response.statusCode == 200) {
+        final responseData = jsonDecode(response.body);
+        if (responseData['success'] == true && responseData['data'] is Map<String, dynamic>) {
+          print('PropertyProvider: Statistics fetched successfully for property $propertyId.');
+          return responseData['data'] as Map<String, dynamic>;
+        } else {
+          print('PropertyProvider: Failed to fetch statistics - ${responseData['message']}');
+          return null;
+        }
+      } else {
+        print('PropertyProvider: Error fetching statistics - ${response.statusCode} - ${response.body}');
+        return null;
+      }
+    } catch (e) {
+      print('PropertyProvider: Exception fetching statistics - $e');
+      return null;
+    }
+  }
+  
+  // Anda sudah memiliki method recordPropertyView di bawah, jadi ini duplikat.
+  // Jika Anda ingin ini berbeda, beri nama lain.
+  // Future<void> recordPropertyView(String propertyId, String? token) async {
+  //   // ...
+  // }
 }
