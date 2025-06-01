@@ -56,7 +56,10 @@ class PropertyCard extends StatelessWidget {
             MaterialPageRoute(
               builder: (context) => ChangeNotifierProvider.value( // Ini 'context' baru dari builder MaterialPageRoute
                    value: freshPropertyData,
-                   child: PropertyDetailPage(property: freshPropertyData),
+                   child: PropertyDetailPage(
+                     key: ValueKey(freshPropertyData.id), // <-- TAMBAHKAN KEY UNIK DI SINI
+                     property: freshPropertyData,
+                   ),
               ),
             ),
           );

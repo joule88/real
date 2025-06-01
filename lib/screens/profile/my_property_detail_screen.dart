@@ -37,16 +37,8 @@ class _MyPropertyDetailScreenState extends State<MyPropertyDetailScreen>
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+    print("_MyPropertyDetailScreenState initState: ID Properti yang diterima adalah \\${widget.property.id} untuk judul '\\${widget.property.title}'");
     _fetchAndProcessStatistics();
-    
-    // Panggil record view ketika halaman detail dibuka
-    // Sebaiknya ini dilakukan di endpoint detail publik jika ada,
-    // atau pastikan hanya dipanggil sekali per sesi tampilan.
-    // WidgetsBinding.instance.addPostFrameCallback((_) {
-    //   final propertyProvider = Provider.of<PropertyProvider>(context, listen: false);
-    //   final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    //   propertyProvider.recordPropertyView(widget.property.id, authProvider.token);
-    // });
   }
 
   @override
@@ -57,43 +49,61 @@ class _MyPropertyDetailScreenState extends State<MyPropertyDetailScreen>
 
   Future<void> _fetchAndProcessStatistics() async {
     if (!mounted) return;
+    print("_MyPropertyDetailScreenState _fetchAndProcessStatistics: Memulai untuk ID \\${widget.property.id}");
     setState(() {
       _isLoadingStats = true;
       _statsError = null;
+      // --- 👇 PASTIKAN RESET INI SELALU EFEKTIF 👇 ---
+      _processedDailyStats = {};
+      _processedMonthlyStats = {};
+      // --- 👆 RESET DATA STATISTIK SEBELUMNYA DI SINI 👆 ---
     });
 
     final propertyProvider = Provider.of<PropertyProvider>(context, listen: false);
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
 
     try {
+      print("_MyPropertyDetailScreenState _fetchAndProcessStatistics: Memanggil provider dengan ID \\${widget.property.id}");
       final statsData = await propertyProvider.fetchPropertyStatistics(widget.property.id, authProvider.token);
-      print('_MyPropertyDetailScreenState: Data statistik mentah diterima: $statsData'); // Print data mentah
+      print('_MyPropertyDetailScreenState: Data statistik mentah diterima untuk ID \\${widget.property.id}: $statsData');
+      
       if (mounted && statsData != null) {
-        _processedDailyStats = _getProcessedDailyData(Map<String, dynamic>.from(statsData['daily'] ?? {}));
-        _processedMonthlyStats = _getProcessedMonthlyData(Map<String, dynamic>.from(statsData['monthly'] ?? {}));
-          print('_MyPropertyDetailScreenState: Processed Daily Stats: $_processedDailyStats');
-  print('_MyPropertyDetailScreenState: Processed Monthly Stats: $_processedMonthlyStats');
+        setState(() { // <--- PENTING: setState di sini untuk memperbarui chart dengan data baru
+          _processedDailyStats = _getProcessedDailyData(Map<String, dynamic>.from(statsData['daily'] ?? {}));
+          _processedMonthlyStats = _getProcessedMonthlyData(Map<String, dynamic>.from(statsData['monthly'] ?? {}));
+          print('_MyPropertyDetailScreenState: Processed Daily Stats untuk ID \\${widget.property.id}: $_processedDailyStats');
+          print('_MyPropertyDetailScreenState: Processed Monthly Stats untuk ID \\${widget.property.id}: $_processedMonthlyStats');
+        });
       } else if (mounted) {
-        _statsError = "Gagal mengambil data statistik atau data tidak ditemukan.";
+        setState(() {
+          _statsError = "Gagal mengambil data statistik atau data tidak ditemukan untuk properti ini.";
+          // Pastikan _processed stats tetap kosong jika error
+          _processedDailyStats = {}; 
+          _processedMonthlyStats = {};
+        });
       }
     } catch (e) {
       if (mounted) {
-        _statsError = "Terjadi kesalahan: ${e.toString()}";
+        setState(() {
+          _statsError = "Terjadi kesalahan saat mengambil statistik: \\${e.toString()}";
+          // Pastikan _processed stats tetap kosong jika exception
+          _processedDailyStats = {};
+          _processedMonthlyStats = {};
+        });
       }
-      print("Error fetching/processing stats: $e");
-    }
-
-    if (mounted) {
-      setState(() {
-        _isLoadingStats = false;
-      });
+      print("Error fetching/processing stats for ID \\${widget.property.id}: $e");
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoadingStats = false;
+        });
+      }
     }
   }
 
   Map<String, int> _getProcessedDailyData(Map<String, dynamic> rawDailyMap) {
     Map<String, int> processedData = {};
-    var sortedKeys = rawDailyMap.keys.toList()..sort(); // Urutkan dari tanggal terlama
-    
+    var sortedKeys = rawDailyMap.keys.toList()..sort();
     for (var key in sortedKeys) {
       try {
         DateTime date = _backendDailyParser.parse(key);
@@ -102,18 +112,12 @@ class _MyPropertyDetailScreenState extends State<MyPropertyDetailScreen>
         print("Error parsing daily date $key: $e");
       }
     }
-    // Jika Anda ingin memastikan urutan di chart adalah dari kiri (lama) ke kanan (baru),
-    // dan data dari backend mungkin tidak urut, pastikan `sortedKeys` diurutkan dengan benar.
-    // Atau, jika ViewStatsChart mengharapkan Map yang key-nya sudah urut:
-    // var sortedEntries = processedData.entries.toList()..sort((a,b) => _labelDailyFormatter.parse(a.key).compareTo(_labelDailyFormatter.parse(b.key)));
-    // return Map.fromEntries(sortedEntries);
     return processedData;
   }
 
   Map<String, int> _getProcessedMonthlyData(Map<String, dynamic> rawMonthlyMap) {
     Map<String, int> processedData = {};
     var sortedKeys = rawMonthlyMap.keys.toList()..sort();
-
     for (var key in sortedKeys) {
       try {
         DateTime date = _backendMonthlyParser.parse(key);
@@ -443,57 +447,77 @@ class _MyPropertyDetailScreenState extends State<MyPropertyDetailScreen>
   }
 
   Widget _buildStatisticsTabContent(BuildContext context) {
-     if (_isLoadingStats) {
+    if (_isLoadingStats) {
       return const Center(child: Padding(
         padding: EdgeInsets.all(32.0),
         child: CircularProgressIndicator(),
       ));
     }
     if (_statsError != null) {
-       return Center(
-          child: Padding(
-            padding: const EdgeInsets.all(20.0),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                 Icon(Icons.error_outline_rounded, color: Colors.red.shade300, size: 50),
-                 const SizedBox(height:10),
-                Text(
-                  _statsError!,
-                  textAlign: TextAlign.center,
-                  style: GoogleFonts.poppins(fontSize: 14, color: Colors.grey[700]),
-                ),
-                const SizedBox(height:15),
-                ElevatedButton.icon(
-                  icon: const Icon(Icons.refresh),
-                  label: const Text("Coba Lagi"),
-                  onPressed: _fetchAndProcessStatistics,
-                )
-              ],
-            ),
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(20.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.error_outline_rounded, color: Colors.red.shade300, size: 50),
+              const SizedBox(height:10),
+              Text(
+                _statsError!,
+                textAlign: TextAlign.center,
+                style: GoogleFonts.poppins(fontSize: 14, color: Colors.grey[700]),
+              ),
+              const SizedBox(height:15),
+              ElevatedButton.icon(
+                icon: const Icon(Icons.refresh),
+                label: const Text("Coba Lagi"),
+                onPressed: _fetchAndProcessStatistics,
+              )
+            ],
           ),
-        );
+        ),
+      );
     }
-    if (_processedDailyStats.isEmpty && _processedMonthlyStats.isEmpty) {
-        return Center(
-          child: Padding(
-            padding: const EdgeInsets.all(20.0),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.bar_chart_rounded, color: Colors.grey.shade300, size: 70),
-                const SizedBox(height:15),
-                Text(
-                  "Data statistik tampilan untuk properti ini belum tersedia.",
-                  textAlign: TextAlign.center,
-                  style: GoogleFonts.poppins(fontSize: 15, color: Colors.grey[700]),
-                ),
-              ],
-            ),
+    if (_processedDailyStats.values.every((count) => count == 0) &&
+        _processedMonthlyStats.values.every((count) => count == 0) &&
+        _processedDailyStats.isNotEmpty && _processedMonthlyStats.isNotEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(20.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.trending_flat_rounded, color: Colors.grey.shade300, size: 70),
+              const SizedBox(height:15),
+              Text(
+                "Belum ada aktivitas tampilan yang signifikan untuk periode ini.",
+                textAlign: TextAlign.center,
+                style: GoogleFonts.poppins(fontSize: 15, color: Colors.grey[700]),
+              ),
+            ],
           ),
-        );
+        ),
+      );
     }
-
+    if (_processedDailyStats.isEmpty && _processedMonthlyStats.isEmpty && _statsError == null) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(20.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.bar_chart_rounded, color: Colors.grey.shade300, size: 70),
+              const SizedBox(height:15),
+              Text(
+                "Data statistik tampilan untuk properti ini belum tersedia.",
+                textAlign: TextAlign.center,
+                style: GoogleFonts.poppins(fontSize: 15, color: Colors.grey[700]),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
     return SingleChildScrollView(
       key: const PageStorageKey<String>('statisticsTab'),
       physics: const BouncingScrollPhysics(),
@@ -505,7 +529,7 @@ class _MyPropertyDetailScreenState extends State<MyPropertyDetailScreen>
             "Grafik Tampilan Postingan",
             style: GoogleFonts.poppins(
                 fontSize: 17,
-                fontWeight: FontWeight.w600, // Sedikit lebih tebal
+                fontWeight: FontWeight.w600,
                 color: Colors.black87),
           ),
           const SizedBox(height: 6),
@@ -515,7 +539,7 @@ class _MyPropertyDetailScreenState extends State<MyPropertyDetailScreen>
           ),
           const SizedBox(height: 20),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 16), // Kurangi padding horizontal
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 16),
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(12),
