@@ -4,8 +4,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:real/models/property.dart';
-import 'package:real/provider/auth_provider.dart';
-import 'package:real/provider/property_provider.dart';
+import 'package:real/provider/auth_provider.dart';     // Pastikan import ini ada
+import 'package:real/provider/property_provider.dart'; // Pastikan import ini ada
 import 'package:real/screens/detail/detailpost.dart';
 import 'package:real/widgets/bookmark_button.dart';
 
@@ -21,8 +21,7 @@ class PropertyCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) { // 'context' tersedia di sini
-    final currencyFormatter =
-        NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0);
+    final currencyFormatter = NumberFormat.currency(locale: 'ar_AE', symbol: 'AED ', decimalDigits: 0);
     final cardWidth = isHorizontalVariant ? 320.0 : double.infinity;
     final imageHeight = isHorizontalVariant ? 160.0 : 180.0;
 
@@ -45,27 +44,32 @@ class PropertyCard extends StatelessWidget {
           authProvider.token
         );
 
-        if (context.mounted) {
-           Navigator.pop(context); // Gunakan 'context' dari build method
-        }
+        // Gunakan `context.mounted` untuk mengecek apakah widget masih ada di tree
+        if (!context.mounted) return; // Jika tidak, jangan lanjutkan
 
-        if (freshPropertyData != null && context.mounted) {
+        Navigator.pop(context); // Tutup dialog loading
+
+        if (freshPropertyData != null) {
           print("Navigating to PropertyDetailPage with fresh data for ${freshPropertyData.id}. Total Views: ${freshPropertyData.viewsCount}");
+          // Pastikan lagi context mounted sebelum navigasi
+          if (!context.mounted) return;
           Navigator.push(
-            context, // 'context' dari build method
+            context, 
             MaterialPageRoute(
-              builder: (context) => ChangeNotifierProvider.value( // Ini 'context' baru dari builder MaterialPageRoute
-                   value: freshPropertyData,
-                   child: PropertyDetailPage(
-                     key: ValueKey(freshPropertyData.id), // <-- TAMBAHKAN KEY UNIK DI SINI
-                     property: freshPropertyData,
-                   ),
+              builder: (context) => ChangeNotifierProvider.value( 
+                  value: freshPropertyData,
+                  child: PropertyDetailPage(
+                    key: ValueKey(freshPropertyData.id), 
+                    property: freshPropertyData,
+                  ),
               ),
             ),
           );
-        } else if (context.mounted) {
+        } else {
           print("Failed to fetch fresh property data for ${property.id}");
-          ScaffoldMessenger.of(context).showSnackBar( // 'context' dari build method
+          // Pastikan lagi context mounted sebelum menampilkan SnackBar
+          if (!context.mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar( 
             const SnackBar(content: Text('Gagal memuat detail properti. Coba lagi nanti.')),
           );
         }
@@ -104,14 +108,14 @@ class PropertyCard extends StatelessWidget {
                           height: imageHeight,
                           width: double.infinity,
                           fit: BoxFit.cover,
-                          errorBuilder: (imgContext, error, stackTrace) => // 'imgContext' adalah BuildContext dari errorBuilder
-                              _imageErrorPlaceholder(imgContext, imageHeight), // Teruskan context
-                          loadingBuilder: (imgContext, child, loadingProgress) { // 'imgContext' adalah BuildContext dari loadingBuilder
+                          errorBuilder: (imgContext, error, stackTrace) =>
+                              _imageErrorPlaceholder(imgContext, imageHeight),
+                          loadingBuilder: (imgContext, child, loadingProgress) {
                             if (loadingProgress == null) return child;
-                            return _imageLoadingPlaceholder(imgContext, imageHeight, loadingProgress); // Teruskan context
+                            return _imageLoadingPlaceholder(imgContext, imageHeight, loadingProgress);
                           },
                         )
-                      : _imageErrorPlaceholder(context, imageHeight, iconSize: 60), // Teruskan context dari build method
+                      : _imageErrorPlaceholder(context, imageHeight, iconSize: 60),
                 ),
               ],
             ),
@@ -138,7 +142,11 @@ class PropertyCard extends StatelessWidget {
                       BookmarkButton(
                         isBookmarked: property.isFavorite,
                         onPressed: () {
-                          property.toggleFavorite();
+                          // --- 👇 PERUBAHAN UTAMA UNTUK BOOKMARK ADA DI SINI 👇 ---
+                          final authProvider = Provider.of<AuthProvider>(context, listen: false);
+                          Provider.of<PropertyProvider>(context, listen: false)
+                              .togglePropertyBookmark(property.id, authProvider.token);
+                          // --- 👆 AKHIR PERUBAHAN UTAMA UNTUK BOOKMARK 👆 ---
                         },
                       ),
                     ],
@@ -156,13 +164,13 @@ class PropertyCard extends StatelessWidget {
                   const SizedBox(height: 10),
                   Row(
                     children: [
-                      _buildDetailItem(context, Icons.king_bed_outlined, // Teruskan context
+                      _buildDetailItem(context, Icons.king_bed_outlined,
                           '${property.bedrooms} Kamar'),
                       _buildDetailSeparator(),
-                      _buildDetailItem(context, Icons.bathtub_outlined, // Teruskan context
+                      _buildDetailItem(context, Icons.bathtub_outlined,
                           '${property.bathrooms} WC'),
                       _buildDetailSeparator(),
-                      _buildDetailItem(context, Icons.aspect_ratio_outlined, // Teruskan context
+                      _buildDetailItem(context, Icons.aspect_ratio_outlined,
                           '${property.areaSqft.toStringAsFixed(0)} sqft'),
                     ],
                   ),
@@ -175,7 +183,6 @@ class PropertyCard extends StatelessWidget {
     );
   }
 
-  // --- PERUBAHAN DI SINI: Tambahkan BuildContext context sebagai parameter ---
   Widget _buildDetailItem(BuildContext context, IconData icon, String text) {
     return Row(
       mainAxisSize: MainAxisSize.min,
@@ -203,7 +210,6 @@ class PropertyCard extends StatelessWidget {
     );
   }
 
-  // --- PERUBAHAN DI SINI: Tambahkan BuildContext context sebagai parameter ---
   Widget _imageLoadingPlaceholder(BuildContext context, double height, ImageChunkEvent? loadingProgress){
     return Container(
         height: height,
@@ -216,21 +222,20 @@ class PropertyCard extends StatelessWidget {
                     loadingProgress.expectedTotalBytes!
                 : null,
             strokeWidth: 2.0,
-            color: Theme.of(context).primaryColor.withOpacity(0.6), // Sekarang 'context' tersedia
+            color: Theme.of(context).primaryColor.withOpacity(0.6),
         ),
         ),
     );
   }
 
-  // --- PERUBAHAN DI SINI: Tambahkan BuildContext context sebagai parameter ---
   Widget _imageErrorPlaceholder(BuildContext context, double height, {double iconSize = 50}){
       return Container(
         height: height,
         width: double.infinity,
         color: Colors.grey[200],
         child: Center(
-            child: Icon(Icons.apartment_rounded,
-                size: iconSize, color: Theme.of(context).disabledColor.withOpacity(0.5))), // Menggunakan Theme untuk warna ikon
+            child: Icon(Icons.apartment_rounded, // Menggunakan ikon yang lebih relevan
+                size: iconSize, color: Theme.of(context).disabledColor.withOpacity(0.5))),
     );
   }
 }

@@ -12,8 +12,7 @@ class PropertyDetailPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final currencyFormatter =
-        NumberFormat.currency(locale: 'en_US', symbol: '\$', decimalDigits: 0);
+    final currencyFormatter = NumberFormat.currency(locale: 'ar_AE', symbol: 'AED ', decimalDigits: 0);
 
     return Scaffold(
       backgroundColor: Colors.grey[100],

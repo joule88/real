@@ -1,8 +1,12 @@
+// lib/widgets/property_list_item.dart
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
-import 'package:real/models/property.dart'; // Import model
-import 'bookmark_button.dart'; // Import BookmarkButton
+import 'package:provider/provider.dart'; // Pastikan import ini ada
+import 'package:real/models/property.dart';
+import 'package:real/provider/auth_provider.dart'; // Pastikan import ini ada
+import 'package:real/provider/property_provider.dart'; // Pastikan import ini ada
+import 'bookmark_button.dart';
 
 class PropertyListItem extends StatelessWidget {
   final Property property;
@@ -14,8 +18,7 @@ class PropertyListItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final currencyFormatter =
-        NumberFormat.currency(locale: 'en_US', symbol: '\$', decimalDigits: 2);
+    final currencyFormatter = NumberFormat.currency(locale: 'ar_AE', symbol: 'AED ', decimalDigits: 0);
     const double imageSize = 80.0;
 
     return Container(
@@ -34,13 +37,12 @@ class PropertyListItem extends StatelessWidget {
         ],
       ),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start, // Rata atas
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 1. Gambar Kecil
           ClipRRect(
             borderRadius: BorderRadius.circular(8),
             child: Image.network(
-              property.imageUrl,
+              property.imageUrl, // Asumsi imageUrl selalu ada dan valid
               width: imageSize,
               height: imageSize,
               fit: BoxFit.cover,
@@ -72,58 +74,55 @@ class PropertyListItem extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 12),
-
-          // 2. Detail Teks (Kolom Kanan)
           Expanded(
-            // Agar teks mengisi sisa ruang
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Harga
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      currencyFormatter.format(property.price),
-                      style: GoogleFonts.poppins(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black,
+                    Expanded( // Tambahkan Expanded agar harga tidak overflow
+                      child: Text(
+                        currencyFormatter.format(property.price),
+                        style: GoogleFonts.poppins(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
                     ),
-                    // Ikon Bookmark dengan animasi
                     BookmarkButton(
                       isBookmarked: property.isFavorite,
                       onPressed: () {
-                        property.toggleFavorite(); // Mengubah status bookmark
+                        // --- 👇 PERUBAHAN UTAMA UNTUK BOOKMARK ADA DI SINI 👇 ---
+                        final authProvider = Provider.of<AuthProvider>(context, listen: false);
+                        Provider.of<PropertyProvider>(context, listen: false)
+                            .togglePropertyBookmark(property.id, authProvider.token);
+                        // --- 👆 AKHIR PERUBAHAN UTAMA UNTUK BOOKMARK 👆 ---
                       },
                     ),
                   ],
                 ),
                 const SizedBox(height: 4),
-
-                // Alamat
                 Text(
-                  property.address, // Langsung gunakan property.address
+                  property.address.isNotEmpty ? property.address : "Alamat tidak tersedia",
                   style: GoogleFonts.poppins(
                     fontSize: 11,
                     color: Colors.grey[700],
                   ),
-                  maxLines: 1, // Atau 2 jika perlu lebih banyak ruang
+                  maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 6),
-
-                // Detail Kamar/Luas (Mirip PropertyCard tapi mungkin lebih kecil)
                 Row(
                   children: [
                     _buildDetailItem(Icons.king_bed_outlined,
-                        ' ${property.bedrooms}'), // Singkat
-                    const SizedBox(width: 8), // Jarak antar detail
+                        ' ${property.bedrooms} Beds'),
+                    const SizedBox(width: 8),
                     _buildDetailItem(Icons.bathtub_outlined,
-                        ' ${property.bathrooms}'), // Singkat
+                        ' ${property.bathrooms} Baths'),
                     const SizedBox(width: 8),
                     _buildDetailItem(Icons.straighten_outlined,
                         '${property.areaSqft.toStringAsFixed(0)} sqft'),
@@ -137,16 +136,15 @@ class PropertyListItem extends StatelessWidget {
     );
   }
 
-  // Helper widget kecil untuk item detail (ikon + teks) - bisa disamakan/diambil dari property_card
   Widget _buildDetailItem(IconData icon, String text) {
     return Row(
       children: [
-        Icon(icon, size: 12, color: Colors.grey[600]), // Icon lebih kecil
+        Icon(icon, size: 12, color: Colors.grey[600]),
         const SizedBox(width: 3),
         Text(
           text,
           style: GoogleFonts.poppins(
-            fontSize: 9, // Font lebih kecil
+            fontSize: 9,
             color: Colors.grey[700],
             fontWeight: FontWeight.w500,
           ),

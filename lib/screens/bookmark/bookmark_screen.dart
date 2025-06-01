@@ -1,7 +1,11 @@
+// lib/screens/bookmark/bookmark_screen.dart
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:real/models/property.dart'; // Import model
-import 'package:real/widgets/property_list_item.dart'; // Import widget list item
+import 'package:provider/provider.dart'; // Import Provider
+import 'package:real/models/property.dart';
+import 'package:real/provider/auth_provider.dart'; // Import AuthProvider
+import 'package:real/provider/property_provider.dart'; // Import PropertyProvider
+import 'package:real/widgets/property_list_item.dart';
 
 class BookmarkScreen extends StatefulWidget {
   const BookmarkScreen({super.key});
@@ -11,71 +15,32 @@ class BookmarkScreen extends StatefulWidget {
 }
 
 class _BookmarkScreenState extends State<BookmarkScreen> {
-  // --- CONTOH DATA BOOKMARK (Ganti dengan logika data asli Anda) ---
-  // Simulasi daftar bookmark.
-  List<Property> bookmarkedProperties = [
-    Property(
-      id: '2',
-      title: 'Elegant Urban House (Bookmarked)',
-      description:
-          'Hunian elegan dengan desain kontemporer dan lokasi premium di tengah kota.',
-      uploader: 'Aldo Santosa',
-      imageUrl:
-          'https://images.pexels.com/photos/1396122/pexels-photo-1396122.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1',
-      price: 720000,
-      address: '6391 Elgin St.',
-      // city: 'Celina',
-      // stateZip: 'California 98380',
-      bedrooms: 4,
-      bathrooms: 4,
-      areaSqft: 2000,
-      propertyType: "Townhouse", // <--- TAMBAHKAN INI
-      furnishings: "Unfurnished", // <--- TAMBAHKAN INI
-      additionalImageUrls: [], // <--- TAMBAHKAN INI
-      status: PropertyStatus.approved, // <--- TAMBAHKAN INI (asumsi bookmark untuk properti yang tayang)
-      isFavorite: true, // Pastikan ini true untuk item di bookmark
-    ),
-    Property(
-      id: '5',
-      title: 'Spacious Modern House (Bookmarked)',
-      description:
-          'Hunian luas dengan desain modern dan pencahayaan alami optimal.',
-      uploader: 'Bagus Permana',
-      imageUrl:
-          'https://images.pexels.com/photos/276724/pexels-photo-276724.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1',
-      price: 1212000,
-      address: '6391 Maple Ave',
-      // city: 'Celina',
-      // stateZip: 'California 98380',
-      bedrooms: 4,
-      bathrooms: 4,
-      areaSqft: 2135,
-      propertyType: "Rumah Modern", // <--- TAMBAHKAN INI
-      furnishings: "Full Furnished", // <--- TAMBAHKAN INI
-      additionalImageUrls: [],
-      status: PropertyStatus.approved,
-      isFavorite: true, // Pastikan ini true
-    ),
-  ];
-
-  bool isLoading = false;
-
   @override
   void initState() {
     super.initState();
-    // TODO: Tambahkan logika untuk mengambil data bookmark asli dari database/state management
-    // Contoh: fetchBookmarkedProperties();
-    // Anda mungkin perlu memfilter daftar properti global berdasarkan ID yang disimpan sebagai bookmark
-    // atau mengambil daftar ID bookmark dan kemudian mengambil detail properti tersebut.
+    // Panggil fetchBookmarkedProperties saat layar pertama kali dibuka
+    // Menggunakan addPostFrameCallback memastikan context sudah tersedia
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      // Pastikan widget sudah ter-mount sebelum mengakses context
+      if (mounted) {
+        final authProvider = Provider.of<AuthProvider>(context, listen: false);
+        Provider.of<PropertyProvider>(context, listen: false)
+            .fetchBookmarkedProperties(authProvider.token);
+      }
+    });
+  }
+
+  // Method untuk pull-to-refresh
+  Future<void> _refreshBookmarks() async {
+    if (mounted) {
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      await Provider.of<PropertyProvider>(context, listen: false)
+          .fetchBookmarkedProperties(authProvider.token);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    // Jika Anda menggunakan Provider untuk daftar properti global, Anda bisa memfilternya di sini:
-    // final propertyProvider = Provider.of<PropertyProvider>(context);
-    // final actualBookmarkedProperties = propertyProvider.allProperties.where((p) => p.isFavorite).toList();
-    // Untuk saat ini, kita tetap pakai list dummy `bookmarkedProperties`
-
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -90,74 +55,87 @@ class _BookmarkScreenState extends State<BookmarkScreen> {
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(1.0),
           child: Container(
-            color: Colors.blue[300],
+            color: Colors.grey[300],
             height: 1.0,
           ),
         ),
       ),
-      body: isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : Padding(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 20.0, vertical: 15.0),
+      body: Consumer<PropertyProvider>( // Bungkus dengan Consumer
+        builder: (context, propertyProvider, child) {
+          if (propertyProvider.isLoadingBookmarkedProperties && propertyProvider.bookmarkedProperties.isEmpty) {
+            // Tampilkan loading hanya jika daftar masih kosong dan sedang loading awal
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          if (propertyProvider.bookmarkedPropertiesError != null && propertyProvider.bookmarkedProperties.isEmpty) {
+            // Tampilkan error hanya jika daftar masih kosong dan ada error
+            return Center(
+              child: Padding(
+                padding: const EdgeInsets.all(20.0),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.error_outline, color: Colors.red[400], size: 50),
+                    const SizedBox(height: 10),
+                    Text(
+                      'Gagal memuat bookmark: ${propertyProvider.bookmarkedPropertiesError}',
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.poppins(fontSize: 16, color: Colors.grey[700]),
+                    ),
+                    const SizedBox(height: 20),
+                    ElevatedButton.icon(
+                      icon: const Icon(Icons.refresh),
+                      label: const Text("Coba Lagi"),
+                      onPressed: _refreshBookmarks,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Theme.of(context).primaryColor,
+                        foregroundColor: Colors.white,
+                      ),
+                    )
+                  ],
+                ),
+              )
+            );
+          }
+
+          final List<Property> actualBookmarkedProperties = propertyProvider.bookmarkedProperties;
+
+          return RefreshIndicator(
+            onRefresh: _refreshBookmarks,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 15.0),
               child: Column(
                 children: [
-                  _buildSearchBarAndFilter(),
-                  const SizedBox(height: 20),
+                  // Jika Anda memiliki search bar atau filter, bisa diletakkan di sini
+                  // _buildSearchBarAndFilter(),
+                  // const SizedBox(height: 20),
                   Expanded(
-                    child: bookmarkedProperties.isEmpty // Gunakan list dummy yang sudah diperbarui
-                        ? _buildEmptyState()
-                        : _buildBookmarkList(),
+                    child: actualBookmarkedProperties.isEmpty
+                        ? _buildEmptyState() // Tampilkan empty state jika tidak ada bookmark
+                        : _buildBookmarkList(actualBookmarkedProperties),
                   ),
                 ],
               ),
             ),
+          );
+        },
+      ),
     );
   }
 
-  Widget _buildSearchBarAndFilter() {
-    return Row(
-      children: [
-        Expanded(
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 5),
-            decoration: BoxDecoration(
-              color: Colors.grey[200],
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: const TextField(
-              decoration: InputDecoration(
-                hintText: 'Search your bookmarks...',
-                icon: Icon(Icons.search, color: Colors.grey),
-                border: InputBorder.none,
-                hintStyle: TextStyle(color: Colors.grey),
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(width: 10),
-        Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: const Color(0xFF1F2937),
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: const Icon(
-            Icons.filter_list,
-            color: Colors.white,
-            size: 24,
-          ),
-        ),
-      ],
-    );
-  }
+  // Widget _buildSearchBarAndFilter() {
+  //   // Implementasi search bar dan filter jika dibutuhkan
+  //   return Container();
+  // }
 
-  Widget _buildBookmarkList() {
-    // Jika Anda menggunakan Provider, gunakan `actualBookmarkedProperties` di sini
+  Widget _buildBookmarkList(List<Property> properties) {
     return ListView.builder(
-      itemCount: bookmarkedProperties.length, // Gunakan list dummy yang sudah diperbarui
+      itemCount: properties.length,
       itemBuilder: (context, index) {
-        final property = bookmarkedProperties[index]; // Gunakan list dummy yang sudah diperbarui
+        final property = properties[index];
+        // Penting: Pastikan PropertyListItem dapat menangani perubahan state isFavorite
+        // dan memanggil togglePropertyBookmark dari PropertyProvider.
+        // Kita sudah melakukan ini di langkah sebelumnya.
         return PropertyListItem(
           property: property,
         );
@@ -166,36 +144,46 @@ class _BookmarkScreenState extends State<BookmarkScreen> {
   }
 
   Widget _buildEmptyState() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.bookmark_outline_rounded,
-            size: 80,
-            color: Colors.grey[400],
-          ),
-          const SizedBox(height: 20),
-          Text(
-            "Your Bookmark page is empty",
-            style: GoogleFonts.poppins(
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
-              color: Colors.black87,
+    return LayoutBuilder( // Menggunakan LayoutBuilder agar bisa mengisi ruang yang tersedia
+      builder: (context, constraints) {
+        return SingleChildScrollView( // Agar konten bisa di-scroll jika layar terlalu kecil
+          physics: const AlwaysScrollableScrollPhysics(), // Aktifkan scroll meskipun konten pas
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minHeight: constraints.maxHeight), // Memastikan mengisi tinggi
+            child: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.bookmark_outline_rounded,
+                    size: 80,
+                    color: Colors.grey[400],
+                  ),
+                  const SizedBox(height: 20),
+                  Text(
+                    "Halaman Bookmark Anda Kosong", // Diubah ke Bahasa Indonesia
+                    style: GoogleFonts.poppins(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.black87,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    "Klik ikon bookmark pada properti untuk menyimpannya di sini.", // Diubah ke Bahasa Indonesia
+                    style: GoogleFonts.poppins(
+                      fontSize: 14,
+                      color: Colors.grey[600],
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
             ),
-            textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 10),
-          Text(
-            "Click the bookmark icon on a property to save it here.", // Teks disesuaikan
-            style: GoogleFonts.poppins(
-              fontSize: 14,
-              color: Colors.grey[600],
-            ),
-            textAlign: TextAlign.center,
-          ),
-        ],
-      ),
+        );
+      }
     );
   }
 }

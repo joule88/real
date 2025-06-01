@@ -4,7 +4,7 @@ import '../models/property.dart';
 import '../services/property_service.dart';
 import '../services/api_services.dart';
 import '../services/api_constants.dart'; // Pastikan path ini benar
-import 'dart:convert';                 // Untuk jsonDecode
+import 'dart:convert';                // Untuk jsonDecode
 import 'package:http/http.dart' as http; // Untuk http.get
 
 class PropertyProvider extends ChangeNotifier {
@@ -60,9 +60,15 @@ class PropertyProvider extends ChangeNotifier {
   bool get hasMoreSearchResults => _hasMoreSearchResults;
   String get currentSearchKeyword => _currentSearchKeyword;
 
-  // --- 👇 METHOD BARU DITAMBAHKAN DI SINI 👇 ---
+  List<Property> _bookmarkedProperties = [];
+  bool _isLoadingBookmarkedProperties = false;
+  String? _bookmarkedPropertiesError;
+
+  List<Property> get bookmarkedProperties => _bookmarkedProperties;
+  bool get isLoadingBookmarkedProperties => _isLoadingBookmarkedProperties;
+  String? get bookmarkedPropertiesError => _bookmarkedPropertiesError;
+
   Future<Property?> fetchPublicPropertyDetail(String propertyId, String? token) async {
-    // Endpoint ini di Laravel (showPublicProperty) akan mencatat view
     final url = Uri.parse('${ApiConstants.laravelApiBaseUrl}/properties/public/$propertyId');
     print('PropertyProvider: Memanggil fetchPublicPropertyDetail untuk ID $propertyId dari $url');
 
@@ -70,30 +76,19 @@ class PropertyProvider extends ChangeNotifier {
       final headers = {
         'Accept': 'application/json',
       };
-      // Token bisa jadi tidak wajib untuk endpoint publik ini,
-      // tapi backend bisa menggunakannya untuk mencatat user_id jika ada (auth('api')->check()).
       if (token != null) {
         headers['Authorization'] = 'Bearer $token';
       }
 
       final response = await http.get(url, headers: headers);
-
       print('PropertyProvider: Status respons fetchPublicPropertyDetail: ${response.statusCode}');
-      // Sebaiknya jangan print body jika responsnya besar, kecuali untuk debugging singkat
-      // print('PropertyProvider: Body respons fetchPublicPropertyDetail: ${response.body}');
 
       if (response.statusCode == 200) {
         final responseData = jsonDecode(response.body);
         if (responseData['success'] == true && responseData['data'] != null) {
-          // Data properti yang diterima dari backend sudah termasuk total viewsCount terbaru
-          // (jika backend Anda mengirimkan field viewsCount/total_views_count yang terupdate).
           final property = Property.fromJson(responseData['data'] as Map<String, dynamic>);
           print('PropertyProvider: Properti publik ${property.id} berhasil diambil. Total Views dari backend: ${property.viewsCount}');
-          
-          // Helper untuk memperbarui properti yang sama di list lokal (jika ada)
-          // agar viewsCount-nya konsisten jika ditampilkan di list setelah detail dibuka.
-          _updatePropertyInLocalLists(property);
-
+          _updatePropertyInLocalLists(property); // Helper dari teman Anda
           return property;
         } else {
           print('PropertyProvider: Gagal mengambil detail properti publik - Pesan dari server: ${responseData['message']}');
@@ -109,27 +104,139 @@ class PropertyProvider extends ChangeNotifier {
     }
   }
 
-  // Helper method untuk update properti di list lokal (opsional tapi bagus untuk konsistensi UI)
+  // Helper method dari teman Anda tetap ada
   void _updatePropertyInLocalLists(Property updatedProperty) {
-    // Update di _publicProperties
     int indexInPublic = _publicProperties.indexWhere((p) => p.id == updatedProperty.id);
     if (indexInPublic != -1) {
-      // Ganti objek lama dengan yang baru yang memiliki viewsCount terupdate
       _publicProperties[indexInPublic] = updatedProperty;
     }
-    // Update di _searchedProperties
     int indexInSearch = _searchedProperties.indexWhere((p) => p.id == updatedProperty.id);
     if (indexInSearch != -1) {
       _searchedProperties[indexInSearch] = updatedProperty;
     }
-    // Anda mungkin tidak perlu notifyListeners() di sini jika perubahan ini tidak langsung
-    // mempengaruhi UI list yang sedang aktif ditampilkan. Jika mempengaruhi, maka panggil.
-    // notifyListeners();
+    // Jika perlu, update juga di _bookmarkedProperties jika properti tersebut ada di sana
+    // dan field yang diupdate relevan untuk bookmark (misalnya judul, gambar, dll. bukan hanya viewsCount)
+    int indexInBookmarks = _bookmarkedProperties.indexWhere((p) => p.id == updatedProperty.id);
+    if (indexInBookmarks != -1) {
+        // Hanya update jika field yang berubah juga penting untuk tampilan bookmark
+        // Contoh: _bookmarkedProperties[indexInBookmarks] = updatedProperty.copyWith(viewsCount: updatedProperty.viewsCount);
+        // Untuk saat ini, karena _updatePropertyInLocalLists dipanggil setelah fetch detail,
+        // kita bisa asumsikan objek Property yang lengkap (termasuk status isFavorite)
+        // sudah benar dari sumbernya.
+        _bookmarkedProperties[indexInBookmarks] = updatedProperty;
+    }
+
+    // notifyListeners(); // Mungkin tidak perlu jika update ini minor (seperti viewsCount)
+                       // dan tidak langsung mengubah tampilan list utama.
+                       // Jika dipanggil, pastikan tidak menyebabkan rebuild berlebihan.
   }
-  // --- 👆 METHOD BARU SELESAI DI SINI 👆 ---
+
+  Future<void> togglePropertyBookmark(String propertyId, String? token) async {
+    Property? propertyToUpdate;
+
+    Property? findAndUpdateInList(List<Property> list, String id) {
+      int index = list.indexWhere((p) => p.id == id);
+      if (index != -1) {
+        return list[index];
+      }
+      return null;
+    }
+
+    propertyToUpdate = findAndUpdateInList(_publicProperties, propertyId);
+    if (propertyToUpdate == null) {
+      propertyToUpdate = findAndUpdateInList(_searchedProperties, propertyId);
+    }
+    if (propertyToUpdate == null) {
+      propertyToUpdate = findAndUpdateInList(_userApprovedProperties, propertyId);
+    }
+    if (propertyToUpdate == null) {
+      propertyToUpdate = findAndUpdateInList(_userProperties, propertyId);
+    }
+     if (propertyToUpdate == null) { // Cek juga di list bookmark itu sendiri
+      propertyToUpdate = findAndUpdateInList(_bookmarkedProperties, propertyId);
+    }
+
+
+    if (propertyToUpdate != null) {
+      propertyToUpdate.toggleFavorite();
+
+      // TODO: Panggil API untuk menyimpan status bookmark di backend (Langkah Berikutnya)
+      // if (token != null) {
+      //   try {
+      //     _isLoadingBookmarkedProperties = true;
+      //     notifyListeners();
+      //     if (propertyToUpdate.isFavorite) {
+      //       // await _propertyService.addBookmarkToApi(propertyId, token);
+      //     } else {
+      //       // await _propertyService.removeBookmarkFromApi(propertyId, token);
+      //     }
+      //     // Setelah API call berhasil, refresh daftar bookmark dari API atau update lokal
+      //     // Untuk sekarang, kita update lokal saja dulu:
+      //     _updateLocalBookmarkedList(propertyToUpdate);
+      //   } catch (e) {
+      //     print("Error updating bookmark via API: $e");
+      //     propertyToUpdate.toggleFavorite(); // Rollback
+      //     _updateLocalBookmarkedList(propertyToUpdate);
+      //     _bookmarkedPropertiesError = "Gagal memperbarui bookmark: $e";
+      //   } finally {
+      //     _isLoadingBookmarkedProperties = false; // Mungkin perlu loading state yang lebih spesifik
+      //     notifyListeners();
+      //   }
+      // } else {
+      //   _updateLocalBookmarkedList(propertyToUpdate); // Update lokal jika tidak ada token
+      // }
+      _updateLocalBookmarkedList(propertyToUpdate);
+      notifyListeners();
+    } else {
+      print("PropertyProvider: Property with ID $propertyId not found in managed lists for bookmarking.");
+    }
+  }
+
+  void _updateLocalBookmarkedList(Property property) {
+    if (property.isFavorite) {
+      if (!_bookmarkedProperties.any((p) => p.id == property.id)) {
+        _bookmarkedProperties.add(property);
+      }
+    } else {
+      _bookmarkedProperties.removeWhere((p) => p.id == property.id);
+    }
+  }
+
+  Future<void> fetchBookmarkedProperties(String? token) async {
+    _isLoadingBookmarkedProperties = true;
+    _bookmarkedPropertiesError = null;
+    notifyListeners();
+
+    // TODO: Nanti, ini akan mengambil dari API khusus bookmark.
+    // Untuk implementasi client-side sementara:
+    List<Property> allKnownProperties = [];
+    allKnownProperties.addAll(_publicProperties);
+    allKnownProperties.addAll(_searchedProperties);
+    allKnownProperties.addAll(_userApprovedProperties);
+    allKnownProperties.addAll(_userProperties);
+    allKnownProperties.addAll(_userSoldProperties);
+
+    final Map<String, Property> uniqueFavoriteProperties = {};
+    for (var prop in allKnownProperties) {
+      // Penting: Pastikan object `prop` adalah instance yang sama yang status `isFavorite`-nya di-toggle.
+      // Jika tidak, `prop.isFavorite` mungkin tidak merefleksikan state terbaru.
+      // Cara paling aman adalah selalu mengambil status favorit dari satu sumber terpercaya
+      // atau memastikan semua list merujuk ke instance objek Property yang sama.
+      if (prop.isFavorite) {
+        uniqueFavoriteProperties[prop.id] = prop;
+      }
+    }
+    _bookmarkedProperties = uniqueFavoriteProperties.values.toList();
+    print("PropertyProvider: Fetched local bookmarks. Count: ${_bookmarkedProperties.length}");
+
+    _isLoadingBookmarkedProperties = false;
+    notifyListeners();
+  }
+  // --- 👆 METHOD BOOKMARK SELESAI DIKEMBALIKAN 👆 ---
 
 
   Future<void> fetchUserManageableProperties(String token) async {
+    // ... (kode asli Anda) ...
     _isLoadingUserProperties = true;
     _userPropertiesError = null;
     _userProperties = [];
@@ -157,6 +264,7 @@ class PropertyProvider extends ChangeNotifier {
   }
 
   Future<void> fetchUserApprovedProperties(String token) async {
+    // ... (kode asli Anda) ...
     _isLoadingUserApprovedProperties = true;
     _userApprovedPropertiesError = null;
     _userApprovedProperties = [];
@@ -188,6 +296,7 @@ class PropertyProvider extends ChangeNotifier {
   }
 
   Future<void> fetchUserSoldProperties(String token) async {
+    // ... (kode asli Anda) ...
     _isLoadingUserSoldProperties = true;
     _userSoldPropertiesError = null;
     _userSoldProperties = [];
@@ -222,6 +331,7 @@ class PropertyProvider extends ChangeNotifier {
   }
 
   Future<void> fetchPublicProperties({bool loadMore = false}) async {
+    // ... (kode asli Anda) ...
     if (_isLoadingPublicProperties && !loadMore) return;
     if (loadMore && !_hasMorePublicProperties) return;
     if (loadMore && _isLoadingPublicProperties) return;
@@ -278,6 +388,7 @@ class PropertyProvider extends ChangeNotifier {
   }
 
   Future<void> performKeywordSearch(String keyword, {bool loadMore = false}) async {
+    // ... (kode asli Anda) ...
     if (_isLoadingSearch && !loadMore) return;
     if (loadMore && !_hasMoreSearchResults) return;
     if (loadMore && _isLoadingSearch) return;
@@ -339,6 +450,7 @@ class PropertyProvider extends ChangeNotifier {
   }
 
   void clearSearchResults() {
+    // ... (kode asli Anda) ...
     _searchedProperties = [];
     _searchError = null;
     _currentSearchKeyword = "";
@@ -351,6 +463,7 @@ class PropertyProvider extends ChangeNotifier {
   }
 
   void updatePropertyListsState(Property updatedProperty) {
+    // ... (kode dari file yang Anda berikan) ...
     int indexInUserProperties = _userProperties.indexWhere((p) => p.id == updatedProperty.id);
     bool isInManageableGroup = [
       PropertyStatus.draft,
@@ -396,10 +509,35 @@ class PropertyProvider extends ChangeNotifier {
         _userSoldProperties.removeAt(indexInSoldProperties);
       }
     }
+
+    // Sinkronkan juga dengan _publicProperties dan _searchedProperties jika ada
+    int publicIndex = _publicProperties.indexWhere((p) => p.id == updatedProperty.id);
+    if (publicIndex != -1) {
+      _publicProperties[publicIndex] = updatedProperty;
+    }
+    int searchedIndex = _searchedProperties.indexWhere((p) => p.id == updatedProperty.id);
+    if (searchedIndex != -1) {
+      _searchedProperties[searchedIndex] = updatedProperty;
+    }
+
+    int bookmarkedIndex = _bookmarkedProperties.indexWhere((p) => p.id == updatedProperty.id);
+    if (bookmarkedIndex != -1) {
+      // Jika properti ada di bookmark, update atau hapus berdasarkan status isFavorite terbarunya
+      if (updatedProperty.isFavorite) {
+        _bookmarkedProperties[bookmarkedIndex] = updatedProperty;
+      } else {
+        _bookmarkedProperties.removeAt(bookmarkedIndex);
+      }
+    } else if (updatedProperty.isFavorite) {
+      // Jika properti tidak ada di bookmark tapi sekarang favorit, tambahkan
+      _bookmarkedProperties.add(updatedProperty);
+    }
+
     notifyListeners();
   }
 
   Future<Map<String, dynamic>> updatePropertyStatus(String propertyId, PropertyStatus newStatus, String token) async {
+    // ... (kode dari file yang Anda berikan) ...
     Property? propertyToUpdate;
 
     int approvedIdx = _userApprovedProperties.indexWhere((p) => p.id == propertyId);
@@ -421,12 +559,9 @@ class PropertyProvider extends ChangeNotifier {
         return {'success': false, 'message': 'Properti tidak ditemukan untuk diupdate statusnya.'};
     }
 
-    // Buat objek baru dengan status yang diperbarui
     Property propertyWithNewStatus = propertyToUpdate.copyWith(
       status: newStatus,
-      // Jika status berubah ke pendingVerification, set submissionDate
       submissionDate: () => newStatus == PropertyStatus.pendingVerification ? DateTime.now() : propertyToUpdate!.submissionDate,
-      // Jika status berubah ke approved, set approvalDate
       approvalDate: () => newStatus == PropertyStatus.approved ? DateTime.now() : propertyToUpdate!.approvalDate,
     );
 
@@ -434,35 +569,38 @@ class PropertyProvider extends ChangeNotifier {
 
     final result = await _propertyService.submitProperty(
       property: propertyWithNewStatus,
-      newSelectedImages: [], // Tidak ada gambar baru saat hanya update status
+      newSelectedImages: [],
       existingImageUrls: propertyToUpdate.imageUrl.isNotEmpty ? [propertyToUpdate.imageUrl, ...propertyToUpdate.additionalImageUrls] : [],
       token: token
     );
 
     if (result['success'] == true) {
-      // Ambil data properti terbaru dari respons API jika ada, atau gunakan propertyWithNewStatus
       Property finalUpdatedProperty = result['data'] != null && result['data']['data'] != null
         ? Property.fromJson(result['data']['data'] as Map<String, dynamic>)
         : propertyWithNewStatus;
-
       updatePropertyListsState(finalUpdatedProperty);
     }
     return result;
   }
 
   void removePropertyById(String propertyId) {
+    // ... (kode dari file yang Anda berikan) ...
     _userProperties.removeWhere((p) => p.id == propertyId);
     _userApprovedProperties.removeWhere((p) => p.id == propertyId);
     _userSoldProperties.removeWhere((p) => p.id == propertyId);
+    _publicProperties.removeWhere((p) => p.id == propertyId); // Tambahkan ini jika belum ada
+    _searchedProperties.removeWhere((p) => p.id == propertyId); // Tambahkan ini jika belum ada
+    _bookmarkedProperties.removeWhere((p) => p.id == propertyId);
+
     notifyListeners();
   }
 
   Future<Map<String, dynamic>?> fetchPropertyStatistics(String propertyId, String? token) async {
+    // ... (kode dari file yang Anda berikan) ...
     if (token == null) {
       print('PropertyProvider: Token is null, cannot fetch statistics.');
       return null;
     }
-    // Pastikan ApiConstants.laravelApiBaseUrl sudah benar
     final url = Uri.parse('${ApiConstants.laravelApiBaseUrl}/properties/$propertyId/statistics');
     print('PropertyProvider: Fetching statistics from $url');
 
@@ -475,8 +613,7 @@ class PropertyProvider extends ChangeNotifier {
         },
       );
       print('PropertyProvider (fetchPropertyStatistics): Status Respons: ${response.statusCode}');
-       print('PropertyProvider (fetchPropertyStatistics): Body Respons: ${response.body}'); // Ini penting!
-      // print('PropertyProvider: Statistics response body: ${response.body}'); // Hati-hati jika body besar
+      print('PropertyProvider (fetchPropertyStatistics): Body Respons: ${response.body}');
 
       if (response.statusCode == 200) {
         final responseData = jsonDecode(response.body);
@@ -496,10 +633,4 @@ class PropertyProvider extends ChangeNotifier {
       return null;
     }
   }
-  
-  // Anda sudah memiliki method recordPropertyView di bawah, jadi ini duplikat.
-  // Jika Anda ingin ini berbeda, beri nama lain.
-  // Future<void> recordPropertyView(String propertyId, String? token) async {
-  //   // ...
-  // }
 }

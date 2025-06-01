@@ -2,7 +2,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
-import 'package:real/models/property.dart';
 import 'package:real/provider/property_provider.dart';
 import 'package:real/widgets/property_list_item.dart';
 import 'package:real/screens/detail/detailpost.dart'; // <<< PASTIKAN IMPORT INI ADA

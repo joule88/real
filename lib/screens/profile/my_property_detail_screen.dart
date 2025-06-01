@@ -53,10 +53,8 @@ class _MyPropertyDetailScreenState extends State<MyPropertyDetailScreen>
     setState(() {
       _isLoadingStats = true;
       _statsError = null;
-      // --- 👇 PASTIKAN RESET INI SELALU EFEKTIF 👇 ---
       _processedDailyStats = {};
       _processedMonthlyStats = {};
-      // --- 👆 RESET DATA STATISTIK SEBELUMNYA DI SINI 👆 ---
     });
 
     final propertyProvider = Provider.of<PropertyProvider>(context, listen: false);
@@ -131,7 +129,7 @@ class _MyPropertyDetailScreenState extends State<MyPropertyDetailScreen>
 
   @override
   Widget build(BuildContext context) {
-    final currencyFormatter = NumberFormat.currency(locale: 'en_US', symbol: '\$ ', decimalDigits: 0);
+    final currencyFormatter = NumberFormat.currency(locale: 'ar_AE', symbol: 'AED ', decimalDigits: 0);
     final authProvider = Provider.of<AuthProvider>(context, listen: false); // Hanya untuk aksi, tidak perlu listen
     final propertyProvider = Provider.of<PropertyProvider>(context, listen: false); // Sama
 
