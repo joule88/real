@@ -2,6 +2,9 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'api_constants.dart';
+import 'package:image_picker/image_picker.dart'; // For XFile
+import 'package:http_parser/http_parser.dart'; // For MediaType
+import 'package:flutter/foundation.dart' show kIsWeb; // For kIsWeb
 
 class ApiService {
   static String get _laravelBaseUrl => ApiConstants.laravelApiBaseUrl;
@@ -9,6 +12,16 @@ class ApiService {
   static Map<String, String> _getHeaders({String? token}) {
     final headers = {
       'Content-Type': 'application/json; charset=UTF-8',
+      'Accept': 'application/json',
+    };
+    if (token != null) {
+      headers['Authorization'] = 'Bearer $token';
+    }
+    return headers;
+  }
+
+  static Map<String, String> _getBaseHeaders({String? token}) {
+    final headers = {
       'Accept': 'application/json',
     };
     if (token != null) {
@@ -153,20 +166,58 @@ class ApiService {
 
   static Future<Map<String, dynamic>> updateUserProfile({
     required String token,
-    required String name,
-    required String bio,
+    String? name,
+    String? bio,
+    String? phone,
+    XFile? profileImageFile,
+    bool removeProfileImage = false,
   }) async {
     final String url = _laravelBaseUrl + ApiConstants.userProfileEndpoint;
     try {
-      final response = await http.put(
-        Uri.parse(url),
-        headers: _getHeaders(token: token),
-        body: jsonEncode({
-          'name': name,
-          'bio': bio,
-        }),
-      );
+      var request = http.MultipartRequest('POST', Uri.parse(url));
+      request.headers.addAll(_getBaseHeaders(token: token));
+      request.fields['_method'] = 'PUT';
+
+      if (name != null) request.fields['name'] = name;
+      if (bio != null) request.fields['bio'] = bio;
+      if (phone != null) request.fields['phone'] = phone;
+      
+      // Kirim '1' atau '0' sebagai string
+      request.fields['remove_profile_image'] = removeProfileImage ? '1' : '0';
+
+      if (profileImageFile != null) {
+        http.MultipartFile multipartFile;
+        if (kIsWeb) {
+          var bytes = await profileImageFile.readAsBytes();
+          multipartFile = http.MultipartFile.fromBytes(
+            'profile_image_file',
+            bytes,
+            filename: profileImageFile.name,
+            contentType: MediaType('image', profileImageFile.name.split('.').last),
+          );
+        } else {
+          multipartFile = await http.MultipartFile.fromPath(
+            'profile_image_file',
+            profileImageFile.path,
+            filename: profileImageFile.name,
+            contentType: MediaType('image', profileImageFile.name.split('.').last),
+          );
+        }
+        request.files.add(multipartFile);
+        print('ApiService: Added profile_image_file to request: \\${profileImageFile.name}');
+      } else {
+        print('ApiService: No new profile_image_file to upload.');
+      }
+      
+      print('ApiService updateUserProfile - Sending request to $url');
+      print('ApiService updateUserProfile - Fields: \\${request.fields}');
+      print('ApiService updateUserProfile - Files: \\${request.files.map((e) => e.filename)}');
+
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
+      
       return _handleResponseProfile(response, 'Update Profil Pengguna');
+
     } catch (e) {
       print('ApiService Network error during updateUserProfile: $e');
       return {'success': false, 'message': 'Kesalahan jaringan saat update profil: $e', 'data': null};

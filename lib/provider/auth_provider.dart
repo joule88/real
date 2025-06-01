@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import '../models/user_model.dart';
 import '../services/api_services.dart'; 
+import 'package:image_picker/image_picker.dart'; // <-- Import ImagePicker package
 
 class AuthProvider with ChangeNotifier {
   User? _user;
@@ -197,35 +198,49 @@ class AuthProvider with ChangeNotifier {
   }
 
   Future<Map<String, dynamic>> updateUserProfile({
-    required String name,
-    required String bio,
+    String? name, // Made optional, send only if changed
+    String? bio,  // Made optional
+    String? phone, // Added phone, optional
+    XFile? profileImageFile, // For new image file
+    bool removeProfileImage = false, // To signal removal
   }) async {
-    if (!isAuthenticated) {
+    if (!isAuthenticated || _token == null) {
       return {'success': false, 'message': 'Pengguna belum terautentikasi.'};
     }
-    _isLoading = true;
-    notifyListeners();
+    _setLoading(true);
     _clearError();
     bool updateSuccess = false;
     String? messageFromServer;
+    Map<String, dynamic>? responseData;
 
     try {
+      // Only pass parameters if they have a value or are explicitly set (like removeProfileImage)
       final result = await ApiService.updateUserProfile(
         token: _token!,
         name: name,
         bio: bio,
+        phone: phone,
+        profileImageFile: profileImageFile,
+        removeProfileImage: removeProfileImage,
       );
       print('AuthProvider: Hasil dari ApiService.updateUserProfile: $result');
       messageFromServer = result['message']?.toString();
+      responseData = result['data']; // Store data part of response
 
       if (result['success'] == true) {
-        if (result['data'] != null && result['data'] is Map<String, dynamic>) {
-            final Map<String, dynamic> userData = result['data'] as Map<String, dynamic>;
-            _user = User.fromJson(userData); 
-            print('AuthProvider: User updated from API data -> Name: ${_user?.name}, Bio: "${_user?.bio}"');
+        if (responseData != null) {
+            // API now returns the updated user object in 'data' field
+            _user = User.fromJson(responseData); 
+            print('AuthProvider: User updated from API data -> Name: \\${_user?.name}, Bio: "\\${_user?.bio}", Phone: \\${_user?.phone}, Image: \\${_user?.profileImage}');
         } else {
-          _user = _user?.copyWith(name: name, bio: bio);
-           print('AuthProvider: User updated locally -> Name: ${_user?.name}, Bio: "${_user?.bio}"');
+          // Fallback: update locally if API response structure is not as expected but success is true
+          _user = _user?.copyWith(
+            name: name ?? _user?.name, 
+            bio: bio ?? _user?.bio, 
+            phone: phone ?? _user?.phone,
+            // profileImage handling needs the URL from server, so rely on server response
+          );
+           print('AuthProvider: User partially updated locally (awaiting full data from potential fetch).');
         }
         updateSuccess = true;
       } else {
@@ -235,12 +250,11 @@ class AuthProvider with ChangeNotifier {
       _errorMessage = 'Exception di AuthProvider.updateUserProfile: $e';
       print('AuthProvider: $_errorMessage');
     } finally {
-      _isLoading = false;
-      notifyListeners();
+      _setLoading(false);
     }
-
+     // Return structure should be consistent
     if (updateSuccess) {
-      return {'success': true, 'message': messageFromServer ?? 'Profil berhasil diperbarui'};
+      return {'success': true, 'message': messageFromServer ?? 'Profil berhasil diperbarui', 'data': responseData};
     } else {
       return {'success': false, 'message': _errorMessage ?? 'Gagal memperbarui profil.'};
     }

@@ -4,6 +4,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'dart:io'; // For File if not on web
+import 'package:flutter/foundation.dart' show kIsWeb; // To check platform
+import 'package:image_picker/image_picker.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 import 'package:real/models/user_model.dart';
 import 'package:real/provider/auth_provider.dart';
@@ -23,6 +27,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   final _formKey = GlobalKey<FormState>();
   late TextEditingController _nameController;
   late TextEditingController _bioController;
+  late TextEditingController _phoneController; // Added phone controller
 
   bool _isSaving = false;
 
@@ -36,16 +41,58 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   bool _obscureNewPassword = true;
   bool _obscureConfirmPassword = true;
 
-
   final Color themeColor = const Color(0xFFDAF365);
   final Color textOnThemeColor = Colors.black87;
+
+  XFile? _pickedImageFile; // To store picked image
+  bool _removeCurrentImage = false; // Flag to signal image removal
+
+  final ImagePicker _picker = ImagePicker(); // Pastikan _picker dideklarasikan
+
+  Future<void> _pickImageDirectlyFromGallery() async {
+    try {
+      final XFile? pickedFile = await _picker.pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 70,
+        maxWidth: 800,
+      );
+      if (pickedFile != null && mounted) {
+        setState(() {
+          _pickedImageFile = pickedFile;
+          _removeCurrentImage = false;
+        });
+      }
+    } catch (e) {
+      if(mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Gagal memilih gambar: $e')),
+        );
+      }
+    }
+  }
+
+  void _triggerRemoveImage() {
+      if (widget.currentUser.profileImage.isNotEmpty || _pickedImageFile != null) {
+          setState(() {
+            _pickedImageFile = null;
+            _removeCurrentImage = true;
+          });
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Foto profil akan dihapus saat disimpan.')),
+          );
+      } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Tidak ada foto profil untuk dihapus.')),
+          );
+      }
+  }
 
   @override
   void initState() {
     super.initState();
     _nameController = TextEditingController(text: widget.currentUser.name);
-    _bioController = TextEditingController(text: widget.currentUser.bio ?? '');
-
+    _bioController = TextEditingController(text: widget.currentUser.bio);
+    _phoneController = TextEditingController(text: widget.currentUser.phone); // Init phone
     _currentPasswordController = TextEditingController();
     _newPasswordController = TextEditingController();
     _confirmPasswordController = TextEditingController();
@@ -55,6 +102,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   void dispose() {
     _nameController.dispose();
     _bioController.dispose();
+    _phoneController.dispose(); // Dispose phone
     _currentPasswordController.dispose();
     _newPasswordController.dispose();
     _confirmPasswordController.dispose();
@@ -63,36 +111,28 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   Future<void> _submitForm() async {
     if (_isSaving) return;
-
     if (_formKey.currentState?.validate() ?? false) {
-      if (mounted) {
-        setState(() {
-          _isSaving = true;
-        });
-      } else {
-        return;
-      }
-
+      if (mounted) setState(() => _isSaving = true); else return;
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
       final newName = _nameController.text.trim();
       final newBio = _bioController.text.trim();
-
-      print('EditProfileScreen: Menyimpan profil -> Nama: $newName, Bio: $newBio');
-
+      final newPhone = _phoneController.text.trim(); // Get phone
+      print('EditProfileScreen: Menyimpan profil -> Nama: $newName, Bio: $newBio, Phone: $newPhone, RemoveImage: $_removeCurrentImage, NewImage: ${_pickedImageFile?.name}');
       Map<String, dynamic>? result;
       try {
         result = await authProvider.updateUserProfile(
           name: newName,
           bio: newBio,
+          phone: newPhone, // Pass phone
+          profileImageFile: _pickedImageFile, // Pass picked image file
+          removeProfileImage: _removeCurrentImage, // Pass removal flag
         );
         print('EditProfileScreen: Hasil dari authProvider.updateUserProfile: $result');
       } catch (e) {
         print('EditProfileScreen: Exception saat memanggil authProvider.updateUserProfile: $e');
         result = {'success': false, 'message': 'Terjadi kesalahan: $e'};
       }
-
       if (!mounted) return;
-
       if (result['success'] == true) {
         print('EditProfileScreen: Update SUKSES. Pesan: ${result['message']}');
         ScaffoldMessenger.of(context).showSnackBar(
@@ -101,7 +141,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             backgroundColor: Colors.green,
           ),
         );
-        Navigator.pop(context, true);
+        if (result['data'] != null && result['data'] is Map<String,dynamic>) {
+             // AuthProvider should handle updating its own User object from this 'data'
+             // and notifyListeners, which should rebuild ProfileScreen if it's listening.
+        }
+        Navigator.pop(context, true); // Pass true to indicate success
       } else {
         final String errorMessage = result['message'] ?? 'Gagal memperbarui profil.';
         print('EditProfileScreen: Update GAGAL. Pesan: $errorMessage');
@@ -112,16 +156,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           ),
         );
       }
-    
-      if (mounted) {
-        setState(() {
-          _isSaving = false;
-        });
-      }
+      if (mounted) setState(() => _isSaving = false);
     } else {
-      if (_isSaving && mounted) {
-         setState(() { _isSaving = false; });
-      }
+      if (_isSaving && mounted) setState(() => _isSaving = false);
     }
   }
 
@@ -367,6 +404,46 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Determine current image to display: picked, existing, or placeholder
+    Widget profileImageWidget;
+    if (_pickedImageFile != null) {
+      if (kIsWeb) {
+        profileImageWidget = Image.network(_pickedImageFile!.path, width: 100, height: 100, fit: BoxFit.cover);
+      } else {
+        profileImageWidget = Image.file(File(_pickedImageFile!.path), width: 100, height: 100, fit: BoxFit.cover);
+      }
+    } else if (!_removeCurrentImage && widget.currentUser.profileImage.isNotEmpty) {
+      profileImageWidget = CachedNetworkImage(
+        key: ValueKey(widget.currentUser.profileImage), // Gunakan URL gambar sebagai key
+        imageUrl: widget.currentUser.profileImage, // Fallback to profileImage if fullProfileImageUrl is not available
+        width: 100,
+        height: 100,
+        fit: BoxFit.cover,
+        placeholder: (context, url) => Container(
+          width: 100, height: 100, color: Colors.grey[200],
+          child: const Center(child: CircularProgressIndicator()),
+        ),
+        errorWidget: (context, url, error) {
+          print("Error loading profile image in EditProfileScreen: $error, URL: $url");
+          return Container(
+            width: 100, height: 100, color: Colors.grey[200],
+            child: Icon(Icons.person, size: 50, color: Colors.grey[400]),
+          );
+        },
+      );
+    } else { // Placeholder if no image or marked for removal
+      profileImageWidget = Container(
+        width: 100,
+        height: 100,
+        decoration: BoxDecoration(
+          color: Colors.grey[200],
+          shape: BoxShape.circle, // Make placeholder circular
+          border: Border.all(color: Colors.grey[300]!)
+        ),
+        child: Icon(Icons.person, size: 50, color: Colors.grey[400]),
+      );
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: Text(
@@ -476,6 +553,82 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   if (!_isSaving) _submitForm();
                 },
               ),
+              const SizedBox(height: 20),
+
+              Text(
+                "Nomor Telepon",
+                style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w600, color: const Color(0xFF182420)),
+              ),
+              const SizedBox(height: 8),
+              TextFormField(
+                controller: _phoneController,
+                decoration: InputDecoration(
+                  hintText: 'Masukkan nomor telepon Anda',
+                  prefixIcon: Icon(Icons.phone_android, color: Colors.grey[600]),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                  filled: true,
+                  fillColor: Colors.grey[100],
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                ),
+                style: GoogleFonts.poppins(fontSize: 15, fontWeight: FontWeight.w500),
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return 'Nomor telepon tidak boleh kosong';
+                  }
+                  // Tambahkan validasi nomor telepon jika perlu
+                  return null;
+                },
+                textInputAction: TextInputAction.done,
+                onFieldSubmitted: (_) {
+                  if (!_isSaving) _submitForm();
+                },
+              ),
+
+              const SizedBox(height: 20),
+
+              Text(
+                "Foto Profil",
+                style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w600, color: const Color(0xFF182420)),
+              ),
+              const SizedBox(height: 8),
+              Center(
+                child: Stack(
+                  children: [
+                    ClipOval(child: profileImageWidget),
+                    Positioned(
+                      bottom: 0,
+                      right: 0,
+                      child: InkWell(
+                        onTap: _pickImageDirectlyFromGallery,
+                        child: Container(
+                          padding: const EdgeInsets.all(6),
+                          decoration: BoxDecoration(
+                            color: themeColor,
+                            shape: BoxShape.circle,
+                            border: Border.all(color: Colors.white, width: 2)
+                          ),
+                          child: Icon(Icons.camera_alt, color: textOnThemeColor, size: 20),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (widget.currentUser.profileImage.isNotEmpty || _pickedImageFile != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 8.0),
+                  child: Center(
+                    child: TextButton.icon(
+                      icon: Icon(Icons.delete_outline, color: Colors.red[700], size: 18),
+                      label: Text('Hapus Foto Profil', style: GoogleFonts.poppins(color: Colors.red[700], fontSize: 13)),
+                      onPressed: _triggerRemoveImage,
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5)
+                      ),
+                    ),
+                  ),
+                ),
+
               const SizedBox(height: 30),
 
               _isSaving

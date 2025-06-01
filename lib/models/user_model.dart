@@ -1,11 +1,13 @@
 // lib/models/user_model.dart
+import 'package:real/services/api_constants.dart'; // Pastikan ada
+
 class User {
   final String id;
   final String name;
   final String email;
   final String bio;
   final String phone;
-  final String profileImage;
+  final String profileImage; // Ini SEHARUSNYA sudah berisi URL lengkap dari backend
   final String? token; // Token didapat dari respons login, bukan dari model user di DB
 
   User({
@@ -18,6 +20,20 @@ class User {
     this.token,
   });
 
+  // Getter 'fullProfileImageUrl' bisa dihapus jika backend sudah benar
+  // atau biarkan seperti ini untuk menangani jika suatu saat path relatif datang lagi
+  String get fullProfileImageUrl {
+    if (profileImage.isEmpty) return '';
+    if (profileImage.startsWith('http')) return profileImage; // Sudah URL lengkap
+
+    // Fallback jika backend TIDAK mengirim URL lengkap (sebaiknya backend yang diperbaiki)
+    String baseUrl = ApiConstants.laravelApiBaseUrl;
+    if (baseUrl.endsWith('/api')) {
+      baseUrl = baseUrl.substring(0, baseUrl.length - '/api'.length);
+    }
+    return '$baseUrl$profileImage'; 
+  }
+
   factory User.fromJson(Map<String, dynamic> json) {
     return User(
       id: json['_id'] ?? json['id'] ?? '', // Menangani '_id' atau 'id'
@@ -25,7 +41,7 @@ class User {
       email: json['email'] ?? '',
       bio: json['bio'] ?? '', // Mengambil 'bio', default string kosong jika null
       phone: json['phone'] ?? '',
-      profileImage: json['profile_image'] ?? json['profileImage'] ?? '', // Menangani 'profile_image' atau 'profileImage'
+      profileImage: json['profile_image'] ?? json['profileImage'] ?? '', // Terima URL lengkap
       token: json['token'], // Token biasanya ada di level atas respons login, atau di dalam data user
     );
   }
