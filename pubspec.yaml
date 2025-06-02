@@ -49,6 +49,7 @@ dependencies:
   cached_network_image: ^3.4.1
   url_launcher: ^6.2.1
   
+  
 
 dev_dependencies:
   flutter_test:
@@ -76,6 +77,7 @@ assets:
   - assets/
   - assets/boy.jpg
   - assets/girl.jpg
+  - assets/logo.png
   # - assets/bookmark_unfilled.png
   # - assets/bookmark_filled.png
   # - assets/bookmark_outline.png

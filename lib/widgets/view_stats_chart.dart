@@ -20,6 +20,12 @@ class ViewStatsChart extends StatefulWidget {
 class _ViewStatsChartState extends State<ViewStatsChart> {
   String _selectedPeriod = 'daily';
 
+  // Warna palet utama untuk chip
+  static const Color activeChipColor = Color(0xFFDDEF6D); // Hijau Lime dari palet
+  static const Color inactiveChipColor = Colors.grey; // Atau colorPaletAbuMuda
+  static const Color activeChipTextColor = Color(0xFF121212); // Hitam Pekat untuk teks di atas hijau lime
+  static const Color inactiveChipTextColor = Color(0xFF121212); // Hitam Pekat untuk teks di atas abu-abu
+
   List<BarChartGroupData> _createBarGroups(Map<String, int> data) {
     List<BarChartGroupData> barGroups = [];
     int i = 0;
@@ -92,38 +98,36 @@ class _ViewStatsChartState extends State<ViewStatsChart> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             FilterChip(
-              label: Text('Harian', style: GoogleFonts.poppins(fontSize: 13, color: _selectedPeriod == 'daily' ? Colors.white : Theme.of(context).primaryColorDark)),
+              label: Text('Harian', style: GoogleFonts.poppins(fontSize: 13, color: _selectedPeriod == 'daily' ? activeChipTextColor : inactiveChipTextColor)),
               selected: _selectedPeriod == 'daily',
               onSelected: (selected) {
                 if (selected) setState(() => _selectedPeriod = 'daily');
               },
-              backgroundColor: _selectedPeriod == 'daily' ? Theme.of(context).primaryColorDark : Colors.grey[200],
-              selectedColor: Theme.of(context).primaryColorDark,
-              checkmarkColor: Colors.white,
-              labelPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
-               shape: RoundedRectangleBorder(
+              backgroundColor: _selectedPeriod == 'daily' ? activeChipColor : inactiveChipColor.withOpacity(0.2),
+              selectedColor: activeChipColor,
+              checkmarkColor: activeChipTextColor,
+              shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(20),
                 side: BorderSide(
-                  color: _selectedPeriod == 'daily' ? Theme.of(context).primaryColorDark : Colors.grey[400]!,
+                  color: _selectedPeriod == 'daily' ? activeChipColor : inactiveChipColor,
                   width: 1
                 )
               ),
             ),
             const SizedBox(width: 10),
             FilterChip(
-              label: Text('Bulanan', style: GoogleFonts.poppins(fontSize: 13, color: _selectedPeriod == 'monthly' ? Colors.white : Theme.of(context).primaryColorDark)),
+              label: Text('Bulanan', style: GoogleFonts.poppins(fontSize: 13, color: _selectedPeriod == 'monthly' ? activeChipTextColor : inactiveChipTextColor)),
               selected: _selectedPeriod == 'monthly',
               onSelected: (selected) {
                 if (selected) setState(() => _selectedPeriod = 'monthly');
               },
-              backgroundColor: _selectedPeriod == 'monthly' ? Theme.of(context).primaryColorDark : Colors.grey[200],
-              selectedColor: Theme.of(context).primaryColorDark,
-              checkmarkColor: Colors.white,
-              labelPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+              backgroundColor: _selectedPeriod == 'monthly' ? activeChipColor : inactiveChipColor.withOpacity(0.2),
+              selectedColor: activeChipColor,
+              checkmarkColor: activeChipTextColor,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(20),
                 side: BorderSide(
-                  color: _selectedPeriod == 'monthly' ? Theme.of(context).primaryColorDark : Colors.grey[400]!,
+                  color: _selectedPeriod == 'monthly' ? activeChipColor : inactiveChipColor,
                   width: 1
                 )
               ),

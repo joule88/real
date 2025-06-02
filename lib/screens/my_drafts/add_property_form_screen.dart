@@ -119,12 +119,18 @@ class _AddPropertyFormScreenState extends State<AddPropertyFormScreen> {
     _kamarMandiController = TextEditingController(text: p?.bathrooms.toString() ?? '0');
     _kamarTidurController = TextEditingController(text: p?.bedrooms.toString() ?? '0');
     
-    _currentStatus = p?.status ?? PropertyStatus.draft;
-
     _newlySelectedImages = [];
     _currentExistingImageUrls = [];
 
     if (_isEditMode && p != null) {
+      // === AWAL PERUBAHAN LOGIKA STATUS UNTUK EDIT ===
+      if (p.status == PropertyStatus.approved) {
+        _currentStatus = PropertyStatus.draft;
+      } else {
+        _currentStatus = p.status;
+      }
+      // === AKHIR PERUBAHAN LOGIKA STATUS UNTUK EDIT ===
+
       if (p.imageUrl.isNotEmpty && p.imageUrl.startsWith('http')) {
         _currentExistingImageUrls.add(p.imageUrl);
       }
@@ -137,7 +143,6 @@ class _AddPropertyFormScreenState extends State<AddPropertyFormScreen> {
       if (p.propertyType.isNotEmpty && _tipePropertiOptions.contains(p.propertyType)) {
         _tipePropertiValue = p.propertyType;
       }
-
       if (p.furnishings.isNotEmpty) {
         var found = kondisiFurnishingOptions.firstWhere(
               (opt) => opt['text'].toString().toLowerCase() == p.furnishings.toLowerCase(),
@@ -166,6 +171,8 @@ class _AddPropertyFormScreenState extends State<AddPropertyFormScreen> {
         );
         if (found.isNotEmpty) _labelPropertiValue = found['value'];
       }
+    } else {
+      _currentStatus = PropertyStatus.draft;
     }
 
     _alamatController.addListener(() {
@@ -341,7 +348,8 @@ class _AddPropertyFormScreenState extends State<AddPropertyFormScreen> {
       id: propertyIdForSubmission,
       title: _namaPropertiController.text,
       description: _deskripsiController.text,
-      uploader: userId,
+      uploader: userId, // user_id dari authProvider
+      uploaderInfo: authProvider.user, // Sertakan objek User jika perlu
       imageUrl: widget.propertyToEdit?.imageUrl ?? '', 
       additionalImageUrls: widget.propertyToEdit?.additionalImageUrls ?? [], 
       price: double.tryParse(_hargaManualAedController.text) ?? widget.propertyToEdit?.price ?? 0.0,
@@ -351,19 +359,21 @@ class _AddPropertyFormScreenState extends State<AddPropertyFormScreen> {
       areaSqft: double.tryParse(_luasPropertiSqftController.text) ?? widget.propertyToEdit?.areaSqft ?? 0.0,
       propertyType: _tipePropertiValue ?? widget.propertyToEdit?.propertyType ?? '',
       furnishings: furnishingText,
-      status: targetStatus, 
+      status: targetStatus, // Gunakan targetStatus dari tombol yang ditekan
       mainView: pemandanganSekitarText,
       listingAgeCategory: usiaPropertiText,
       propertyLabel: labelPropertiText,
       bookmarkCount: widget.propertyToEdit?.bookmarkCount ?? 0,
       viewsCount: widget.propertyToEdit?.viewsCount ?? 0,
       inquiriesCount: widget.propertyToEdit?.inquiriesCount ?? 0,
-      submissionDate: (targetStatus == PropertyStatus.pendingVerification && widget.propertyToEdit?.submissionDate == null)
+      submissionDate: (targetStatus == PropertyStatus.pendingVerification && (widget.propertyToEdit == null || widget.propertyToEdit!.submissionDate == null))
                           ? DateTime.now()
                           : widget.propertyToEdit?.submissionDate,
-      approvalDate: (targetStatus == PropertyStatus.approved && widget.propertyToEdit?.approvalDate == null && widget.propertyToEdit?.status != PropertyStatus.approved)
+      approvalDate: (targetStatus == PropertyStatus.approved && (widget.propertyToEdit == null ||widget.propertyToEdit!.approvalDate == null || widget.propertyToEdit!.status != PropertyStatus.approved))
                           ? DateTime.now() 
                           : widget.propertyToEdit?.approvalDate,
+      rejectionReason: targetStatus == PropertyStatus.rejected ? widget.propertyToEdit?.rejectionReason : null, // Hanya relevan jika status rejected
+      viewStatistics: widget.propertyToEdit?.viewStatistics ?? {},
     );
     
     final result = await _propertyService.submitProperty(

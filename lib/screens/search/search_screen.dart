@@ -139,12 +139,12 @@ class _SearchScreenState extends State<SearchScreen> {
                   child: Container(
                     padding: const EdgeInsets.all(14), 
                     decoration: BoxDecoration(
-                      color: Theme.of(context).primaryColor, 
+                      color: Color(0xFF1F2937), // Gunakan warna yang sudah didefinisikan
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: const Icon(
                       Icons.filter_list,
-                      color: Colors.white,
+                      color: Colors.white, // Gunakan warna ikon yang sudah didefinisikan
                       size: 24,
                     ),
                   ),

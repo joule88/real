@@ -90,56 +90,56 @@ class _MyDraftsScreenState extends State<MyDraftsScreen> with SingleTickerProvid
     }
   }
 
-  Color _getStatusColor(PropertyStatus status) { /* ... (tetap sama seperti sebelumnya, pastikan ada case sold) ... */ 
+  Color _getStatusColor(PropertyStatus status) {
     switch (status) {
       case PropertyStatus.draft:
         return Colors.blueGrey[600]!;
       case PropertyStatus.pendingVerification:
-        return Colors.orange[700]!; 
+        return Colors.orange[700]!;
       case PropertyStatus.approved:
         return Colors.green[600]!;
       case PropertyStatus.rejected:
         return Colors.red[700]!;
-      case PropertyStatus.archived: 
+      case PropertyStatus.archived:
         return Colors.grey[700]!;
-      case PropertyStatus.sold: 
+      case PropertyStatus.sold:
         return Colors.purple[700]!;
       default:
         return Colors.grey;
     }
   }
 
-  IconData _getStatusIcon(PropertyStatus status) { /* ... (tetap sama seperti sebelumnya, pastikan ada case sold) ... */ 
+  IconData _getStatusIcon(PropertyStatus status) {
     switch (status) {
       case PropertyStatus.draft:
-      case PropertyStatus.rejected: 
+      case PropertyStatus.rejected:
         return Icons.edit_outlined;
       case PropertyStatus.pendingVerification:
-        return Icons.hourglass_top_rounded; 
+        return Icons.hourglass_empty_rounded;
       case PropertyStatus.approved:
         return Icons.check_circle_outline_rounded;
-      case PropertyStatus.archived: 
+      case PropertyStatus.archived:
         return Icons.inventory_2_outlined;
-      case PropertyStatus.sold: 
+      case PropertyStatus.sold:
         return Icons.paid_outlined;
       default:
-        return Icons.info_outline_rounded; 
+        return Icons.info_outline_rounded;
     }
   }
-  
-  Color _getTrailingIconColor(PropertyStatus status) { /* ... (tetap sama seperti sebelumnya) ... */ 
+
+  Color _getTrailingIconColor(PropertyStatus status) {
      switch (status) {
       case PropertyStatus.draft:
       case PropertyStatus.rejected:
-        return Colors.blueAccent;
+        return Colors.blueAccent.shade700;
       case PropertyStatus.pendingVerification:
-        return Colors.orange[700]!;
+        return Colors.orange.shade800;
       case PropertyStatus.approved:
-        return Colors.green[600]!;
-      case PropertyStatus.archived: 
-        return Colors.grey[800]!;
-      case PropertyStatus.sold: 
-        return Colors.purple[800]!;
+        return Colors.green.shade700;
+      case PropertyStatus.archived:
+        return Colors.grey.shade800;
+      case PropertyStatus.sold:
+        return Colors.purple.shade800;
       default:
         return Colors.grey[700]!;
     }
@@ -234,34 +234,27 @@ class _MyDraftsScreenState extends State<MyDraftsScreen> with SingleTickerProvid
   @override
   Widget build(BuildContext context) {
     final propertyProvider = Provider.of<PropertyProvider>(context);
+    const Color warnaHijauPekatUntukTab = Color(0xFF121212);
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 1,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
+          icon: const Icon(Icons.arrow_back),
           onPressed: () => Navigator.of(context).pop(),
         ),
-        title: Text(
-          "Kelola Iklan Saya",
-          style: GoogleFonts.poppins(
-            color: Colors.black,
-            fontWeight: FontWeight.bold,
-            fontSize: 20,
-          ),
-        ),
+        title: Text("Kelola Iklan Saya"),
         centerTitle: true,
         bottom: TabBar(
           controller: _tabController,
-          labelColor: Theme.of(context).primaryColor,
-          unselectedLabelColor: Colors.grey[600],
-          indicatorColor: Theme.of(context).primaryColor,
-          labelStyle: GoogleFonts.poppins(fontWeight: FontWeight.w600, fontSize: 14),
-          unselectedLabelStyle: GoogleFonts.poppins(fontWeight: FontWeight.w500, fontSize: 14),
+          labelColor: warnaHijauPekatUntukTab,
+          unselectedLabelColor: Colors.grey[500],
+          indicatorColor: warnaHijauPekatUntukTab,
+          indicatorWeight: 2.5,
+          labelStyle: GoogleFonts.poppins(fontWeight: FontWeight.w600, fontSize: 15),
+          unselectedLabelStyle: GoogleFonts.poppins(fontWeight: FontWeight.w500, fontSize: 15),
           tabs: const [
-            Tab(text: "Draft & Arsip"), // Menggabungkan draft, pending, rejected, archived
+            Tab(text: "Draft & Arsip"),
             Tab(text: "Terjual"),
           ],
         ),

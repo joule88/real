@@ -2,6 +2,7 @@
 import 'package:flutter/foundation.dart';
 import 'dart:convert'; // Diperlukan untuk jsonDecode
 import 'user_model.dart'; // Pastikan User model diimpor
+import 'package:real/services/api_constants.dart';
 
 enum PropertyStatus {
   draft,
@@ -186,7 +187,8 @@ class Property extends ChangeNotifier {
       }
     }
 
-    const String laravelApiBaseUrl = "http://127.0.0.1:8000/api"; // Sesuaikan jika berbeda
+    // Ganti base URL agar ambil dari ApiConstants
+    final String laravelApiBaseUrl = ApiConstants.laravelApiBaseUrl;
     String parsedMainImageUrl = "";
     List<String> parsedAdditionalImageUrls = [];
 

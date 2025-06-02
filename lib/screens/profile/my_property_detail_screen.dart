@@ -9,6 +9,7 @@ import 'package:real/provider/property_provider.dart';
 import 'package:real/screens/detail/detailpost.dart';
 import 'package:real/screens/my_drafts/add_property_form_screen.dart';
 import 'package:real/widgets/view_stats_chart.dart'; // Pastikan import ini ada
+import 'package:cached_network_image/cached_network_image.dart';
 
 class MyPropertyDetailScreen extends StatefulWidget {
   final Property property;
@@ -33,11 +34,41 @@ class _MyPropertyDetailScreenState extends State<MyPropertyDetailScreen>
   bool _isLoadingStats = true;
   String? _statsError;
 
+  // === STATE BARU UNTUK GALERI GAMBAR ===
+  late String _currentMainImageUrlOnDetailTab;
+  late List<String> _allImageUrlsForDetailTab;
+  // === AKHIR STATE BARU ===
+
+  // Definisikan warna hijau gelap dari palet Anda
+  static const Color colorPaletHijauGelap = Color(0xFF121212); // Ganti dengan hex hijau gelap sesuai palet
+
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
-    print("_MyPropertyDetailScreenState initState: ID Properti yang diterima adalah \\${widget.property.id} untuk judul '\\${widget.property.title}'");
+    print(
+        "_MyPropertyDetailScreenState initState: ID Properti yang diterima adalah \\${widget.property.id} untuk judul '\\${widget.property.title}'");
+
+    // === INISIALISASI GAMBAR UNTUK GALERI ===
+    _allImageUrlsForDetailTab = [
+      if (widget.property.imageUrl.isNotEmpty && Uri.tryParse(widget.property.imageUrl)?.isAbsolute == true)
+        widget.property.imageUrl,
+      ...widget.property.additionalImageUrls
+          .where((url) => url.isNotEmpty && Uri.tryParse(url)?.isAbsolute == true)
+    ]
+    .toSet()
+    .toList();
+
+    if (_allImageUrlsForDetailTab.isNotEmpty) {
+      _currentMainImageUrlOnDetailTab = _allImageUrlsForDetailTab.first;
+    } else if (widget.property.imageUrl.isNotEmpty && Uri.tryParse(widget.property.imageUrl)?.isAbsolute == true) {
+      _currentMainImageUrlOnDetailTab = widget.property.imageUrl;
+    }
+     else {
+      _currentMainImageUrlOnDetailTab = '';
+    }
+    // === AKHIR INISIALISASI GAMBAR ===
+
     _fetchAndProcessStatistics();
   }
 
@@ -178,30 +209,107 @@ class _MyPropertyDetailScreenState extends State<MyPropertyDetailScreen>
 
   Widget _buildDetailTabContent(BuildContext context, NumberFormat currencyFormatter, AuthProvider authProvider, PropertyProvider propertyProvider) {
     return SingleChildScrollView(
-      key: const PageStorageKey<String>('detailTab'), // Untuk menjaga scroll position
+      key: const PageStorageKey<String>('myPropertyDetailTab'),
       physics: const BouncingScrollPhysics(),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // === BAGIAN GAMBAR YANG DIMODIFIKASI ===
           Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(15.0),
-              child: widget.property.imageUrl.isNotEmpty && Uri.tryParse(widget.property.imageUrl)?.isAbsolute == true
-                ? Image.network(
-                    widget.property.imageUrl,
-                    width: double.infinity,
-                    height: 250,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) => _imageErrorPlaceholder(250),
-                    loadingBuilder: (context, child, loadingProgress) {
-                        if (loadingProgress == null) return child;
-                        return _imageLoadingPlaceholder(250, loadingProgress);
-                    },
-                  )
-                : _imageErrorPlaceholder(250, iconSize: 60),
+            padding: const EdgeInsets.only(top: 16.0),
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(15.0),
+                    child: Hero(
+                      tag: 'my_property_image_${widget.property.id}',
+                      child: (_currentMainImageUrlOnDetailTab.isNotEmpty && Uri.tryParse(_currentMainImageUrlOnDetailTab)?.isAbsolute == true)
+                        ? CachedNetworkImage(
+                            imageUrl: _currentMainImageUrlOnDetailTab,
+                            width: double.infinity,
+                            height: 220,
+                            fit: BoxFit.cover,
+                            placeholder: (context, url) => _imageLoadingPlaceholder(220, null),
+                            errorWidget: (context, url, error) => _imageErrorPlaceholder(220, customText: "Gambar utama tidak tersedia"),
+                          )
+                        : _imageErrorPlaceholder(220, customText: "Tidak ada gambar utama"),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                if (_allImageUrlsForDetailTab.length > 1)
+                  SizedBox(
+                    height: 70,
+                    child: ListView.builder(
+                      scrollDirection: Axis.horizontal,
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      itemCount: _allImageUrlsForDetailTab.length,
+                      itemBuilder: (context, index) {
+                        final imageUrl = _allImageUrlsForDetailTab[index];
+                        bool isSelected = imageUrl == _currentMainImageUrlOnDetailTab;
+                        return GestureDetector(
+                          onTap: () {
+                            if (mounted) {
+                              setState(() {
+                                _currentMainImageUrlOnDetailTab = imageUrl;
+                              });
+                            }
+                          },
+                          child: Opacity(
+                            opacity: isSelected ? 1.0 : 0.6,
+                            child: Container(
+                              width: 70,
+                              margin: const EdgeInsets.only(right: 8),
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(8),
+                                // HILANGKAN BORDER
+                                // border: Border.all(
+                                //   color: isSelected ? Theme.of(context).primaryColor : Colors.grey.shade300,
+                                //   width: isSelected ? 2.0 : 1.0,
+                                // ),
+                                boxShadow: isSelected ? [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.15),
+                                    blurRadius: 3,
+                                    offset: Offset(0,1)
+                                  )
+                                ] : [],
+                              ),
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(8),
+                                child: (imageUrl.isNotEmpty && Uri.tryParse(imageUrl)?.isAbsolute == true)
+                                  ? CachedNetworkImage(
+                                      imageUrl: imageUrl,
+                                      fit: BoxFit.cover,
+                                      placeholder: (context, url) => Container(color: Colors.grey[200]),
+                                      errorWidget: (context, url, error) => Container(
+                                        color: Colors.grey[200],
+                                        child: Icon(Icons.broken_image_outlined, color: Colors.grey[400], size: 24),
+                                      ),
+                                    )
+                                  : Container(
+                                      color: Colors.grey[200],
+                                      child: Icon(Icons.image_not_supported_outlined, color: Colors.grey[400], size: 24),
+                                    ),
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                if (_allImageUrlsForDetailTab.isEmpty)
+                     Padding(
+                        padding: const EdgeInsets.only(top:8.0, bottom: 10),
+                        child: Center(child: Text("Tidak ada gambar untuk properti ini.", style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey[600]))),
+                    ),
+                const SizedBox(height: 10),
+              ],
             ),
           ),
+          // === AKHIR BAGIAN GAMBAR ===
           Padding(
             padding: const EdgeInsets.fromLTRB(20.0, 0, 20.0, 8.0),
             child: Row(
@@ -565,7 +673,7 @@ class _MyPropertyDetailScreenState extends State<MyPropertyDetailScreen>
     return Container(
         height: height,
         width: double.infinity,
-        color: Colors.grey[200],
+        color: Colors.grey[100],
         child: Center(
         child: CircularProgressIndicator(
             value: loadingProgress != null && loadingProgress.expectedTotalBytes != null
@@ -573,20 +681,28 @@ class _MyPropertyDetailScreenState extends State<MyPropertyDetailScreen>
                     loadingProgress.expectedTotalBytes!
                 : null,
             strokeWidth: 2.5,
-            color: Theme.of(context).primaryColor.withOpacity(0.7),
+            color: colorPaletHijauGelap, // <<--- WARNA LOADING DIUBAH DI SINI
         ),
         ),
     );
   }
 
-  Widget _imageErrorPlaceholder(double height, {double iconSize = 40}){
+  Widget _imageErrorPlaceholder(double height, {double iconSize = 40, String customText = "Gambar tidak tersedia"}){
       return Container(
         height: height,
         width: double.infinity,
         color: Colors.grey[200],
         child: Center(
-            child: Icon(Icons.image_not_supported_outlined,
-                size: iconSize, color: Colors.grey[400])),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.image_not_supported_outlined,
+                    size: iconSize, color: Colors.grey[400]),
+                const SizedBox(height: 8),
+                Text(customText, style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey[600]), textAlign: TextAlign.center),
+              ],
+            )
+        ),
     );
   }
 
@@ -688,8 +804,6 @@ class _MyPropertyDetailScreenState extends State<MyPropertyDetailScreen>
         return Colors.brown.shade700;
       case PropertyStatus.sold:
         return Colors.purple.shade700;
-      default:
-        return Colors.grey.shade700;
     }
   }
 
