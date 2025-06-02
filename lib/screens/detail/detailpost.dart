@@ -158,11 +158,9 @@ class PropertyDetailPage extends StatelessWidget {
               ),
             ),
 
-            // SECTION KONTAK PENGIKLAN
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 20), // Tambahkan padding untuk mengatur posisi
-              child: ContactAgentWidget(), // Gunakan widget ContactAgentWidget
-            ), // Gunakan widget ContactAgentWidget
+            // BAGIAN KONTAK PENGIKLAN
+            ContactAgentWidget(owner: property.uploaderInfo), // Teruskan objek User pengunggah
+            SizedBox(height: MediaQuery.of(context).padding.bottom > 0 ? 10 : 20), // Padding tambahan jika ada notch/gestur sistem
           ],
         ),
       ),

@@ -82,20 +82,24 @@ class PropertyProvider extends ChangeNotifier {
 
       final response = await http.get(url, headers: headers);
       print('PropertyProvider: Status respons fetchPublicPropertyDetail: ${response.statusCode}');
+      // Untuk debugging, Anda bisa print body respons:
+      // if (response.statusCode == 200) print('PropertyProvider (SUCCESS): Body: ${response.body}');
+      // else print('PropertyProvider (ERROR): Body: ${response.body}');
 
       if (response.statusCode == 200) {
         final responseData = jsonDecode(response.body);
         if (responseData['success'] == true && responseData['data'] != null) {
+          // Property.fromJson sekarang akan menangani objek 'owner'/'uploader' yang bersarang
           final property = Property.fromJson(responseData['data'] as Map<String, dynamic>);
-          print('PropertyProvider: Properti publik ${property.id} berhasil diambil. Total Views dari backend: ${property.viewsCount}');
-          _updatePropertyInLocalLists(property); // Helper dari teman Anda
+          print('PropertyProvider: Properti publik \\${property.id} berhasil diambil. Pengunggah: \\${property.uploaderInfo?.name}, Views: \\${property.viewsCount}');
+          _updatePropertyInLocalLists(property);
           return property;
         } else {
-          print('PropertyProvider: Gagal mengambil detail properti publik - Pesan dari server: ${responseData['message']}');
+          print('PropertyProvider: Gagal mengambil detail properti publik - Pesan dari server: \\${responseData['message']}');
           return null;
         }
       } else {
-        print('PropertyProvider: Error mengambil detail properti publik - Status: ${response.statusCode}, Body: ${response.body}');
+        print('PropertyProvider: Error mengambil detail properti publik - Status: \\${response.statusCode}, Body: \\${response.body}');
         return null;
       }
     } catch (e) {

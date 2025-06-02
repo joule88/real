@@ -1,6 +1,7 @@
 // lib/models/property.dart
 import 'package:flutter/foundation.dart';
 import 'dart:convert'; // Diperlukan untuk jsonDecode
+import 'user_model.dart'; // Pastikan User model diimpor
 
 enum PropertyStatus {
   draft,
@@ -15,7 +16,8 @@ class Property extends ChangeNotifier {
   final String id;
   String title;
   String description;
-  final String uploader;
+  final String uploader; // ID String pengunggah, bisa tetap ada
+  User? uploaderInfo;    // Field baru untuk objek User pengunggah
   String imageUrl;
   List<String> additionalImageUrls;
   double price;
@@ -46,7 +48,8 @@ class Property extends ChangeNotifier {
     required this.id,
     required this.title,
     required this.description,
-    required this.uploader,
+    required this.uploader, // ID Pengunggah
+    this.uploaderInfo,      // Objek User pengunggah
     required this.imageUrl,
     this.additionalImageUrls = const [],
     required this.price,
@@ -244,7 +247,14 @@ class Property extends ChangeNotifier {
       id: json['_id'] ?? json['id'] ?? '',
       title: json['title'] ?? '',
       description: json['description'] ?? '',
-      uploader: json['user_id'] ?? json['uploader'] ?? '',
+      // Ambil ID pengunggah dari 'user_id', atau dari 'owner' jika bersarang
+      uploader: json['user_id'] ?? (json['owner'] is Map ? (json['owner']['_id'] ?? json['owner']['id'] ?? '') : json['owner_id'] ?? ''),
+      // Parse objek 'owner' (atau 'uploader' jika Anda menamakannya begitu di backend)
+      uploaderInfo: json['owner'] != null && json['owner'] is Map<String, dynamic>
+          ? User.fromJson(json['owner'] as Map<String, dynamic>)
+          : (json['uploader'] != null && json['uploader'] is Map<String, dynamic>
+              ? User.fromJson(json['uploader'] as Map<String, dynamic>)
+              : null),
       imageUrl: parsedMainImageUrl,
       additionalImageUrls: parsedAdditionalImageUrls,
       price: (json['price'] is String)
@@ -253,25 +263,26 @@ class Property extends ChangeNotifier {
       address: json['address'] as String? ?? json['Address'] as String? ?? '',
       bedrooms: (json['bedrooms'] as num?)?.toInt() ?? 0,
       bathrooms: (json['bathrooms'] as num?)?.toInt() ?? 0,
-      areaSqft: (json['sizeMin'] != null) // Perhatikan ini, mungkin 'sizeMin' atau 'areaSqft'
+      areaSqft: (json['sizeMin'] != null)
                   ? ((json['sizeMin'] as num).toDouble())
                   : ((json['areaSqft'] as num?)?.toDouble() ?? 0.0),
       propertyType: json['propertyType'] ?? '',
-      furnishings: json['furnishing'] ?? json['furnishings'] ?? '', // Cek kedua ejaan
+      furnishings: json['furnishing'] ?? json['furnishings'] ?? '',
       status: statusValue,
       submissionDate: json['submissionDate'] != null ? DateTime.tryParse(json['submissionDate']) : null,
       approvalDate: json['approvalDate'] != null ? DateTime.tryParse(json['approvalDate']) : null,
       rejectionReason: json['rejectionReason'],
-      // isFavorite: json['is_favorite'] ?? false, // Sesuaikan dengan nama field di JSON jika ada
       bookmarkCount: (json['bookmarkCount'] as num?)?.toInt() ?? 0,
-      viewsCount: (json['total_views_count'] as num?)?.toInt() ?? 0,
+      viewsCount: (json['total_views_count'] as num?)?.toInt() ?? (json['views_count'] as num?)?.toInt() ?? 0,
       inquiriesCount: (json['inquiriesCount'] as num?)?.toInt() ?? 0,
       mainView: json['mainView'],
       listingAgeCategory: json['listingAgeCategory'] as String?,
       propertyLabel: json['propertyLabel'] as String?,
       viewStatistics: json['view_statistics'] is Map<String, dynamic>
         ? Map<String, dynamic>.from(json['view_statistics'])
-        : const {},
+        : (json['viewStatistics'] is Map<String, dynamic>
+            ? Map<String, dynamic>.from(json['viewStatistics'])
+            : const {}),
     );
   }
 
