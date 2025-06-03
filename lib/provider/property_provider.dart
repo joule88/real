@@ -637,4 +637,38 @@ class PropertyProvider extends ChangeNotifier {
       return null;
     }
   }
+
+  Future<Map<String, dynamic>> deleteProperty(String propertyId, String token) async {
+    // Idealnya, panggil service yang berkomunikasi dengan API
+    // Untuk sekarang, kita simulasi dan update state lokal
+    print('PropertyProvider: Menghapus properti dengan ID $propertyId');
+
+    // --- PANGGIL API SERVICE DI SINI ---
+    // Contoh: final result = await _propertyService.deletePropertyFromApi(propertyId, token);
+    // Simulasi hasil dari API:
+    // final Map<String, dynamic> result = {'success': true, 'message': 'Properti berhasil dihapus dari server.'};
+    // --- AKHIR PANGGILAN API SERVICE ---
+
+    // Untuk contoh ini, kita langsung panggil PropertyService yang mungkin sudah ada
+    // atau Anda perlu membuatnya. PropertyService akan berisi logika HTTP DELETE.
+    // Mari asumsikan Anda akan menambahkan method di PropertyService:
+    final result = await _propertyService.deletePropertyApi(propertyId, token);
+
+    if (result['success'] == true) {
+      // Hapus properti dari semua list lokal jika berhasil
+      _userProperties.removeWhere((p) => p.id == propertyId);
+      _userApprovedProperties.removeWhere((p) => p.id == propertyId);
+      _userSoldProperties.removeWhere((p) => p.id == propertyId);
+      _publicProperties.removeWhere((p) => p.id == propertyId);
+      _searchedProperties.removeWhere((p) => p.id == propertyId);
+      _bookmarkedProperties.removeWhere((p) => p.id == propertyId); // Jika properti ada di bookmark
+
+      notifyListeners(); // Beritahu UI untuk update
+      return {'success': true, 'message': result['message'] ?? 'Properti berhasil dihapus.'};
+    } else {
+      _userPropertiesError = result['message']; // atau error spesifik lainnya
+      notifyListeners();
+      return {'success': false, 'message': result['message'] ?? 'Gagal menghapus properti di server.'};
+    }
+  }
 }

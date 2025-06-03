@@ -73,9 +73,9 @@ class _AddPropertyFormScreenState extends State<AddPropertyFormScreen> {
   ];
 
   final List<Map<String, dynamic>> kondisiFurnishingOptions = [
-    {'text': 'Unfurnished', 'value': 1}, 
-    {'text': 'Semi Furnished', 'value': 2},
-    {'text': 'Furnished', 'value': 0},
+    {'text': 'NO', 'value': 1}, 
+    {'text': 'PARTLY', 'value': 2},
+    {'text': 'YES', 'value': 0},
   ];
 
   final List<Map<String, dynamic>> pemandanganSekitarOptions = [

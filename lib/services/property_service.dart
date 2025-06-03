@@ -222,6 +222,45 @@ class PropertyService {
     }
   }
 
+  Future<Map<String, dynamic>> deletePropertyApi(String propertyId, String token) async {
+    final String endpoint = '${ApiConstants.propertiesEndpoint}/$propertyId';
+    var uri = Uri.parse('${ApiConstants.laravelApiBaseUrl}$endpoint');
+
+    print('PropertyService: Mengirim permintaan DELETE ke $uri');
+
+    try {
+      final response = await http.delete(
+        uri,
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Accept': 'application/json',
+        },
+      );
+
+      print('PropertyService: Status respons DELETE: ${response.statusCode}');
+      print('PropertyService: Body respons DELETE: ${response.body}');
+
+      if (response.statusCode == 200 || response.statusCode == 204) { // 204 No Content juga sukses
+        final responseBody = response.body.isNotEmpty ? jsonDecode(response.body) : {};
+        return {
+          'success': true,
+          'message': responseBody['message'] ?? 'Properti berhasil dihapus.',
+          'data': responseBody // Bisa jadi backend mengembalikan sesuatu
+        };
+      } else {
+        final errorBody = response.body.isNotEmpty ? jsonDecode(response.body) : {};
+        String message = errorBody['message'] ?? 'Gagal menghapus properti di server.';
+        if (errorBody['errors'] != null && errorBody['errors'] is Map) {
+          message = (errorBody['errors'] as Map).entries.map((e) => '${e.key}: ${(e.value as List).join(", ") }').join('\n');
+        }
+        return {'success': false, 'message': message};
+      }
+    } catch (e) {
+      print('PropertyService: Exception saat menghapus properti: $e');
+      return {'success': false, 'message': 'Error koneksi saat menghapus properti: $e'};
+    }
+  }
+
   String _getExtension(String filename) {
     final ext = filename.split('.').last.toLowerCase();
     switch (ext) {

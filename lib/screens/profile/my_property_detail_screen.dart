@@ -513,12 +513,38 @@ class _MyPropertyDetailScreenState extends State<MyPropertyDetailScreen>
                         label: Text("Tandai sebagai Terjual", style: GoogleFonts.poppins(fontWeight: FontWeight.w600, color: colorPaletHitam)), // Perubahan warna teks
                         onPressed: () => _updatePropertyStatus(PropertyStatus.sold, "Tandai Properti Terjual?", "Status properti akan diubah menjadi 'Terjual'. Properti ini tidak akan tampil di publik lagi.", authProvider, propertyProvider),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: colorPaletHijauMuda, // Perubahan warna background
+                          backgroundColor: Colors.purple.shade600,
+                          foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(vertical: 13),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                         ),
                       ),
                     ),
+
+                  // Tombol Hapus (hanya untuk status tertentu)
+                  if (widget.property.status == PropertyStatus.draft ||
+                      widget.property.status == PropertyStatus.rejected ||
+                      widget.property.status == PropertyStatus.approved ||
+                      widget.property.status == PropertyStatus.archived) ...[
+                    const SizedBox(height: 12),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        icon: Icon(Icons.delete_outline, size: 20, color: Colors.white),
+                        label: Text("Hapus Iklan Ini", style: GoogleFonts.poppins(fontWeight: FontWeight.w600, color: Colors.white)),
+                        onPressed: () {
+                          _confirmAndDeleteProperty(authProvider, propertyProvider);
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.red[700],
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 13),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        ),
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 12),
                 ],
               ),
             ),
@@ -826,6 +852,73 @@ class _MyPropertyDetailScreenState extends State<MyPropertyDetailScreen>
         }
       },
     );
+  }
+
+  Future<void> _confirmAndDeleteProperty(AuthProvider authProvider, PropertyProvider propertyProvider) async {
+    // Tampilkan dialog konfirmasi
+    final bool? confirmDelete = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false, // User must tap button!
+      builder: (BuildContext dialogContext) {
+        return AlertDialog(
+          title: Text("Konfirmasi Hapus", style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
+          content: Text("Apakah Anda yakin ingin menghapus properti ' 24{widget.property.title}' secara permanen? Tindakan ini tidak dapat diurungkan.", style: GoogleFonts.poppins()),
+          actionsAlignment: MainAxisAlignment.end,
+          actions: <Widget>[
+            TextButton(
+              child: Text("Batal", style: GoogleFonts.poppins(color: Colors.grey[700])),
+              onPressed: () {
+                Navigator.of(dialogContext).pop(false); // Mengembalikan false
+              },
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.red[700]),
+              child: Text("Hapus", style: GoogleFonts.poppins(color: Colors.white)),
+              onPressed: () {
+                Navigator.of(dialogContext).pop(true); // Mengembalikan true
+              },
+            ),
+          ],
+        );
+      },
+    );
+
+    // Jika pengguna mengkonfirmasi penghapusan
+    if (confirmDelete == true) {
+      if (authProvider.token != null) {
+        // Tampilkan loading indicator jika perlu
+        // setState(() => _isDeleting = true); // Anda perlu state _isDeleting
+
+        final result = await propertyProvider.deleteProperty( // Anda perlu membuat method ini di PropertyProvider
+          widget.property.id,
+          authProvider.token!,
+        );
+
+        // if (mounted) setState(() => _isDeleting = false);
+
+        if (!mounted) return;
+
+        if (result['success'] == true) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(result['message'] ?? 'Properti berhasil dihapus.'), backgroundColor: Colors.green),
+          );
+          // Setelah berhasil hapus, kembali ke halaman sebelumnya (misalnya ProfileScreen atau MyDraftsScreen)
+          // Dan refresh list di sana.
+          // PropertyProvider harusnya sudah mengupdate list internalnya dan memanggil notifyListeners()
+          // Jadi ketika pop, halaman sebelumnya akan rebuild dengan data terbaru.
+          int count = 0;
+          Navigator.of(context).popUntil((_) => count++ >= 1); // Kembali satu halaman, atau lebih jika perlu
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(result['message'] ?? 'Gagal menghapus properti.'), backgroundColor: Colors.red),
+          );
+        }
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Sesi tidak valid. Silakan login ulang.')),
+        );
+      }
+    }
   }
 
   Future<void> _showConfirmationDialog(
