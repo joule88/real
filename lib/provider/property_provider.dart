@@ -147,18 +147,10 @@ class PropertyProvider extends ChangeNotifier {
     }
 
     propertyToUpdate = findAndUpdateInList(_publicProperties, propertyId);
-    if (propertyToUpdate == null) {
-      propertyToUpdate = findAndUpdateInList(_searchedProperties, propertyId);
-    }
-    if (propertyToUpdate == null) {
-      propertyToUpdate = findAndUpdateInList(_userApprovedProperties, propertyId);
-    }
-    if (propertyToUpdate == null) {
-      propertyToUpdate = findAndUpdateInList(_userProperties, propertyId);
-    }
-     if (propertyToUpdate == null) { // Cek juga di list bookmark itu sendiri
-      propertyToUpdate = findAndUpdateInList(_bookmarkedProperties, propertyId);
-    }
+    propertyToUpdate ??= findAndUpdateInList(_searchedProperties, propertyId);
+    propertyToUpdate ??= findAndUpdateInList(_userApprovedProperties, propertyId);
+    propertyToUpdate ??= findAndUpdateInList(_userProperties, propertyId);
+     propertyToUpdate ??= findAndUpdateInList(_bookmarkedProperties, propertyId);
 
 
     if (propertyToUpdate != null) {

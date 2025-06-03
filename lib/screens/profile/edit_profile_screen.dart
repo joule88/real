@@ -112,7 +112,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   Future<void> _submitForm() async {
     if (_isSaving) return;
     if (_formKey.currentState?.validate() ?? false) {
-      if (mounted) setState(() => _isSaving = true); else return;
+      if (mounted) {
+        setState(() => _isSaving = true);
+      } else {
+        return;
+      }
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
       final newName = _nameController.text.trim();
       final newBio = _bioController.text.trim();
