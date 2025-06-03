@@ -49,13 +49,12 @@ class _MyPropertyDetailScreenState extends State<MyPropertyDetailScreen>
     print(
         "_MyPropertyDetailScreenState initState: ID Properti yang diterima adalah ${widget.property.id} untuk judul '${widget.property.title}'");
 
-    _allImageUrlsForDetailTab = [
+    _allImageUrlsForDetailTab = {
       if (widget.property.imageUrl.isNotEmpty && Uri.tryParse(widget.property.imageUrl)?.isAbsolute == true)
         widget.property.imageUrl,
       ...widget.property.additionalImageUrls
           .where((url) => url.isNotEmpty && Uri.tryParse(url)?.isAbsolute == true)
-    ]
-    .toSet()
+    }
     .toList();
 
     if (_allImageUrlsForDetailTab.isNotEmpty) {

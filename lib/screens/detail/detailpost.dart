@@ -26,13 +26,12 @@ class _PropertyDetailPageState extends State<PropertyDetailPage> {
   @override
   void initState() {
     super.initState();
-    _allImageUrls = [
+    _allImageUrls = {
       if (widget.property.imageUrl.isNotEmpty && Uri.tryParse(widget.property.imageUrl)?.isAbsolute == true)
         widget.property.imageUrl,
       ...widget.property.additionalImageUrls
           .where((url) => url.isNotEmpty && Uri.tryParse(url)?.isAbsolute == true)
-    ]
-    .toSet()
+    }
     .toList();
 
     if (_allImageUrls.isNotEmpty) {
