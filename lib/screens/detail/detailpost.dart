@@ -3,10 +3,10 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:real/models/property.dart';
 import 'package:real/widgets/bookmark_button.dart';
-import 'package:real/widgets/contact.dart'; // Import widget ContactAgentWidget
+import 'package:real/widgets/contact.dart'; 
 import 'package:cached_network_image/cached_network_image.dart';
 
-class PropertyDetailPage extends StatefulWidget { // Ubah menjadi StatefulWidget
+class PropertyDetailPage extends StatefulWidget {
   final Property property;
 
   const PropertyDetailPage({super.key, required this.property});
@@ -15,16 +15,17 @@ class PropertyDetailPage extends StatefulWidget { // Ubah menjadi StatefulWidget
   State<PropertyDetailPage> createState() => _PropertyDetailPageState();
 }
 
-class _PropertyDetailPageState extends State<PropertyDetailPage> { // State untuk halaman
-  late String _currentMainImageUrl; // State untuk menyimpan URL gambar utama saat ini
-  late List<String> _allImageUrls; // State untuk menyimpan semua URL gambar
+class _PropertyDetailPageState extends State<PropertyDetailPage> {
+  late String _currentMainImageUrl;
+  late List<String> _allImageUrls;
 
-  static const Color colorPaletHijauGelap = Color(0xFF121212); // Ganti dengan hex hijau gelap sesuai palet
+  static const Color colorPaletHijauGelap = Color(0xFF121212);
+  static const Color colorPaletHitam = Color(0xFF182420);
+
 
   @override
   void initState() {
     super.initState();
-    // Inisialisasi _allImageUrls terlebih dahulu
     _allImageUrls = [
       if (widget.property.imageUrl.isNotEmpty && Uri.tryParse(widget.property.imageUrl)?.isAbsolute == true)
         widget.property.imageUrl,
@@ -34,7 +35,6 @@ class _PropertyDetailPageState extends State<PropertyDetailPage> { // State untu
     .toSet()
     .toList();
 
-    // Tentukan _currentMainImageUrl
     if (_allImageUrls.isNotEmpty) {
       _currentMainImageUrl = _allImageUrls.first;
     } else if (widget.property.imageUrl.isNotEmpty && Uri.tryParse(widget.property.imageUrl)?.isAbsolute == true) {
@@ -45,7 +45,6 @@ class _PropertyDetailPageState extends State<PropertyDetailPage> { // State untu
     }
   }
 
-  // Fungsi untuk membangun placeholder saat gambar error
   Widget _imageErrorPlaceholder(double height, {double iconSize = 50, String? customText}) {
     return Container(
       height: height,
@@ -66,7 +65,6 @@ class _PropertyDetailPageState extends State<PropertyDetailPage> { // State untu
     );
   }
 
-  // Fungsi untuk membangun placeholder saat gambar loading
   Widget _imageLoadingPlaceholder(double height, ImageChunkEvent? loadingProgress) {
     return Container(
       height: height,
@@ -78,16 +76,51 @@ class _PropertyDetailPageState extends State<PropertyDetailPage> { // State untu
               ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
               : null,
           strokeWidth: 2.5,
-          color: colorPaletHijauGelap, // Gunakan warna hijau gelap
+          color: colorPaletHijauGelap,
         ),
       ),
     );
   }
 
+  // Fungsi helper untuk menampilkan baris info, diadaptasi dari MyPropertyDetailScreen
+  Widget _buildInfoRow(String label, String value, {Color? valueColor}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 5.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: GoogleFonts.poppins(
+                fontSize: 12.5,
+                color: Colors.grey[600],
+                fontWeight: FontWeight.w500),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Align(
+              alignment: Alignment.centerRight,
+              child: Text(
+                      value,
+                      textAlign: TextAlign.right,
+                      style: GoogleFonts.poppins(
+                          fontSize: 12.5,
+                          color: valueColor ?? colorPaletHitam, // Default ke colorPaletHitam jika tidak ada valueColor
+                          fontWeight: FontWeight.w600),
+                    ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+
   @override
   Widget build(BuildContext context) {
     final currencyFormatter = NumberFormat.currency(locale: 'ar_AE', symbol: 'AED ', decimalDigits: 0);
-    final screenWidth = MediaQuery.of(context).size.width; // Ambil lebar layar
+    final screenWidth = MediaQuery.of(context).size.width;
 
     return Scaffold(
       backgroundColor: Colors.grey[100],
@@ -95,13 +128,11 @@ class _PropertyDetailPageState extends State<PropertyDetailPage> { // State untu
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header dengan tombol kembali, tulisan "Detail", dan bookmark
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  // Tombol Kembali
                   CircleAvatar(
                     backgroundColor: Colors.white,
                     child: IconButton(
@@ -111,36 +142,43 @@ class _PropertyDetailPageState extends State<PropertyDetailPage> { // State untu
                       },
                     ),
                   ),
-
-                  // Tulisan "Detail"
                   Expanded(
-                    child: Text(
-                      "Detail",
-                      style: GoogleFonts.poppins(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black,
+                    // Tambahkan Alignment agar teks "Detail" benar-benar di tengah Row
+                    child: Align(
+                      alignment: Alignment.center,
+                      child: Text(
+                        "Detail",
+                        style: GoogleFonts.poppins(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black,
+                        ),
                       ),
                     ),
                   ),
-
-                  // Tombol Bookmark
                   BookmarkButton(
                     isBookmarked: widget.property.isFavorite,
                     onPressed: () {
-                      setState(() {
-                        widget.property.toggleFavorite();
-                      });
+                      // Di PropertyDetailPage, toggleFavorite cukup di-handle oleh state lokal widget.property
+                      // karena objek Property adalah ChangeNotifier.
+                      // Jika state bookmark perlu disinkronkan dengan PropertyProvider (misal untuk halaman BookmarkScreen),
+                      // maka perlu pemanggilan ke PropertyProvider di sini.
+                      // Untuk saat ini, kita asumsikan toggle lokal sudah cukup jika PropertyDetailPage tidak
+                      // secara langsung mempengaruhi daftar bookmark di provider.
+                       setState(() {
+                         widget.property.toggleFavorite();
+                       });
+                       // Jika ingin sinkron dengan provider:
+                       // final authProvider = Provider.of<AuthProvider>(context, listen: false);
+                       // Provider.of<PropertyProvider>(context, listen: false)
+                       //     .togglePropertyBookmark(widget.property.id, authProvider.token);
                     },
                   ),
                 ],
               ),
             ),
-
-            // --- BAGIAN GAMBAR PROPERTI (UTAMA DAN THUMBNAIL) ---
             Column(
               children: [
-                // Gambar Utama
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16.0),
                   child: ClipRRect(
@@ -161,8 +199,6 @@ class _PropertyDetailPageState extends State<PropertyDetailPage> { // State untu
                   ),
                 ),
                 const SizedBox(height: 10),
-
-                // Galeri Thumbnail (selalu tampil jika ada setidaknya 1 gambar)
                 if (_allImageUrls.length > 1)
                   SizedBox(
                     height: 80,
@@ -192,7 +228,7 @@ class _PropertyDetailPageState extends State<PropertyDetailPage> { // State untu
                                   BoxShadow(
                                     color: Colors.black.withOpacity(0.2),
                                     blurRadius: 4,
-                                    offset: Offset(0,2)
+                                    offset: const Offset(0,2)
                                   )
                                 ] : [],
                               ),
@@ -224,12 +260,9 @@ class _PropertyDetailPageState extends State<PropertyDetailPage> { // State untu
                         padding: const EdgeInsets.only(top:8.0, bottom: 10),
                         child: Center(child: Text("Tidak ada gambar galeri.", style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey[600]))),
                     ),
-                 const SizedBox(height: 10), // Jarak setelah galeri
+                 const SizedBox(height: 10),
               ],
             ),
-            // --- AKHIR BAGIAN GAMBAR PROPERTI ---
-
-            // DETAIL PROPERTI
             Expanded(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -243,7 +276,6 @@ class _PropertyDetailPageState extends State<PropertyDetailPage> { // State untu
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Harga 
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
@@ -252,20 +284,20 @@ class _PropertyDetailPageState extends State<PropertyDetailPage> { // State untu
                             style: GoogleFonts.poppins(
                               fontSize: 20,
                               fontWeight: FontWeight.bold,
+                              color: colorPaletHitam, // Menggunakan colorPaletHitam
                             ),
                           ),
                         ],
                       ),
                       const SizedBox(height: 10),
-                      //lokasi
                       Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Icon(Icons.location_on_outlined, size: 18, color: Colors.red),
+                          Icon(Icons.location_on_outlined, size: 18, color: Colors.red), // Ikon lokasi merah
                           const SizedBox(width: 6),
                           Expanded(
                             child: Text(
-                              widget.property.address, // Langsung gunakan property.address
+                              widget.property.address,
                               style: GoogleFonts.poppins(
                                 fontSize: 13,
                                 color: Colors.grey[700],
@@ -275,9 +307,6 @@ class _PropertyDetailPageState extends State<PropertyDetailPage> { // State untu
                         ],
                       ),
                       const SizedBox(height: 16),
-
-                      // Detail Properti (3 kolom)
-                      // ========== AWAL PERUBAHAN ==========
                       Row(
                         children: [
                           Expanded(
@@ -293,11 +322,25 @@ class _PropertyDetailPageState extends State<PropertyDetailPage> { // State untu
                           ),
                         ],
                       ),
-                      // ========== AKHIR PERUBAHAN ==========
-                      const SizedBox(height: 20),
+                      const SizedBox(height: 10), // Sedikit jarak sebelum info tambahan
 
+                      // === AWAL PENAMBAHAN INFORMASI PROPERTI ===
+                      const Divider(height: 20, thickness: 0.7),
+                      if (widget.property.propertyType.isNotEmpty)
+                        _buildInfoRow("Tipe Properti:", widget.property.propertyType),
+                      if (widget.property.furnishings.isNotEmpty)
+                        _buildInfoRow("Kondisi Furnishing:", widget.property.furnishings),
+                      if (widget.property.mainView != null && widget.property.mainView!.isNotEmpty)
+                        _buildInfoRow("Pemandangan Utama:", widget.property.mainView!),
+                      if (widget.property.listingAgeCategory != null && widget.property.listingAgeCategory!.isNotEmpty)
+                        _buildInfoRow("Usia Listing:", widget.property.listingAgeCategory!),
+                      if (widget.property.propertyLabel != null && widget.property.propertyLabel!.isNotEmpty)
+                        _buildInfoRow("Label Properti:", widget.property.propertyLabel!),
+                      const Divider(height: 20, thickness: 0.7),
+                      // === AKHIR PENAMBAHAN INFORMASI PROPERTI ===
+                      
+                      const SizedBox(height: 10), // Jarak setelah info tambahan, sebelum deskripsi
 
-                      // Deskripsi (Opsional)
                       Text(
                         'Deskripsi',
                         style: GoogleFonts.poppins(
@@ -307,10 +350,11 @@ class _PropertyDetailPageState extends State<PropertyDetailPage> { // State untu
                       ),
                       const SizedBox(height: 6),
                       Text(
-                        widget.property.description,
+                        widget.property.description.isNotEmpty ? widget.property.description : "Tidak ada deskripsi untuk properti ini.",
                         style: GoogleFonts.poppins(
                           fontSize: 12,
-                          color: Colors.grey[700],
+                          color: widget.property.description.isNotEmpty ? Colors.grey[700] : Colors.grey[500],
+                          height: 1.5,
                         ),
                       ),
                     ],
@@ -318,27 +362,23 @@ class _PropertyDetailPageState extends State<PropertyDetailPage> { // State untu
                 ),
               ),
             ),
-
-            // BAGIAN KONTAK PENGIKLAN
             ContactAgentWidget(owner: widget.property.uploaderInfo),
-            SizedBox(height: MediaQuery.of(context).padding.bottom > 0 ? 10 : 20), // Padding tambahan jika ada notch/gestur sistem
+            SizedBox(height: MediaQuery.of(context).padding.bottom > 0 ? 10 : 20),
           ],
         ),
       ),
     );
   }
 
-  // Modifikasi _buildDetailItem untuk menerima screenWidth dan menyesuaikan ukuran
   Widget _buildDetailItem(IconData icon, String text, double screenWidth) {
-    // Tidak lagi menggunakan Expanded di sini karena Wrap akan menangani layoutnya
-    return Container( // Bisa dibungkus Container untuk padding jika perlu
-      padding: const EdgeInsets.symmetric(vertical: 4), // Sedikit padding vertikal
-      child: Row( // Atau Column jika ingin ikon di atas teks
-        mainAxisSize: MainAxisSize.min, // Agar tidak mengambil lebar penuh jika di dalam Wrap
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
           Icon(icon, size: screenWidth < 360 ? 16 : 18, color: Colors.grey[700]),
           SizedBox(width: screenWidth < 360 ? 3 : 5),
-          Flexible( // Tambahkan Flexible agar teks bisa wrap jika terlalu panjang
+          Flexible(
             child: Text(
               text,
               textAlign: TextAlign.center,
@@ -347,7 +387,7 @@ class _PropertyDetailPageState extends State<PropertyDetailPage> { // State untu
                 fontWeight: FontWeight.w500,
                 color: Colors.grey[800],
               ),
-              softWrap: true, // Izinkan teks untuk wrap
+              softWrap: true,
             ),
           ),
         ],

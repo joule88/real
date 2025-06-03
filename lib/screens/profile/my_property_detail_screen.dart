@@ -8,7 +8,7 @@ import 'package:real/provider/auth_provider.dart';
 import 'package:real/provider/property_provider.dart';
 import 'package:real/screens/detail/detailpost.dart';
 import 'package:real/screens/my_drafts/add_property_form_screen.dart';
-import 'package:real/widgets/view_stats_chart.dart'; // Pastikan import ini ada
+import 'package:real/widgets/view_stats_chart.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
 class MyPropertyDetailScreen extends StatefulWidget {
@@ -34,22 +34,21 @@ class _MyPropertyDetailScreenState extends State<MyPropertyDetailScreen>
   bool _isLoadingStats = true;
   String? _statsError;
 
-  // === STATE BARU UNTUK GALERI GAMBAR ===
   late String _currentMainImageUrlOnDetailTab;
   late List<String> _allImageUrlsForDetailTab;
-  // === AKHIR STATE BARU ===
 
-  // Definisikan warna hijau gelap dari palet Anda
-  static const Color colorPaletHijauGelap = Color(0xFF121212); // Ganti dengan hex hijau gelap sesuai palet
+  static const Color colorPaletHitam = Color(0xFF182420);
+  static const Color colorPaletHijauMuda = Color(0xFFDDEF6D);
+  static const Color colorPaletHijauGelap = Color(0xFF121212);
+
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
     print(
-        "_MyPropertyDetailScreenState initState: ID Properti yang diterima adalah \\${widget.property.id} untuk judul '\\${widget.property.title}'");
+        "_MyPropertyDetailScreenState initState: ID Properti yang diterima adalah ${widget.property.id} untuk judul '${widget.property.title}'");
 
-    // === INISIALISASI GAMBAR UNTUK GALERI ===
     _allImageUrlsForDetailTab = [
       if (widget.property.imageUrl.isNotEmpty && Uri.tryParse(widget.property.imageUrl)?.isAbsolute == true)
         widget.property.imageUrl,
@@ -67,8 +66,6 @@ class _MyPropertyDetailScreenState extends State<MyPropertyDetailScreen>
      else {
       _currentMainImageUrlOnDetailTab = '';
     }
-    // === AKHIR INISIALISASI GAMBAR ===
-
     _fetchAndProcessStatistics();
   }
 
@@ -80,7 +77,7 @@ class _MyPropertyDetailScreenState extends State<MyPropertyDetailScreen>
 
   Future<void> _fetchAndProcessStatistics() async {
     if (!mounted) return;
-    print("_MyPropertyDetailScreenState _fetchAndProcessStatistics: Memulai untuk ID \\${widget.property.id}");
+    print("_MyPropertyDetailScreenState _fetchAndProcessStatistics: Memulai untuk ID ${widget.property.id}");
     setState(() {
       _isLoadingStats = true;
       _statsError = null;
@@ -92,21 +89,20 @@ class _MyPropertyDetailScreenState extends State<MyPropertyDetailScreen>
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
 
     try {
-      print("_MyPropertyDetailScreenState _fetchAndProcessStatistics: Memanggil provider dengan ID \\${widget.property.id}");
+      print("_MyPropertyDetailScreenState _fetchAndProcessStatistics: Memanggil provider dengan ID ${widget.property.id}");
       final statsData = await propertyProvider.fetchPropertyStatistics(widget.property.id, authProvider.token);
-      print('_MyPropertyDetailScreenState: Data statistik mentah diterima untuk ID \\${widget.property.id}: $statsData');
+      print('_MyPropertyDetailScreenState: Data statistik mentah diterima untuk ID ${widget.property.id}: $statsData');
       
       if (mounted && statsData != null) {
-        setState(() { // <--- PENTING: setState di sini untuk memperbarui chart dengan data baru
+        setState(() {
           _processedDailyStats = _getProcessedDailyData(Map<String, dynamic>.from(statsData['daily'] ?? {}));
           _processedMonthlyStats = _getProcessedMonthlyData(Map<String, dynamic>.from(statsData['monthly'] ?? {}));
-          print('_MyPropertyDetailScreenState: Processed Daily Stats untuk ID \\${widget.property.id}: $_processedDailyStats');
-          print('_MyPropertyDetailScreenState: Processed Monthly Stats untuk ID \\${widget.property.id}: $_processedMonthlyStats');
+          print('_MyPropertyDetailScreenState: Processed Daily Stats untuk ID ${widget.property.id}: $_processedDailyStats');
+          print('_MyPropertyDetailScreenState: Processed Monthly Stats untuk ID ${widget.property.id}: $_processedMonthlyStats');
         });
       } else if (mounted) {
         setState(() {
           _statsError = "Gagal mengambil data statistik atau data tidak ditemukan untuk properti ini.";
-          // Pastikan _processed stats tetap kosong jika error
           _processedDailyStats = {}; 
           _processedMonthlyStats = {};
         });
@@ -114,13 +110,12 @@ class _MyPropertyDetailScreenState extends State<MyPropertyDetailScreen>
     } catch (e) {
       if (mounted) {
         setState(() {
-          _statsError = "Terjadi kesalahan saat mengambil statistik: \\${e.toString()}";
-          // Pastikan _processed stats tetap kosong jika exception
+          _statsError = "Terjadi kesalahan saat mengambil statistik: ${e.toString()}";
           _processedDailyStats = {};
           _processedMonthlyStats = {};
         });
       }
-      print("Error fetching/processing stats for ID \\${widget.property.id}: $e");
+      print("Error fetching/processing stats for ID ${widget.property.id}: $e");
     } finally {
       if (mounted) {
         setState(() {
@@ -161,8 +156,8 @@ class _MyPropertyDetailScreenState extends State<MyPropertyDetailScreen>
   @override
   Widget build(BuildContext context) {
     final currencyFormatter = NumberFormat.currency(locale: 'ar_AE', symbol: 'AED ', decimalDigits: 0);
-    final authProvider = Provider.of<AuthProvider>(context, listen: false); // Hanya untuk aksi, tidak perlu listen
-    final propertyProvider = Provider.of<PropertyProvider>(context, listen: false); // Sama
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final propertyProvider = Provider.of<PropertyProvider>(context, listen: false);
 
     return Scaffold(
       backgroundColor: Colors.grey[100],
@@ -178,16 +173,16 @@ class _MyPropertyDetailScreenState extends State<MyPropertyDetailScreen>
           style: GoogleFonts.poppins(
             color: Colors.black,
             fontWeight: FontWeight.bold,
-            fontSize: 17, // Sedikit lebih kecil agar tidak overflow
+            fontSize: 17,
           ),
           overflow: TextOverflow.ellipsis,
         ),
         centerTitle: true,
         bottom: TabBar(
           controller: _tabController,
-          labelColor: Theme.of(context).primaryColorDark,
+          labelColor: colorPaletHitam, // Perubahan warna
           unselectedLabelColor: Colors.grey[700],
-          indicatorColor: Theme.of(context).primaryColorDark,
+          indicatorColor: colorPaletHitam, // Perubahan warna
           indicatorWeight: 2.5,
           labelStyle: GoogleFonts.poppins(fontWeight: FontWeight.w600, fontSize: 14.5),
           unselectedLabelStyle: GoogleFonts.poppins(fontWeight: FontWeight.w500, fontSize: 14.5),
@@ -214,7 +209,6 @@ class _MyPropertyDetailScreenState extends State<MyPropertyDetailScreen>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // === BAGIAN GAMBAR YANG DIMODIFIKASI ===
           Padding(
             padding: const EdgeInsets.only(top: 16.0),
             child: Column(
@@ -264,16 +258,11 @@ class _MyPropertyDetailScreenState extends State<MyPropertyDetailScreen>
                               margin: const EdgeInsets.only(right: 8),
                               decoration: BoxDecoration(
                                 borderRadius: BorderRadius.circular(8),
-                                // HILANGKAN BORDER
-                                // border: Border.all(
-                                //   color: isSelected ? Theme.of(context).primaryColor : Colors.grey.shade300,
-                                //   width: isSelected ? 2.0 : 1.0,
-                                // ),
                                 boxShadow: isSelected ? [
                                   BoxShadow(
                                     color: Colors.black.withOpacity(0.15),
                                     blurRadius: 3,
-                                    offset: Offset(0,1)
+                                    offset: const Offset(0,1)
                                   )
                                 ] : [],
                               ),
@@ -309,18 +298,13 @@ class _MyPropertyDetailScreenState extends State<MyPropertyDetailScreen>
               ],
             ),
           ),
-          // === AKHIR BAGIAN GAMBAR ===
           Padding(
             padding: const EdgeInsets.fromLTRB(20.0, 0, 20.0, 8.0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            child: Row( // Hanya menampilkan "Dilihat"
+              mainAxisAlignment: MainAxisAlignment.center, // Pusatkan jika hanya satu item
               children: [
-                _buildStatItem(EvaIcons.bookmarkOutline,
-                    '${widget.property.bookmarkCount} Bookmark'),
                 _buildStatItem(
                     EvaIcons.eyeOutline, '${widget.property.viewsCount} Dilihat'),
-                _buildStatItem(EvaIcons.messageCircleOutline,
-                    '${widget.property.inquiriesCount} Pertanyaan'),
               ],
             ),
           ),
@@ -356,13 +340,13 @@ class _MyPropertyDetailScreenState extends State<MyPropertyDetailScreen>
                     style: GoogleFonts.poppins(
                         fontSize: 18,
                         fontWeight: FontWeight.w600,
-                        color: Theme.of(context).primaryColorDark),
+                        color: colorPaletHitam), // Perubahan warna harga
                   ),
                   const SizedBox(height: 12),
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Icon(EvaIcons.pinOutline, color: Colors.grey[700], size: 18),
+                      Icon(EvaIcons.pinOutline, color: Colors.red, size: 18), // Perubahan warna ikon lokasi
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
@@ -381,7 +365,7 @@ class _MyPropertyDetailScreenState extends State<MyPropertyDetailScreen>
                           '${widget.property.bedrooms} Kamar Tidur'),
                       _buildFeatureItem(Icons.bathtub_outlined,
                           '${widget.property.bathrooms} Kamar Mandi'),
-                      _buildFeatureItem(Icons.aspect_ratio_outlined, // Ganti ikon luas
+                      _buildFeatureItem(Icons.aspect_ratio_outlined,
                           '${widget.property.areaSqft.toStringAsFixed(0)} sqft'),
                     ],
                   ),
@@ -441,7 +425,6 @@ class _MyPropertyDetailScreenState extends State<MyPropertyDetailScreen>
                         color: Colors.black87),
                   ),
                   const SizedBox(height: 16),
-                  // Tombol Edit
                   if (widget.property.status == PropertyStatus.approved || widget.property.status == PropertyStatus.draft || widget.property.status == PropertyStatus.rejected)
                     SizedBox(
                       width: double.infinity,
@@ -455,18 +438,17 @@ class _MyPropertyDetailScreenState extends State<MyPropertyDetailScreen>
                               builder: (context) => AddPropertyFormScreen(propertyToEdit: widget.property),
                             ),
                           ).then((updated) async {
-                             if (updated == true && mounted) { // Cek mounted setelah async
+                             if (updated == true && mounted) {
                                 final String? token = authProvider.token;
                                 if (token != null) {
-                                  // Refresh semua list yang relevan
                                   await Future.wait([
                                     propertyProvider.fetchUserApprovedProperties(token),
                                     propertyProvider.fetchUserManageableProperties(token),
                                     propertyProvider.fetchUserSoldProperties(token),
-                                    propertyProvider.fetchPublicProperties() // Refresh publik jika status berubah
+                                    propertyProvider.fetchPublicProperties()
                                   ]);
                                 }
-                                if (mounted) Navigator.pop(context); // Kembali ke halaman list (ProfileScreen)
+                                if (mounted) Navigator.pop(context); 
                               }
                           });
                         },
@@ -481,19 +463,17 @@ class _MyPropertyDetailScreenState extends State<MyPropertyDetailScreen>
                   if (widget.property.status == PropertyStatus.approved || widget.property.status == PropertyStatus.draft || widget.property.status == PropertyStatus.rejected)
                       const SizedBox(height: 12),
 
-                  // Tombol Lihat Halaman Publik
                   SizedBox(
                     width: double.infinity,
                     child: OutlinedButton.icon(
                       icon: const Icon(EvaIcons.externalLinkOutline, size: 20),
                       label: Text("Lihat Halaman Publik", style: GoogleFonts.poppins(fontWeight: FontWeight.w500)),
                       onPressed: () {
-                        // Navigasi ke PropertyDetailPage, passing ChangeNotifierProvider.value
                         Navigator.push(
                           context,
                           MaterialPageRoute(
                             builder: (context) => ChangeNotifierProvider.value(
-                              value: widget.property, // Property Anda sudah ChangeNotifier
+                              value: widget.property,
                               child: PropertyDetailPage(property: widget.property),
                             ),
                           ),
@@ -509,7 +489,6 @@ class _MyPropertyDetailScreenState extends State<MyPropertyDetailScreen>
                   ),
                   const SizedBox(height: 12),
 
-                  // Tombol Arsipkan
                   if (widget.property.status == PropertyStatus.approved)
                     SizedBox(
                       width: double.infinity,
@@ -526,17 +505,15 @@ class _MyPropertyDetailScreenState extends State<MyPropertyDetailScreen>
                     ),
                   if (widget.property.status == PropertyStatus.approved) const SizedBox(height: 12),
 
-                  // Tombol Tandai Terjual
                   if (widget.property.status == PropertyStatus.approved)
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton.icon(
-                        icon: Icon(Icons.paid_outlined, size: 20, color: Colors.white),
-                        label: Text("Tandai sebagai Terjual", style: GoogleFonts.poppins(fontWeight: FontWeight.w600, color: Colors.white)),
+                        icon: const Icon(Icons.paid_outlined, size: 20, color: colorPaletHitam), // Perubahan warna ikon
+                        label: Text("Tandai sebagai Terjual", style: GoogleFonts.poppins(fontWeight: FontWeight.w600, color: colorPaletHitam)), // Perubahan warna teks
                         onPressed: () => _updatePropertyStatus(PropertyStatus.sold, "Tandai Properti Terjual?", "Status properti akan diubah menjadi 'Terjual'. Properti ini tidak akan tampil di publik lagi.", authProvider, propertyProvider),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.purple.shade600,
-                          foregroundColor: Colors.white,
+                          backgroundColor: colorPaletHijauMuda, // Perubahan warna background
                           padding: const EdgeInsets.symmetric(vertical: 13),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                         ),
@@ -681,7 +658,7 @@ class _MyPropertyDetailScreenState extends State<MyPropertyDetailScreen>
                     loadingProgress.expectedTotalBytes!
                 : null,
             strokeWidth: 2.5,
-            color: colorPaletHijauGelap, // <<--- WARNA LOADING DIUBAH DI SINI
+            color: colorPaletHijauGelap,
         ),
         ),
     );
@@ -708,7 +685,7 @@ class _MyPropertyDetailScreenState extends State<MyPropertyDetailScreen>
 
   Widget _buildStatItem(IconData icon, String text) {
     return Row(
-      mainAxisSize: MainAxisSize.min, // Agar tidak terlalu melebar jika teks pendek
+      mainAxisSize: MainAxisSize.min,
       children: [
         Icon(icon, color: Colors.grey[700], size: 15),
         const SizedBox(width: 5),
@@ -819,22 +796,21 @@ class _MyPropertyDetailScreenState extends State<MyPropertyDetailScreen>
             newStatus,
             authProvider.token!,
           );
-          if (mounted) { // Selalu cek mounted setelah await
+          if (mounted) { 
             if (result['success'] == true) {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(content: Text('Status properti berhasil diperbarui ke ${newStatus.name}.'), backgroundColor: Colors.green),
               );
-              // Refresh semua list yang relevan
-              final String? token = authProvider.token; // Ambil lagi token untuk null safety
+              final String? token = authProvider.token; 
                if (token != null) {
                  await Future.wait([
                     propertyProvider.fetchUserApprovedProperties(token),
                     propertyProvider.fetchUserManageableProperties(token),
                     propertyProvider.fetchUserSoldProperties(token),
-                    propertyProvider.fetchPublicProperties(), // Refresh publik karena status berubah
+                    propertyProvider.fetchPublicProperties(), 
                  ]);
               }
-              if (mounted) Navigator.pop(context); // Kembali ke ProfileScreen
+              if (mounted) Navigator.pop(context); 
             } else {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(content: Text('Gagal memperbarui status: ${result['message'] ?? "Terjadi kesalahan."}')),
@@ -860,7 +836,7 @@ class _MyPropertyDetailScreenState extends State<MyPropertyDetailScreen>
   }) async {
     return showDialog<void>(
       context: context,
-      barrierDismissible: false, // User must tap button!
+      barrierDismissible: false, 
       builder: (BuildContext dialogContext) {
         return AlertDialog(
           title: Text(title, style: GoogleFonts.poppins(fontWeight: FontWeight.w600, fontSize: 17)),
@@ -884,8 +860,8 @@ class _MyPropertyDetailScreenState extends State<MyPropertyDetailScreen>
               style: ElevatedButton.styleFrom(backgroundColor: Theme.of(context).primaryColorDark),
               child: Text('Konfirmasi', style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.w500)),
               onPressed: () {
-                Navigator.of(dialogContext).pop(); // Tutup dialog dulu
-                onConfirm(); // Lalu jalankan aksi
+                Navigator.of(dialogContext).pop(); 
+                onConfirm(); 
               },
             ),
           ],

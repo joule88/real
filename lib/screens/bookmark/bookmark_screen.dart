@@ -1,10 +1,10 @@
-// lib/screens/bookmark/bookmark_screen.dart
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:provider/provider.dart'; // Import Provider
+import 'package:provider/provider.dart';
 import 'package:real/models/property.dart';
-import 'package:real/provider/auth_provider.dart'; // Import AuthProvider
-import 'package:real/provider/property_provider.dart'; // Import PropertyProvider
+import 'package:real/provider/auth_provider.dart';
+import 'package:real/provider/property_provider.dart';
+import 'package:real/screens/detail/detailpost.dart'; // Pastikan import ini ada
 import 'package:real/widgets/property_list_item.dart';
 
 class BookmarkScreen extends StatefulWidget {
@@ -18,10 +18,7 @@ class _BookmarkScreenState extends State<BookmarkScreen> {
   @override
   void initState() {
     super.initState();
-    // Panggil fetchBookmarkedProperties saat layar pertama kali dibuka
-    // Menggunakan addPostFrameCallback memastikan context sudah tersedia
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      // Pastikan widget sudah ter-mount sebelum mengakses context
       if (mounted) {
         final authProvider = Provider.of<AuthProvider>(context, listen: false);
         Provider.of<PropertyProvider>(context, listen: false)
@@ -30,12 +27,55 @@ class _BookmarkScreenState extends State<BookmarkScreen> {
     });
   }
 
-  // Method untuk pull-to-refresh
   Future<void> _refreshBookmarks() async {
     if (mounted) {
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
       await Provider.of<PropertyProvider>(context, listen: false)
           .fetchBookmarkedProperties(authProvider.token);
+    }
+  }
+
+  // Fungsi untuk navigasi ke detail properti
+  Future<void> _navigateToDetail(Property property) async {
+    // Tampilkan dialog loading
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext dialogContext) {
+        return const Center(child: CircularProgressIndicator());
+      },
+    );
+
+    final propertyProvider = Provider.of<PropertyProvider>(context, listen: false);
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+
+    Property? freshPropertyData = await propertyProvider.fetchPublicPropertyDetail(
+      property.id,
+      authProvider.token,
+    );
+
+    if (!mounted) return; // Cek mounted setelah await
+    Navigator.pop(context); // Tutup dialog loading
+
+    if (freshPropertyData != null) {
+      print("Navigating to PropertyDetailPage from BookmarkScreen with fresh data for ${freshPropertyData.id}.");
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => ChangeNotifierProvider.value(
+            value: freshPropertyData, // Property model adalah ChangeNotifier
+            child: PropertyDetailPage(
+              key: ValueKey(freshPropertyData.id), // Gunakan key unik
+              property: freshPropertyData,
+            ),
+          ),
+        ),
+      );
+    } else {
+      print("Failed to fetch fresh property data from BookmarkScreen for ${property.id}");
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Gagal memuat detail properti. Coba lagi nanti.')),
+      );
     }
   }
 
@@ -60,15 +100,13 @@ class _BookmarkScreenState extends State<BookmarkScreen> {
           ),
         ),
       ),
-      body: Consumer<PropertyProvider>( // Bungkus dengan Consumer
+      body: Consumer<PropertyProvider>(
         builder: (context, propertyProvider, child) {
           if (propertyProvider.isLoadingBookmarkedProperties && propertyProvider.bookmarkedProperties.isEmpty) {
-            // Tampilkan loading hanya jika daftar masih kosong dan sedang loading awal
             return const Center(child: CircularProgressIndicator());
           }
 
           if (propertyProvider.bookmarkedPropertiesError != null && propertyProvider.bookmarkedProperties.isEmpty) {
-            // Tampilkan error hanya jika daftar masih kosong dan ada error
             return Center(
               child: Padding(
                 padding: const EdgeInsets.all(20.0),
@@ -106,12 +144,9 @@ class _BookmarkScreenState extends State<BookmarkScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 15.0),
               child: Column(
                 children: [
-                  // Jika Anda memiliki search bar atau filter, bisa diletakkan di sini
-                  // _buildSearchBarAndFilter(),
-                  // const SizedBox(height: 20),
                   Expanded(
                     child: actualBookmarkedProperties.isEmpty
-                        ? _buildEmptyState() // Tampilkan empty state jika tidak ada bookmark
+                        ? _buildEmptyState()
                         : _buildBookmarkList(actualBookmarkedProperties),
                   ),
                 ],
@@ -123,33 +158,30 @@ class _BookmarkScreenState extends State<BookmarkScreen> {
     );
   }
 
-  // Widget _buildSearchBarAndFilter() {
-  //   // Implementasi search bar dan filter jika dibutuhkan
-  //   return Container();
-  // }
-
   Widget _buildBookmarkList(List<Property> properties) {
     return ListView.builder(
       itemCount: properties.length,
       itemBuilder: (context, index) {
         final property = properties[index];
-        // Penting: Pastikan PropertyListItem dapat menangani perubahan state isFavorite
-        // dan memanggil togglePropertyBookmark dari PropertyProvider.
-        // Kita sudah melakukan ini di langkah sebelumnya.
-        return PropertyListItem(
-          property: property,
+        return GestureDetector( // Membungkus PropertyListItem dengan GestureDetector
+          onTap: () {
+            _navigateToDetail(property); // Memanggil fungsi navigasi
+          },
+          child: PropertyListItem(
+            property: property,
+          ),
         );
       },
     );
   }
 
   Widget _buildEmptyState() {
-    return LayoutBuilder( // Menggunakan LayoutBuilder agar bisa mengisi ruang yang tersedia
+    return LayoutBuilder(
       builder: (context, constraints) {
-        return SingleChildScrollView( // Agar konten bisa di-scroll jika layar terlalu kecil
-          physics: const AlwaysScrollableScrollPhysics(), // Aktifkan scroll meskipun konten pas
+        return SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
           child: ConstrainedBox(
-            constraints: BoxConstraints(minHeight: constraints.maxHeight), // Memastikan mengisi tinggi
+            constraints: BoxConstraints(minHeight: constraints.maxHeight),
             child: Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -161,7 +193,7 @@ class _BookmarkScreenState extends State<BookmarkScreen> {
                   ),
                   const SizedBox(height: 20),
                   Text(
-                    "Halaman Bookmark Anda Kosong", // Diubah ke Bahasa Indonesia
+                    "Halaman Bookmark Anda Kosong",
                     style: GoogleFonts.poppins(
                       fontSize: 18,
                       fontWeight: FontWeight.w600,
@@ -171,7 +203,7 @@ class _BookmarkScreenState extends State<BookmarkScreen> {
                   ),
                   const SizedBox(height: 10),
                   Text(
-                    "Klik ikon bookmark pada properti untuk menyimpannya di sini.", // Diubah ke Bahasa Indonesia
+                    "Klik ikon bookmark pada properti untuk menyimpannya di sini.",
                     style: GoogleFonts.poppins(
                       fontSize: 14,
                       color: Colors.grey[600],

@@ -1,10 +1,11 @@
-// lib/screens/search/search_screen.dart
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
+import 'package:real/models/property.dart';
+import 'package:real/provider/auth_provider.dart';
 import 'package:real/provider/property_provider.dart';
 import 'package:real/widgets/property_list_item.dart';
-import 'package:real/screens/detail/detailpost.dart'; // <<< PASTIKAN IMPORT INI ADA
+import 'package:real/screens/detail/detailpost.dart';
 
 class SearchScreen extends StatefulWidget {
   const SearchScreen({super.key});
@@ -22,7 +23,8 @@ class _SearchScreenState extends State<SearchScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      // Provider.of<PropertyProvider>(context, listen: false).clearSearchResults(); // Hapus jika tidak ingin search kosong saat awal
+      // Jika ingin membersihkan hasil search sebelumnya saat layar dibuka, uncomment baris di bawah
+      // Provider.of<PropertyProvider>(context, listen: false).clearSearchResults();
     });
 
     _scrollController.addListener(() {
@@ -56,7 +58,7 @@ class _SearchScreenState extends State<SearchScreen> {
       }
     } else {
       if (keyword.isNotEmpty) {
-        _previousSearchKeyword = keyword;
+        _previousSearchKeyword = keyword; 
         propertyProvider.performKeywordSearch(keyword, loadMore: false);
       } else {
         propertyProvider.clearSearchResults();
@@ -83,6 +85,8 @@ class _SearchScreenState extends State<SearchScreen> {
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 1,
+        // Tombol kembali akan otomatis ditambahkan oleh Navigator jika SearchScreen di-push
+        // Jika ingin kustomisasi, bisa tambahkan leading: IconButton(...)
         title: Text(
           "Cari Properti",
           style: GoogleFonts.poppins(
@@ -95,61 +99,28 @@ class _SearchScreenState extends State<SearchScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              // ... (Search Bar dan Filter Button tetap sama) ...
-              children: [
-                Expanded(
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 0),
-                    decoration: BoxDecoration(
-                      color: Colors.grey[100],
-                      borderRadius: BorderRadius.circular(12),
-                       border: Border.all(color: Colors.grey[300]!)
-                    ),
-                    child: TextField(
-                      controller: _searchController,
-                      decoration: InputDecoration(
-                        hintText: 'Ketik nama properti, lokasi, tipe...',
-                        icon: Icon(Icons.search, color: Colors.grey[600]),
-                        border: InputBorder.none,
-                        hintStyle: GoogleFonts.poppins(color: Colors.grey[600], fontSize: 15),
-                      ),
-                      style: GoogleFonts.poppins(fontSize: 15),
-                      textInputAction: TextInputAction.search,
-                      onSubmitted: (value) {
-                        if (value.trim().isNotEmpty && value.trim() != _previousSearchKeyword) {
-                           _triggerSearch();
-                        } else if (value.trim().isEmpty && _previousSearchKeyword.isNotEmpty) {
-                           _triggerSearch();
-                        } else if (value.trim().isNotEmpty) {
-                           _triggerSearch();
-                        }
-                      },
-                    ),
-                  ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 0),
+              decoration: BoxDecoration(
+                color: Colors.grey[100],
+                borderRadius: BorderRadius.circular(12),
+                 border: Border.all(color: Colors.grey[300]!)
+              ),
+              child: TextField(
+                controller: _searchController,
+                autofocus: true, // --- TAMBAHKAN INI ---
+                decoration: InputDecoration(
+                  hintText: 'Ketik nama properti, lokasi, tipe...',
+                  icon: Icon(Icons.search, color: Colors.grey[600]),
+                  border: InputBorder.none,
+                  hintStyle: GoogleFonts.poppins(color: Colors.grey[600], fontSize: 15),
                 ),
-                const SizedBox(width: 10),
-                InkWell( 
-                  onTap: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Fitur filter belum diimplementasikan.')),
-                    );
-                  },
-                  borderRadius: BorderRadius.circular(12),
-                  child: Container(
-                    padding: const EdgeInsets.all(14), 
-                    decoration: BoxDecoration(
-                      color: Color(0xFF1F2937), // Gunakan warna yang sudah didefinisikan
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: const Icon(
-                      Icons.filter_list,
-                      color: Colors.white, // Gunakan warna ikon yang sudah didefinisikan
-                      size: 24,
-                    ),
-                  ),
-                ),
-              ],
+                style: GoogleFonts.poppins(fontSize: 15),
+                textInputAction: TextInputAction.search,
+                onSubmitted: (value) {
+                  _triggerSearch();
+                },
+              ),
             ),
             const SizedBox(height: 20),
 
@@ -161,7 +132,7 @@ class _SearchScreenState extends State<SearchScreen> {
                       ? "Mencari properti untuk \"${propertyProvider.currentSearchKeyword}\"..."
                       : propertyProvider.currentSearchKeyword.isNotEmpty
                           ? "Hasil pencarian (${propertyProvider.searchedProperties.length}) untuk \"${propertyProvider.currentSearchKeyword}\""
-                          : "Menampilkan semua properti",
+                          : "Menampilkan hasil pencarian",
                   style: GoogleFonts.poppins(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
@@ -179,7 +150,6 @@ class _SearchScreenState extends State<SearchScreen> {
                       return const Center(child: CircularProgressIndicator());
                     }
                     if (propertyProvider.searchError != null && propertyProvider.searchedProperties.isEmpty) {
-                      // ... (Error UI tetap sama) ...
                        return Center(
                         child: Padding(
                           padding: const EdgeInsets.all(16.0),
@@ -205,7 +175,6 @@ class _SearchScreenState extends State<SearchScreen> {
                       );
                     }
                     if (propertyProvider.searchedProperties.isEmpty && propertyProvider.currentSearchKeyword.isNotEmpty && !propertyProvider.isLoadingSearch) {
-                      // ... (Empty search result UI tetap sama) ...
                       return Center(
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
@@ -218,7 +187,7 @@ class _SearchScreenState extends State<SearchScreen> {
                             ),
                             const SizedBox(height: 8),
                             Text(
-                              'Coba kata kunci lain atau periksa filter Anda.',
+                              'Coba kata kunci lain.',
                               textAlign: TextAlign.center,
                               style: GoogleFonts.poppins(fontSize: 14, color: Colors.grey[600]),
                             ),
@@ -227,7 +196,6 @@ class _SearchScreenState extends State<SearchScreen> {
                       );
                     }
                      if (propertyProvider.searchedProperties.isEmpty && propertyProvider.currentSearchKeyword.isEmpty && !propertyProvider.isLoadingSearch) {
-                      // ... (Initial search screen UI tetap sama) ...
                       return Center( 
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
@@ -243,14 +211,13 @@ class _SearchScreenState extends State<SearchScreen> {
                       );
                     }
 
-                    // --- MODIFIKASI DI SINI ---
                     return ListView.builder(
                       controller: _scrollController,
                       itemCount: propertyProvider.searchedProperties.length + 
-                                 (propertyProvider.hasMoreSearchResults && propertyProvider.isLoadingSearch && propertyProvider.searchedProperties.isNotEmpty ? 1 : 0),
+                                 (propertyProvider.isLoadingSearch && propertyProvider.searchedProperties.isNotEmpty && propertyProvider.hasMoreSearchResults ? 1 : 0),
                       itemBuilder: (context, index) {
                         if (index == propertyProvider.searchedProperties.length) {
-                          return propertyProvider.isLoadingSearch
+                          return propertyProvider.isLoadingSearch && propertyProvider.hasMoreSearchResults
                               ? const Center(child: Padding(
                                   padding: EdgeInsets.all(16.0),
                                   child: CircularProgressIndicator(strokeWidth: 3),
@@ -259,23 +226,45 @@ class _SearchScreenState extends State<SearchScreen> {
                         }
                         
                         final property = propertyProvider.searchedProperties[index];
-                        return GestureDetector( // Bungkus PropertyListItem dengan GestureDetector
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => ChangeNotifierProvider.value(
-                                  value: property, // Property model Anda adalah ChangeNotifier
-                                  child: PropertyDetailPage(property: property),
-                                ),
-                              ),
+                        return GestureDetector(
+                          onTap: () async { 
+                            showDialog(
+                              context: context,
+                              barrierDismissible: false,
+                              builder: (BuildContext dialogContext) {
+                                return const Center(child: CircularProgressIndicator());
+                              },
                             );
+
+                            final authProvider = Provider.of<AuthProvider>(context, listen: false);
+                            Property? freshPropertyData = await propertyProvider.fetchPublicPropertyDetail(
+                              property.id,
+                              authProvider.token
+                            );
+
+                            if (!mounted) return; 
+                            Navigator.pop(context); 
+
+                            if (freshPropertyData != null) {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => ChangeNotifierProvider.value(
+                                    value: freshPropertyData,
+                                    child: PropertyDetailPage(property: freshPropertyData),
+                                  ),
+                                ),
+                              );
+                            } else {
+                               ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('Gagal memuat detail properti. Coba lagi nanti.')),
+                              );
+                            }
                           },
                           child: PropertyListItem(
                             property: property,
                           ),
                         );
-                        // --- AKHIR MODIFIKASI ---
                       },
                     );
                   }

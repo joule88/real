@@ -1,14 +1,13 @@
-// lib/screens/home/home_screen.dart
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
-import 'package:real/models/property.dart';        // Pastikan import model Property benar
-import 'package:real/provider/property_provider.dart'; // Import PropertyProvider
-import 'package:real/widgets/property_card.dart';     // Import widget card
+import 'package:real/models/property.dart';
+import 'package:real/provider/property_provider.dart';
+import 'package:real/screens/search/search_screen.dart'; // Import SearchScreen
+import 'package:real/widgets/property_card.dart';
 
-// Ubah menjadi StatefulWidget
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key}); // Tambahkan const jika tidak ada parameter
+  const HomeScreen({super.key});
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -20,16 +19,14 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    // Panggil fetchPublicProperties saat layar pertama kali dibuka
     WidgetsBinding.instance.addPostFrameCallback((_) {
       Provider.of<PropertyProvider>(context, listen: false)
           .fetchPublicProperties();
     });
 
-    // Listener untuk ScrollController (untuk load more)
     _scrollController.addListener(() {
       if (_scrollController.position.pixels >=
-              _scrollController.position.maxScrollExtent - 200 && // Trigger sebelum akhir banget
+              _scrollController.position.maxScrollExtent - 200 &&
           !Provider.of<PropertyProvider>(context, listen: false)
               .isLoadingPublicProperties &&
           Provider.of<PropertyProvider>(context, listen: false)
@@ -140,10 +137,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               );
             } else {
-              // Data properti tersedia
               final List<Property> allProps = propertyProvider.publicProperties;
-              // Ambil beberapa properti untuk "Featured" (horizontal scroll)
-              // Misalnya 5 properti pertama, atau lebih sedikit jika totalnya kurang dari 5
               final List<Property> featuredProps = allProps.take(5).toList();
 
               bodyContent = ListView(
@@ -167,36 +161,33 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ),
                   const SizedBox(height: 20),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 5),
-                          decoration: BoxDecoration(
-                            color: Colors.grey[200],
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: const TextField(
-                            decoration: InputDecoration(
-                              hintText: 'Search address, city, location',
-                              icon: Icon(Icons.search, color: Colors.grey),
-                              border: InputBorder.none,
-                              hintStyle: TextStyle(color: Colors.grey),
-                            ),
-                          ),
-                        ),
+                  // --- PERUBAHAN BAGIAN SEARCH BAR ---
+                  GestureDetector(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => const SearchScreen()),
+                      );
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 12), // Disesuaikan paddingnya
+                      decoration: BoxDecoration(
+                        color: Colors.grey[200],
+                        borderRadius: BorderRadius.circular(10),
                       ),
-                      const SizedBox(width: 10),
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF1F2937),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: const Icon(Icons.filter_list, color: Colors.white, size: 24),
+                      child: Row(
+                        children: [
+                          Icon(Icons.search, color: Colors.grey[600]),
+                          const SizedBox(width: 10),
+                          Text(
+                            'Search address, city, location',
+                            style: GoogleFonts.poppins(color: Colors.grey[600], fontSize: 15),
+                          ),
+                        ],
                       ),
-                    ],
+                    ),
                   ),
+                  // --- AKHIR PERUBAHAN BAGIAN SEARCH BAR ---
                   const SizedBox(height: 20),
                   SizedBox(
                     height: 40,
@@ -212,7 +203,6 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   const SizedBox(height: 25),
 
-                  // Featured Properties (Horizontal Scroll)
                   if (featuredProps.isNotEmpty)
                     SizedBox(
                       height: 280,
@@ -229,35 +219,21 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   if (featuredProps.isNotEmpty) const SizedBox(height: 25),
 
-                  // "For You" Section Header (atau "Semua Properti")
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        "For You", // atau "Semua Properti"
+                        "For You",
                         style: GoogleFonts.poppins(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
                           color: Colors.black,
                         ),
                       ),
-                      // Tombol "More" bisa dihilangkan jika sudah ada infinite scroll
-                      // atau bisa diarahkan ke halaman search dengan filter tertentu.
-                      // TextButton(
-                      //   onPressed: () { /* Aksi lihat semua */ },
-                      //   child: Text(
-                      //     "More",
-                      //     style: GoogleFonts.poppins(
-                      //       fontSize: 14, fontWeight: FontWeight.w500, color: Colors.grey[600],
-                      //     ),
-                      //   ),
-                      // ),
                     ],
                   ),
                   const SizedBox(height: 15),
 
-                  // "For You" Properties List (Vertical)
-                  // Menampilkan semua properti yang ada di `allProps`
                   ListView.builder(
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
@@ -272,14 +248,12 @@ class _HomeScreenState extends State<HomeScreen> {
                         );
                       }),
                   
-                  // Indikator loading untuk "load more"
                   if (propertyProvider.isLoadingPublicProperties && propertyProvider.publicProperties.isNotEmpty)
                     const Padding(
                       padding: EdgeInsets.symmetric(vertical: 20.0),
                       child: Center(child: CircularProgressIndicator()),
                     ),
                   
-                  // Pesan jika sudah tidak ada data lagi untuk di-load
                   if (!propertyProvider.hasMorePublicProperties && propertyProvider.publicProperties.isNotEmpty)
                      Padding(
                        padding: const EdgeInsets.symmetric(vertical: 20.0),
@@ -294,7 +268,6 @@ class _HomeScreenState extends State<HomeScreen> {
               );
             }
 
-            // Bungkus bodyContent dengan RefreshIndicator
             return RefreshIndicator(
               onRefresh: _refreshProperties,
               child: bodyContent,
