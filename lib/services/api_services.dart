@@ -373,30 +373,36 @@ class ApiService {
   // --- MODIFIKASI METHOD getPublicProperties ---
   static Future<Map<String, dynamic>> getPublicProperties({
     int page = 1,
-    String? keyword, // Tambahkan parameter keyword opsional
+    String? keyword,
+    String? category,
+    Map<String, dynamic>? filters, // Tambahkan parameter filters opsional
   }) async {
     String endpoint = ApiConstants.publicPropertiesEndpoint;
-    String queryParams = '?page=$page'; // Selalu ada parameter page
+    Map<String, String> queryParameters = {'page': page.toString()};
 
     if (keyword != null && keyword.isNotEmpty) {
-      // Pastikan keyword di-encode dengan benar untuk URL
-      queryParams += '&keyword=${Uri.encodeQueryComponent(keyword)}'; 
+      queryParameters['keyword'] = keyword;
+    }
+    if (category != null && category.isNotEmpty) {
+      queryParameters['category'] = category;
     }
 
-    // Gabungkan base URL, endpoint, dan queryParams
-    final String url = '$_laravelBaseUrl$endpoint$queryParams';
+    // Tambahkan filter ke queryParameters
+    if (filters != null) {
+      filters.forEach((key, value) {
+        if (value != null) {
+          queryParameters[key] = value.toString();
+        }
+      });
+    }
     
-    print('ApiService: Fetching public properties from $url');
+    // Buat URI dengan query parameters
+    final uri = Uri.parse('$_laravelBaseUrl$endpoint').replace(queryParameters: queryParameters);
+    
+    print('ApiService: Fetching public properties from $uri');
 
     try {
-      final response = await http.get(
-        Uri.parse(url),
-        headers: _getHeaders(), // Tidak memerlukan token untuk API publik ini
-      );
-
-      print('ApiService GetPublicProperties - Status Code: ${response.statusCode}');
-      print('ApiService GetPublicProperties - Body: ${response.body}');
-
+      final response = await http.get(uri, headers: _getHeaders());
       final dynamic responseBody = jsonDecode(response.body);
 
       if (responseBody is Map<String, dynamic>) {
@@ -407,34 +413,22 @@ class ApiService {
                 return {
                   'success': true,
                   'message': responseBody['message'] ?? 'Properti publik berhasil diambil.',
-                  'properties': List<Map<String, dynamic>>.from(paginatedData['data']), // List properti
+                  'properties': List<Map<String, dynamic>>.from(paginatedData['data']),
                   'currentPage': paginatedData['current_page'],
                   'lastPage': paginatedData['last_page'],
                   'total': paginatedData['total'],
                 };
              }
           }
-          print('ApiService GetPublicProperties - Format data paginasi tidak sesuai, namun success: true.');
-          return {
-            'success': true,
-            'message': responseBody['message'] ?? 'Data diterima namun format tidak standar.',
-            'properties': [], 
-            'currentPage': 1, 
-            'lastPage': 1,
-            'total': 0,
-          };
+          return {'success': true, 'message': responseBody['message'] ?? 'Format data tidak standar.', 'properties': [], 'currentPage': 1, 'lastPage': 1, 'total': 0};
         } else {
-          return {
-            'success': false,
-            'message': responseBody['message'] ?? 'Gagal mengambil properti publik. Status: ${response.statusCode}',
-          };
+          return {'success': false, 'message': responseBody['message'] ?? 'Gagal ambil properti publik.'};
         }
-      } else {
-        return {'success': false, 'message': 'Respons API properti publik tidak valid.'};
       }
+      return {'success': false, 'message': 'Respons API tidak valid.'};
     } catch (e) {
       print('ApiService Network error during getPublicProperties: $e');
-      return {'success': false, 'message': 'Kesalahan jaringan saat mengambil properti publik: $e'};
+      return {'success': false, 'message': 'Kesalahan jaringan: $e'};
     }
   }
   // --- AKHIR MODIFIKASI ---
