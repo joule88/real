@@ -5,6 +5,9 @@ import 'package:real/models/property.dart';
 import 'package:real/widgets/bookmark_button.dart';
 import 'package:real/widgets/contact.dart'; 
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:provider/provider.dart';
+import 'package:real/provider/auth_provider.dart';
+import 'package:real/provider/property_provider.dart';
 
 class PropertyDetailPage extends StatefulWidget {
   final Property property;
@@ -158,19 +161,11 @@ class _PropertyDetailPageState extends State<PropertyDetailPage> {
                   BookmarkButton(
                     isBookmarked: widget.property.isFavorite,
                     onPressed: () {
-                      // Di PropertyDetailPage, toggleFavorite cukup di-handle oleh state lokal widget.property
-                      // karena objek Property adalah ChangeNotifier.
-                      // Jika state bookmark perlu disinkronkan dengan PropertyProvider (misal untuk halaman BookmarkScreen),
-                      // maka perlu pemanggilan ke PropertyProvider di sini.
-                      // Untuk saat ini, kita asumsikan toggle lokal sudah cukup jika PropertyDetailPage tidak
-                      // secara langsung mempengaruhi daftar bookmark di provider.
-                       setState(() {
-                         widget.property.toggleFavorite();
-                       });
-                       // Jika ingin sinkron dengan provider:
-                       // final authProvider = Provider.of<AuthProvider>(context, listen: false);
-                       // Provider.of<PropertyProvider>(context, listen: false)
-                       //     .togglePropertyBookmark(widget.property.id, authProvider.token);
+                      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+                      Provider.of<PropertyProvider>(context, listen: false)
+                          .togglePropertyBookmark(widget.property.id, authProvider.token);
+                      // widget.property (sebagai ChangeNotifier) akan update UI detail page secara otomatis.
+                      // PropertyProvider akan menangani update di BookmarkScreen.
                     },
                   ),
                 ],

@@ -1,7 +1,5 @@
 class ApiConstants {
   static const String laravelApiBaseUrl = 'http://127.0.0.1:8000/api';
-
-  // --- Flask API Prediksi ---
   static const String flaskApiBaseUrl = 'http://127.0.0.1:5000';
 
   // Endpoint untuk API Laravel
@@ -13,6 +11,8 @@ class ApiConstants {
   static const String userProfileEndpoint = '/profile';
   static const String changePasswordEndpoint = '/profile/change-password';
   static const String publicPropertiesEndpoint = '/properties/public';
+  static const String toggleBookmarkEndpoint = '/properties'; // Akan menjadi /properties/{id}/toggle-bookmark
+  static const String getBookmarksEndpoint = '/bookmarks'; // Endpoint untuk mengambil properti yang dibookmark user
   static const String forgotPasswordEndpoint = '/forgot-password'; // Tetap
   static const String verifyCodeEndpoint = '/verify-password-code'; // Baru
   static const String resetPasswordWithCodeEndpoint = '/reset-password-with-code'; // Baru

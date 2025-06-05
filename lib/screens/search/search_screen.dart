@@ -33,48 +33,33 @@ class _SearchScreenState extends State<SearchScreen> {
   @override
   void initState() {
     super.initState();
-    print("SearchScreen initState CALLED (Key: {widget.key}, autoOpenFilter: {widget.autoOpenFilterModal})");
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final propertyProvider = Provider.of<PropertyProvider>(context, listen: false);
-      
-      // Isi search bar dengan keyword dari provider jika ada (dari navigasi HomeScreen)
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
       _searchController.text = propertyProvider.pendingSearchKeyword;
-      // Ambil filter yang mungkin sudah di-set dari HomeScreen
-      _activeSearchScreenFilters = Map.from(propertyProvider.pendingSearchFilters); 
-
+      _activeSearchScreenFilters = Map.from(propertyProvider.pendingSearchFilters);
       bool shouldSearchNow = propertyProvider.needsSearchExecution;
       if (widget.autoOpenFilterModal) {
-        print("SearchScreen: Auto opening filter modal.");
         Future.delayed(const Duration(milliseconds: 50), () {
-          if (mounted) {
-            _showSearchFilterModal();
-          }
+          if (mounted) _showSearchFilterModal();
         });
-        shouldSearchNow = false; 
+        shouldSearchNow = false;
       }
-      // Otomatis jalankan pencarian jika ada parameter pending dan belum ada hasil
       if (shouldSearchNow &&
           propertyProvider.searchedProperties.isEmpty &&
           !propertyProvider.isLoadingSearch) {
-        print("SearchScreen: Auto-triggering search from initState. Keyword: {propertyProvider.pendingSearchKeyword}, Filters: {propertyProvider.pendingSearchFilters}");
-        propertyProvider.performKeywordSearch(); 
-      } else if (propertyProvider.searchedProperties.isNotEmpty) {
-        // Jika sudah ada hasil (misalnya dari navigasi kembali), tidak perlu auto-search
-         // Kecuali jika parameter pending berbeda dari yang menghasilkan result saat ini
-        print("SearchScreen: Already has search results or no fresh execution needed immediately.");
+        propertyProvider.performKeywordSearch(authToken: authProvider.token);
       }
     });
-
     _scrollController.addListener(() {
       final propertyProvider = Provider.of<PropertyProvider>(context, listen: false);
       if (_scrollController.position.pixels >=
               _scrollController.position.maxScrollExtent - 300 &&
           !propertyProvider.isLoadingSearch &&
           propertyProvider.hasMoreSearchResults) {
-        // Gunakan keyword dan filter yang sudah ada di provider untuk loadMore
         if (propertyProvider.pendingSearchKeyword.isNotEmpty || propertyProvider.pendingSearchFilters.isNotEmpty) {
-          print("SearchScreen: Mencapai akhir scroll, memanggil loadMore.");
-          propertyProvider.performKeywordSearch(loadMore: true);
+          final authProvider = Provider.of<AuthProvider>(context, listen: false);
+          propertyProvider.performKeywordSearch(loadMore: true, authToken: authProvider.token);
         }
       }
     });
@@ -89,16 +74,16 @@ class _SearchScreenState extends State<SearchScreen> {
 
   void _triggerSearchFromSearchBar() {
     final propertyProvider = Provider.of<PropertyProvider>(context, listen: false);
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
     String keyword = _searchController.text.trim();
-    // Saat search dari bar di SearchScreen, kita gunakan filter yang sudah aktif di _activeSearchScreenFilters
     propertyProvider.prepareSearchParameters(keyword: keyword, filters: _activeSearchScreenFilters);
-    propertyProvider.performKeywordSearch();
+    propertyProvider.performKeywordSearch(authToken: authProvider.token);
   }
   
   Future<void> _refreshSearchResults() async {
     final propertyProvider = Provider.of<PropertyProvider>(context, listen: false);
-    // Refresh akan menggunakan parameter (keyword & filter) yang sudah ada di provider
-    await propertyProvider.performKeywordSearch(loadMore: false);
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    await propertyProvider.performKeywordSearch(loadMore: false, authToken: authProvider.token);
   }
 
   void _showSearchFilterModal() {
@@ -116,21 +101,23 @@ class _SearchScreenState extends State<SearchScreen> {
             setState(() {
               _activeSearchScreenFilters = cleanFilters;
             });
+            final authProvider = Provider.of<AuthProvider>(context, listen: false);
             Provider.of<PropertyProvider>(context, listen: false).prepareSearchParameters(
                 keyword: _searchController.text.trim(),
                 filters: cleanFilters,
             );
-            Provider.of<PropertyProvider>(context, listen: false).performKeywordSearch();
+            Provider.of<PropertyProvider>(context, listen: false).performKeywordSearch(authToken: authProvider.token);
           },
           onResetFilters: () {
             setState(() {
               _activeSearchScreenFilters = {};
             });
+            final authProvider = Provider.of<AuthProvider>(context, listen: false);
             Provider.of<PropertyProvider>(context, listen: false).prepareSearchParameters(
                 keyword: _searchController.text.trim(),
                 filters: {},
             );
-            Provider.of<PropertyProvider>(context, listen: false).performKeywordSearch();
+            Provider.of<PropertyProvider>(context, listen: false).performKeywordSearch(authToken: authProvider.token);
           },
         );
       },

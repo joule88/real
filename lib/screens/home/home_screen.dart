@@ -8,6 +8,7 @@ import 'package:real/provider/property_provider.dart';
 import 'package:real/screens/main_screen.dart'; // Import MainScreenState
 import 'package:real/widgets/property_card.dart';
 import 'package:real/widgets/filter_modal_content.dart'; // <-- IMPORT WIDGET BARU
+import 'package:real/provider/auth_provider.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -26,21 +27,22 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    print("HomeScreen initState CALLED (Key: ${widget.key})");
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _resetToInitialAndLoad(isInitialLoad: true);
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      _resetToInitialAndLoad(isInitialLoad: true, authToken: authProvider.token);
     });
-
     _scrollController.addListener(() {
       final propertyProvider = Provider.of<PropertyProvider>(context, listen: false);
       if (_scrollController.position.pixels >=
               _scrollController.position.maxScrollExtent - 200 &&
           !propertyProvider.isLoadingPublicProperties &&
           propertyProvider.hasMorePublicProperties) {
+        final authProvider = Provider.of<AuthProvider>(context, listen: false);
         propertyProvider.fetchPublicProperties(
           loadMore: true,
           category: _selectedCategoryLabel,
           filters: _activeFilters,
+          authToken: authProvider.token,
         );
       }
     });
@@ -58,17 +60,14 @@ class _HomeScreenState extends State<HomeScreen> {
     required Map<String, dynamic> filters,
     bool isRefresh = false,
     bool isInitialLoad = false,
+    String? authToken,
   }) async {
     final propertyProvider = Provider.of<PropertyProvider>(context, listen: false);
-    if (isInitialLoad) {
-       print("HomeScreen: Initial load. Category: $category, Filters: $filters");
-    } else {
-       print("HomeScreen: Loading properties. Category: $category, Filters: $filters, Refresh: $isRefresh");
-    }
     await propertyProvider.fetchPublicProperties(
       loadMore: false,
       category: category,
       filters: filters,
+      authToken: authToken,
     );
     if (isRefresh && mounted && !isInitialLoad) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -78,16 +77,28 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _refreshProperties() async {
-    await _loadProperties(category: _selectedCategoryLabel, filters: _activeFilters, isRefresh: true);
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    await _loadProperties(
+      category: _selectedCategoryLabel,
+      filters: _activeFilters,
+      isRefresh: true,
+      authToken: authProvider.token,
+    );
   }
 
-  void _resetToInitialAndLoad({bool isInitialLoad = false}) {
+  void _resetToInitialAndLoad({bool isInitialLoad = false, String? authToken}) {
     setState(() {
       _activeFilters = {};
       _selectedCategoryLabel = "Recomended";
       // Tidak perlu clear controller filter di sini lagi, karena state-nya ada di FilterModalContent
     });
-    _loadProperties(category: _selectedCategoryLabel, filters: _activeFilters, isRefresh: !isInitialLoad, isInitialLoad: isInitialLoad);
+    _loadProperties(
+      category: _selectedCategoryLabel,
+      filters: _activeFilters,
+      isRefresh: !isInitialLoad,
+      isInitialLoad: isInitialLoad,
+      authToken: authToken,
+    );
   }
 
   Widget _buildCategoryChip(String label, {required bool isActive, required VoidCallback onTap}) {
@@ -269,7 +280,8 @@ class _HomeScreenState extends State<HomeScreen> {
                           onTap: () {
                             if (_selectedCategoryLabel != categoryLabel) {
                               setState(() { _selectedCategoryLabel = categoryLabel; });
-                              _loadProperties(category: categoryLabel, filters: _activeFilters);
+                              final authProvider = Provider.of<AuthProvider>(context, listen: false);
+                              _loadProperties(category: categoryLabel, filters: _activeFilters, authToken: authProvider.token);
                             }
                           },
                         );

@@ -370,39 +370,106 @@ class ApiService {
     }
   }
 
-  // --- MODIFIKASI METHOD getPublicProperties ---
+  // === METHOD BARU UNTUK BOOKMARK ===
+  static Future<Map<String, dynamic>> toggleBookmark({
+    required String token,
+    required String propertyId,
+  }) async {
+    final String url = '$_laravelBaseUrl${ApiConstants.toggleBookmarkEndpoint}/$propertyId/toggle-bookmark';
+    print('ApiService: Toggle bookmark for $propertyId at $url');
+    try {
+      final response = await http.post(
+        Uri.parse(url),
+        headers: _getHeaders(token: token),
+      );
+      print('ApiService toggleBookmark - Status: ${response.statusCode}, Body: ${response.body}');
+      final dynamic responseBody = jsonDecode(response.body);
+      if (response.statusCode == 200 || response.statusCode == 201) {
+          return {
+              'success': true,
+              'message': responseBody['message'] ?? 'Status bookmark diperbarui.',
+              'is_favorited_by_user': responseBody['data']?['is_favorited'] ?? false,
+          };
+      } else {
+          return {
+              'success': false,
+              'message': responseBody['message'] ?? 'Gagal memperbarui bookmark. Status: ${response.statusCode}',
+          };
+      }
+    } catch (e) {
+      print('ApiService Network error during toggleBookmark: $e');
+      return {'success': false, 'message': 'Kesalahan jaringan: $e'};
+    }
+  }
+
+  // === METHOD BARU UNTUK MENGAMBIL BOOKMARK USER ===
+  static Future<Map<String, dynamic>> getBookmarkedProperties({
+    required String token,
+    int page = 1,
+  }) async {
+    final String url = '$_laravelBaseUrl${ApiConstants.getBookmarksEndpoint}?page=$page';
+    print('ApiService: Fetching bookmarked properties from $url');
+    try {
+      final response = await http.get(
+        Uri.parse(url),
+        headers: _getHeaders(token: token),
+      );
+      print('ApiService getBookmarkedProperties - Status: \\${response.statusCode}');
+      print('ApiService getBookmarkedProperties - Body: \\${response.body}'); // <-- TAMBAHKAN LOG INI
+      final dynamic responseBody = jsonDecode(response.body);
+      if (response.statusCode == 200 && responseBody['success'] == true) {
+           final Map<String, dynamic> paginatedData = responseBody['data'] is Map ? responseBody['data'] : {'data': responseBody['data'] ?? []};
+             if (paginatedData.containsKey('data') && paginatedData['data'] is List) {
+                return {
+                  'success': true,
+                  'message': responseBody['message'] ?? 'Properti bookmark berhasil diambil.',
+                  'properties': List<Map<String, dynamic>>.from(paginatedData['data']),
+                  'currentPage': paginatedData['current_page'] ?? 1,
+                  'lastPage': paginatedData['last_page'] ?? 1,
+                  'total': paginatedData['total'] ?? (paginatedData['data'] as List).length,
+                };
+             }
+             return {
+                'success': true,
+                'message': responseBody['message'] ?? 'Properti bookmark berhasil diambil (format non-standar).',
+                'properties': [],
+                'currentPage': 1, 'lastPage': 1, 'total': 0
+            };
+      } else {
+          return {
+              'success': false,
+              'message': responseBody['message'] ?? 'Gagal mengambil bookmark. Status: \\${response.statusCode}',
+          };
+      }
+    } catch (e) {
+      print('ApiService Network error during getBookmarkedProperties: \\${e}');
+      return {'success': false, 'message': 'Kesalahan jaringan: \\${e}'};
+    }
+  }
+
   static Future<Map<String, dynamic>> getPublicProperties({
     int page = 1,
     String? keyword,
     String? category,
-    Map<String, dynamic>? filters, // Tambahkan parameter filters opsional
+    Map<String, dynamic>? filters,
+    String? authToken, // Tambahkan token untuk mengirim info user
   }) async {
     String endpoint = ApiConstants.publicPropertiesEndpoint;
     Map<String, String> queryParameters = {'page': page.toString()};
 
-    if (keyword != null && keyword.isNotEmpty) {
-      queryParameters['keyword'] = keyword;
-    }
-    if (category != null && category.isNotEmpty) {
-      queryParameters['category'] = category;
-    }
-
-    // Tambahkan filter ke queryParameters
+    if (keyword != null && keyword.isNotEmpty) queryParameters['keyword'] = keyword;
+    if (category != null && category.isNotEmpty) queryParameters['category'] = category;
     if (filters != null) {
       filters.forEach((key, value) {
-        if (value != null) {
-          queryParameters[key] = value.toString();
-        }
+        if (value != null) queryParameters[key] = value.toString();
       });
     }
     
-    // Buat URI dengan query parameters
     final uri = Uri.parse('$_laravelBaseUrl$endpoint').replace(queryParameters: queryParameters);
-    
     print('ApiService: Fetching public properties from $uri');
 
     try {
-      final response = await http.get(uri, headers: _getHeaders());
+      final response = await http.get(uri, headers: _getHeaders(token: authToken));
       final dynamic responseBody = jsonDecode(response.body);
 
       if (responseBody is Map<String, dynamic>) {

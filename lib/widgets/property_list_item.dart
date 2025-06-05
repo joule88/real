@@ -96,11 +96,9 @@ class PropertyListItem extends StatelessWidget {
                     BookmarkButton(
                       isBookmarked: property.isFavorite,
                       onPressed: () {
-                        // --- 👇 PERUBAHAN UTAMA UNTUK BOOKMARK ADA DI SINI 👇 ---
                         final authProvider = Provider.of<AuthProvider>(context, listen: false);
                         Provider.of<PropertyProvider>(context, listen: false)
                             .togglePropertyBookmark(property.id, authProvider.token);
-                        // --- 👆 AKHIR PERUBAHAN UTAMA UNTUK BOOKMARK 👆 ---
                       },
                     ),
                   ],

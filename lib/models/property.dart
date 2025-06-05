@@ -13,12 +13,12 @@ enum PropertyStatus {
   archived
 }
 
-class Property extends ChangeNotifier {
+class Property extends ChangeNotifier { // Pastikan extends ChangeNotifier
   final String id;
   String title;
   String description;
-  final String uploader; // ID String pengunggah, bisa tetap ada
-  User? uploaderInfo;    // Field baru untuk objek User pengunggah
+  final String uploader;
+  User? uploaderInfo;
   String imageUrl;
   List<String> additionalImageUrls;
   double price;
@@ -29,7 +29,7 @@ class Property extends ChangeNotifier {
   String propertyType;
   String furnishings;
   PropertyStatus status;
-  bool _isFavorite;
+  bool _isFavorite; // Private field
   String? rejectionReason;
   DateTime? submissionDate;
   DateTime? approvalDate;
@@ -41,16 +41,14 @@ class Property extends ChangeNotifier {
   int bookmarkCount;
   int viewsCount;
   int inquiriesCount;
-
-  // Field BARU untuk statistik tampilan detail
   Map<String, dynamic> viewStatistics;
 
   Property({
     required this.id,
     required this.title,
     required this.description,
-    required this.uploader, // ID Pengunggah
-    this.uploaderInfo,      // Objek User pengunggah
+    required this.uploader,
+    this.uploaderInfo,
     required this.imageUrl,
     this.additionalImageUrls = const [],
     required this.price,
@@ -61,7 +59,7 @@ class Property extends ChangeNotifier {
     required this.propertyType,
     required this.furnishings,
     this.status = PropertyStatus.draft,
-    bool isFavorite = false,
+    bool isFavorite = false, // Terima dari constructor
     this.rejectionReason,
     this.submissionDate,
     this.approvalDate,
@@ -71,93 +69,25 @@ class Property extends ChangeNotifier {
     this.mainView,
     this.listingAgeCategory,
     this.propertyLabel,
-    this.viewStatistics = const {}, // Inisialisasi field baru
-  }) : _isFavorite = isFavorite;
+    this.viewStatistics = const {},
+  }) : _isFavorite = isFavorite; // Inisialisasi private field
 
-  factory Property.empty() {
-    return Property(
-      id: '',
-      title: '',
-      description: '',
-      uploader: '',
-      imageUrl: '',
-      additionalImageUrls: [],
-      price: 0.0,
-      address: '',
-      bedrooms: 0,
-      bathrooms: 0,
-      areaSqft: 0.0,
-      propertyType: '',
-      furnishings: '',
-      status: PropertyStatus.draft,
-      isFavorite: false,
-      rejectionReason: null,
-      submissionDate: null,
-      approvalDate: null,
-      bookmarkCount: 0,
-      viewsCount: 0,
-      inquiriesCount: 0,
-      mainView: null,
-      listingAgeCategory: null,
-      propertyLabel: null,
-    );
+  // Getter untuk isFavorite
+  bool get isFavorite => _isFavorite;
+
+  // Setter atau method untuk mengubah isFavorite dan notify
+  set isFavorite(bool value) {
+    if (_isFavorite != value) {
+      _isFavorite = value;
+      notifyListeners();
+    }
   }
 
-  Property copyWith({
-    String? id,
-    String? title,
-    String? description,
-    String? uploader,
-    String? imageUrl,
-    List<String>? additionalImageUrls,
-    double? price,
-    String? address,
-    int? bedrooms,
-    int? bathrooms,
-    double? areaSqft,
-    String? propertyType,
-    String? furnishings,
-    PropertyStatus? status,
-    bool? isFavorite,
-    String? rejectionReason,
-    ValueGetter<DateTime?>? submissionDate,
-    ValueGetter<DateTime?>? approvalDate,
-    int? bookmarkCount,
-    int? viewsCount,
-    int? inquiriesCount,
-    ValueGetter<String?>? mainView,
-    ValueGetter<String?>? listingAgeCategory,
-    ValueGetter<String?>? propertyLabel,
-    Map<String, dynamic>? viewStatistics,
-  }) {
-    return Property(
-      id: id ?? this.id,
-      title: title ?? this.title,
-      description: description ?? this.description,
-      uploader: uploader ?? this.uploader,
-      imageUrl: imageUrl ?? this.imageUrl,
-      additionalImageUrls: additionalImageUrls ?? this.additionalImageUrls,
-      price: price ?? this.price,
-      address: address ?? this.address,
-      bedrooms: bedrooms ?? this.bedrooms,
-      bathrooms: bathrooms ?? this.bathrooms,
-      areaSqft: areaSqft ?? this.areaSqft,
-      propertyType: propertyType ?? this.propertyType,
-      furnishings: furnishings ?? this.furnishings,
-      status: status ?? this.status,
-      isFavorite: isFavorite ?? _isFavorite,
-      rejectionReason: rejectionReason ?? this.rejectionReason,
-      submissionDate: submissionDate != null ? submissionDate() : this.submissionDate,
-      approvalDate: approvalDate != null ? approvalDate() : this.approvalDate,
-      bookmarkCount: bookmarkCount ?? this.bookmarkCount,
-      viewsCount: viewsCount ?? this.viewsCount,
-      inquiriesCount: inquiriesCount ?? this.inquiriesCount,
-      mainView: mainView != null ? mainView() : this.mainView,
-      listingAgeCategory: listingAgeCategory != null ? listingAgeCategory() : this.listingAgeCategory,
-      propertyLabel: propertyLabel != null ? propertyLabel() : this.propertyLabel,
-      viewStatistics: viewStatistics ?? this.viewStatistics,
-    );
+  void toggleFavorite() {
+    _isFavorite = !_isFavorite;
+    notifyListeners(); // PENTING: Ini akan memberitahu widget yang mendengarkan Property ini
   }
+
 
   factory Property.fromJson(Map<String, dynamic> json) {
     List<String> allImageReferences = [];
@@ -187,7 +117,6 @@ class Property extends ChangeNotifier {
       }
     }
 
-    // Ganti base URL agar ambil dari ApiConstants
     final String laravelApiBaseUrl = ApiConstants.laravelApiBaseUrl;
     String parsedMainImageUrl = "";
     List<String> parsedAdditionalImageUrls = [];
@@ -249,9 +178,7 @@ class Property extends ChangeNotifier {
       id: json['_id'] ?? json['id'] ?? '',
       title: json['title'] ?? '',
       description: json['description'] ?? '',
-      // Ambil ID pengunggah dari 'user_id', atau dari 'owner' jika bersarang
       uploader: json['user_id'] ?? (json['owner'] is Map ? (json['owner']['_id'] ?? json['owner']['id'] ?? '') : json['owner_id'] ?? ''),
-      // Parse objek 'owner' (atau 'uploader' jika Anda menamakannya begitu di backend)
       uploaderInfo: json['owner'] != null && json['owner'] is Map<String, dynamic>
           ? User.fromJson(json['owner'] as Map<String, dynamic>)
           : (json['uploader'] != null && json['uploader'] is Map<String, dynamic>
@@ -271,6 +198,8 @@ class Property extends ChangeNotifier {
       propertyType: json['propertyType'] ?? '',
       furnishings: json['furnishing'] ?? json['furnishings'] ?? '',
       status: statusValue,
+      // Terima status favorit dari API
+      isFavorite: json['is_favorited_by_user'] ?? json['isFavorite'] ?? false,
       submissionDate: json['submissionDate'] != null ? DateTime.tryParse(json['submissionDate']) : null,
       approvalDate: json['approvalDate'] != null ? DateTime.tryParse(json['approvalDate']) : null,
       rejectionReason: json['rejectionReason'],
@@ -288,21 +217,78 @@ class Property extends ChangeNotifier {
     );
   }
 
+  // ... (copyWith dan toJson bisa tetap sama atau disesuaikan jika perlu) ...
+   Property copyWith({
+    String? id,
+    String? title,
+    String? description,
+    String? uploader,
+    User? uploaderInfo,
+    String? imageUrl,
+    List<String>? additionalImageUrls,
+    double? price,
+    String? address,
+    int? bedrooms,
+    int? bathrooms,
+    double? areaSqft,
+    String? propertyType,
+    String? furnishings,
+    PropertyStatus? status,
+    bool? isFavorite,
+    String? rejectionReason,
+    ValueGetter<DateTime?>? submissionDate,
+    ValueGetter<DateTime?>? approvalDate,
+    int? bookmarkCount,
+    int? viewsCount,
+    int? inquiriesCount,
+    ValueGetter<String?>? mainView,
+    ValueGetter<String?>? listingAgeCategory,
+    ValueGetter<String?>? propertyLabel,
+    Map<String, dynamic>? viewStatistics,
+  }) {
+    return Property(
+      id: id ?? this.id,
+      title: title ?? this.title,
+      description: description ?? this.description,
+      uploader: uploader ?? this.uploader,
+      uploaderInfo: uploaderInfo ?? this.uploaderInfo,
+      imageUrl: imageUrl ?? this.imageUrl,
+      additionalImageUrls: additionalImageUrls ?? this.additionalImageUrls,
+      price: price ?? this.price,
+      address: address ?? this.address,
+      bedrooms: bedrooms ?? this.bedrooms,
+      bathrooms: bathrooms ?? this.bathrooms,
+      areaSqft: areaSqft ?? this.areaSqft,
+      propertyType: propertyType ?? this.propertyType,
+      furnishings: furnishings ?? this.furnishings,
+      status: status ?? this.status,
+      isFavorite: isFavorite ?? _isFavorite,
+      rejectionReason: rejectionReason ?? this.rejectionReason,
+      submissionDate: submissionDate != null ? submissionDate() : this.submissionDate,
+      approvalDate: approvalDate != null ? approvalDate() : this.approvalDate,
+      bookmarkCount: bookmarkCount ?? this.bookmarkCount,
+      viewsCount: viewsCount ?? this.viewsCount,
+      inquiriesCount: inquiriesCount ?? this.inquiriesCount,
+      mainView: mainView != null ? mainView() : this.mainView,
+      listingAgeCategory: listingAgeCategory != null ? listingAgeCategory() : this.listingAgeCategory,
+      propertyLabel: propertyLabel != null ? propertyLabel() : this.propertyLabel,
+      viewStatistics: viewStatistics ?? this.viewStatistics,
+    );
+  }
+
   Map<String, dynamic> toJson() {
     return {
       'id': id,
       'title': title,
       'description': description,
       'uploader': uploader,
-      // 'imageUrl': imageUrl, // Biasanya tidak dikirim balik, backend mengelola path
-      // 'additionalImageUrls': additionalImageUrls, // Sama seperti imageUrl
       'price': price,
       'address': address,
       'bedrooms': bedrooms,
       'bathrooms': bathrooms,
-      'sizeMin': areaSqft, // Cocokkan dengan nama field di backend (sizeMin atau areaSqft)
+      'sizeMin': areaSqft,
       'propertyType': propertyType,
-      'furnishing': furnishings, // Cocokkan dengan nama field di backend
+      'furnishing': furnishings,
       'status': status.name,
       'rejectionReason': rejectionReason,
       'submissionDate': submissionDate?.toIso8601String(),
@@ -313,61 +299,6 @@ class Property extends ChangeNotifier {
       'mainView': mainView,
       'listingAgeCategory': listingAgeCategory,
       'propertyLabel': propertyLabel,
-      // 'view_statistics': viewStatistics, // Biasanya tidak dikirim balik ke API saat update properti
     };
-  }
-
-  bool get isFavorite => _isFavorite;
-
-  void toggleFavorite() {
-    _isFavorite = !_isFavorite;
-    notifyListeners();
-  }
-
-  void updateStatus(PropertyStatus newStatus, {String? reason}) {
-    status = newStatus;
-    if (newStatus == PropertyStatus.rejected) {
-      rejectionReason = reason;
-    }
-    if (newStatus == PropertyStatus.pendingVerification) {
-      submissionDate = DateTime.now();
-    }
-    if (newStatus == PropertyStatus.approved) {
-      approvalDate = DateTime.now();
-    }
-    notifyListeners();
-  }
-
-  void updateDetails({
-    required String title,
-    required String description,
-    required String imageUrl,
-    required List<String> additionalImageUrls,
-    required double price,
-    required String address,
-    required int bedrooms,
-    required int bathrooms,
-    required double areaSqft,
-    required String propertyType,
-    required String furnishings,
-    String? mainView,
-    String? listingAgeCategory,
-    String? propertyLabel,
-  }) {
-    this.title = title;
-    this.description = description;
-    this.imageUrl = imageUrl;
-    this.additionalImageUrls = additionalImageUrls;
-    this.price = price;
-    this.address = address;
-    this.bedrooms = bedrooms;
-    this.bathrooms = bathrooms;
-    this.areaSqft = areaSqft;
-    this.propertyType = propertyType;
-    this.furnishings = furnishings;
-    this.mainView = mainView;
-    this.listingAgeCategory = listingAgeCategory;
-    this.propertyLabel = propertyLabel;
-    notifyListeners();
   }
 }
