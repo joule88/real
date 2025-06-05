@@ -1,21 +1,75 @@
 // lib/provider/auth_provider.dart
 import 'package:flutter/material.dart';
-import '../models/user_model.dart';
-import '../services/api_services.dart'; 
-import 'package:image_picker/image_picker.dart'; // <-- Import ImagePicker package
+import 'package:shared_preferences/shared_preferences.dart'; // Pastikan sudah diimpor
+import '../models/user_model.dart'; // Sesuaikan path jika perlu
+import '../services/api_services.dart'; // Sesuaikan path jika perlu
+import 'package:image_picker/image_picker.dart'; // Jika digunakan
 
 class AuthProvider with ChangeNotifier {
   User? _user;
   String? _token;
   bool _isLoading = false;
   String? _errorMessage;
+  bool _isInitializing = true; // Default ke true
 
   User? get user => _user;
   String? get token => _token;
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
+  bool get isInitializing => _isInitializing; // Getter untuk UI
 
   bool get isAuthenticated => _user != null && _token != null;
+
+  AuthProvider() {
+    print("AuthProvider: Constructor dipanggil, memulai _tryAutoLogin...");
+    _tryAutoLogin();
+  }
+
+  Future<void> _tryAutoLogin() async {
+    // _isInitializing sudah true, tidak perlu di-set lagi di sini.
+    // notifyListeners() akan dipanggil setelah operasi async selesai.
+    print("AuthProvider: _tryAutoLogin() dimulai.");
+
+    // Tambahkan sedikit delay di sini HANYA UNTUK DEBUGGING jika prosesnya terlalu cepat
+    await Future.delayed(const Duration(milliseconds: 10000)); // HAPUS ATAU KOMENTARI DI PRODUKSI
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final storedToken = prefs.getString('userToken');
+      final storedUserId = prefs.getString('userId');
+      final storedUserName = prefs.getString('userName');
+      final storedUserEmail = prefs.getString('userEmail');
+      final storedUserBio = prefs.getString('userBio');
+      final storedUserPhone = prefs.getString('userPhone');
+      final storedUserProfileImage = prefs.getString('userProfileImage');
+
+      if (storedToken != null && storedUserId != null) {
+        _token = storedToken;
+        _user = User(
+          id: storedUserId,
+          name: storedUserName ?? '',
+          email: storedUserEmail ?? '',
+          bio: storedUserBio ?? '',
+          phone: storedUserPhone ?? '',
+          profileImage: storedUserProfileImage ?? '',
+          token: storedToken,
+        );
+        print('AuthProvider: Auto login berhasil untuk pengguna: ${_user?.name}');
+        // Anda bisa memanggil fetchUserProfile() di sini jika perlu data terbaru
+        // await fetchUserProfile(); // Pastikan ini tidak mengganggu state _isInitializing atau _isLoading
+      } else {
+        print('AuthProvider: Tidak ada token tersimpan untuk auto login.');
+      }
+    } catch (e) {
+      print("AuthProvider: Error saat _tryAutoLogin: $e");
+      _user = null; // Pastikan user dan token null jika error
+      _token = null;
+    } finally {
+      _isInitializing = false;
+      print("AuthProvider: _tryAutoLogin() selesai. isInitializing diatur ke false.");
+      notifyListeners(); // PENTING: Beri tahu listener setelah inisialisasi selesai
+    }
+  }
 
   void _setLoading(bool value) {
     _isLoading = value;
@@ -29,7 +83,7 @@ class AuthProvider with ChangeNotifier {
   Future<Map<String, dynamic>> login(String email, String password) async {
     print('AuthProvider: login dipanggil dengan email: $email'); // PRINT 1
     _isLoading = true;
-    notifyListeners(); 
+    notifyListeners();
     _clearError();
 
     Map<String, dynamic> apiResultOutcome = {'success': false, 'message': 'Terjadi kesalahan tidak diketahui saat login.'}; // Variabel ini akan dikembalikan
@@ -49,21 +103,32 @@ class AuthProvider with ChangeNotifier {
           if (responseDataFromApi['user'] is Map<String, dynamic>) {
             _user = User.fromJson(responseDataFromApi['user'] as Map<String, dynamic>);
             print('AuthProvider: User di-parse dari login -> ID: ${_user?.id}, Nama: ${_user?.name}, Email: ${_user?.email}, Bio: "${_user?.bio}"');
-            
+
             // Penentuan keberhasilan upaya login
             if (_user != null && _token != null) {
+              // Simpan token dan data user untuk auto login berikutnya
+              final prefs = await SharedPreferences.getInstance();
+              await prefs.setString('userToken', _token!);
+              await prefs.setString('userId', _user!.id);
+              await prefs.setString('userName', _user!.name);
+              await prefs.setString('userEmail', _user!.email);
+              await prefs.setString('userBio', _user!.bio);
+              await prefs.setString('userPhone', _user!.phone);
+              await prefs.setString('userProfileImage', _user!.profileImage);
+              print('AuthProvider: Token dan data pengguna disimpan ke SharedPreferences.');
+
               loginSuccess = true; // <--- PENTING: Di-set true jika user dan token valid
               _errorMessage = null; // Bersihkan error jika sukses
             } else {
               // Ini seharusnya jarang terjadi jika User.fromJson tidak error dan token ada
-              _user = null; 
+              _user = null;
               _token = null;
               _errorMessage = 'Gagal memproses data pengguna atau token setelah parsing.';
               loginSuccess = false;
             }
           } else { // Jika 'user' dari API bukan Map
             _user = null;
-            _token = null; 
+            _token = null;
             _errorMessage = 'Data pengguna dari server (login) tidak valid.';
             loginSuccess = false;
           }
@@ -92,24 +157,24 @@ class AuthProvider with ChangeNotifier {
       _token = null;
       _errorMessage = 'Exception di AuthProvider.login: $e';
       print('AuthProvider: $_errorMessage');
-      apiResultOutcome['message'] = _errorMessage; 
+      apiResultOutcome['message'] = _errorMessage;
       loginSuccess = false;
     } finally {
       _isLoading = false;
-      notifyListeners(); 
+      notifyListeners();
     }
 
     // Status sukses akhir untuk Map yang dikembalikan
     apiResultOutcome['success'] = loginSuccess;
-    
+
     if (loginSuccess) {
       // Jika sukses, pastikan pesan yang dikembalikan adalah pesan sukses
-      apiResultOutcome['message'] = 'Login berhasil'; 
+      apiResultOutcome['message'] = 'Login berhasil';
     } else {
       // Jika gagal, pastikan pesan error yang relevan dikembalikan
       apiResultOutcome['message'] = _errorMessage ?? apiResultOutcome['message'] ?? 'Login gagal karena alasan tidak diketahui.';
     }
-    
+
     print('AuthProvider: Mengembalikan hasil login: $apiResultOutcome'); // PRINT 3 (Output ini juga PENTING)
     return apiResultOutcome;
   }
@@ -125,6 +190,18 @@ class AuthProvider with ChangeNotifier {
     //     // Tetap lanjutkan proses logout di sisi client meskipun API gagal
     //   }
     // }
+
+    // Hapus token dan data user dari SharedPreferences
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('userToken');
+    await prefs.remove('userId');
+    await prefs.remove('userName');
+    await prefs.remove('userEmail');
+    await prefs.remove('userBio');
+    await prefs.remove('userPhone');
+    await prefs.remove('userProfileImage');
+    print('AuthProvider: Token dan data pengguna dihapus dari SharedPreferences.');
+
 
     _user = null;
     _token = null;
@@ -165,18 +242,31 @@ class AuthProvider with ChangeNotifier {
                 _token = responseDataFromApi['token'] as String?;
                 if (responseDataFromApi['user'] is Map<String, dynamic>) {
                     _user = User.fromJson(responseDataFromApi['user'] as Map<String, dynamic>);
+
+                    // Simpan data untuk auto login jika registrasi langsung login
+                    final prefs = await SharedPreferences.getInstance();
+                    await prefs.setString('userToken', _token!);
+                    await prefs.setString('userId', _user!.id);
+                    await prefs.setString('userName', _user!.name);
+                    await prefs.setString('userEmail', _user!.email);
+                    await prefs.setString('userBio', _user!.bio);
+                    await prefs.setString('userPhone', _user!.phone);
+                    await prefs.setString('userProfileImage', _user!.profileImage);
+                    print('AuthProvider: Token dan data pengguna disimpan ke SharedPreferences setelah registrasi & auto-login.');
+
+
                     print('AuthProvider Register: Auto-login -> Token: $_token, User: ${_user?.name}');
-                    registrationProcessedSuccessfully = true; 
+                    registrationProcessedSuccessfully = true;
                     successMessage = apiResult['message'] ?? 'Registrasi dan login berhasil';
                 } else {
                     _errorMessage = 'Data user dari API register tidak valid untuk auto-login.';
                 }
             } else {
-                registrationProcessedSuccessfully = true; 
+                registrationProcessedSuccessfully = true;
                 successMessage = apiResult['message'] ?? 'Registrasi berhasil, silakan login.';
             }
         } else {
-            registrationProcessedSuccessfully = true; 
+            registrationProcessedSuccessfully = true;
             successMessage = apiResult['message'] ?? 'Registrasi berhasil.';
         }
       } else {
@@ -230,13 +320,19 @@ class AuthProvider with ChangeNotifier {
       if (result['success'] == true) {
         if (responseData != null) {
             // API now returns the updated user object in 'data' field
-            _user = User.fromJson(responseData); 
-            print('AuthProvider: User updated from API data -> Name: \\${_user?.name}, Bio: "\\${_user?.bio}", Phone: \\${_user?.phone}, Image: \\${_user?.profileImage}');
+            _user = User.fromJson(responseData);
+            // Update SharedPreferences
+            final prefs = await SharedPreferences.getInstance();
+            await prefs.setString('userName', _user!.name);
+            await prefs.setString('userBio', _user!.bio);
+            await prefs.setString('userPhone', _user!.phone);
+            await prefs.setString('userProfileImage', _user!.profileImage);
+            print('AuthProvider: User updated from API data -> Name: ${_user?.name}, Bio: "${_user?.bio}", Phone: ${_user?.phone}, Image: ${_user?.profileImage}');
         } else {
           // Fallback: update locally if API response structure is not as expected but success is true
           _user = _user?.copyWith(
-            name: name ?? _user?.name, 
-            bio: bio ?? _user?.bio, 
+            name: name ?? _user?.name,
+            bio: bio ?? _user?.bio,
             phone: phone ?? _user?.phone,
             // profileImage handling needs the URL from server, so rely on server response
           );
@@ -263,31 +359,59 @@ class AuthProvider with ChangeNotifier {
   Future<void> fetchUserProfile() async {
     if (_token == null) {
       print('AuthProvider: Token tidak ada, tidak bisa fetch user profile.');
+       // Jika fetchUserProfile dipanggil secara mandiri dan tidak ada token,
+       // pastikan isLoading tidak terjebak true.
+      if (_isLoading) {
+        _isLoading = false;
+        if (!_isInitializing) notifyListeners(); // Hanya notify jika bukan bagian dari init awal
+      }
       return;
     }
-    _isLoading = true;
-    notifyListeners();
+
+    // Hanya set isLoading jika bukan bagian dari proses inisialisasi awal
+    // atau jika memang ingin menunjukkan loading di UI secara eksplisit.
+    bool shouldShowLoading = !_isInitializing;
+    if (shouldShowLoading) {
+      _isLoading = true;
+      notifyListeners();
+    }
     _clearError();
+
     try {
       final result = await ApiService.getCurrentUserProfile(token: _token!);
       print('AuthProvider: Hasil dari ApiService.getCurrentUserProfile: $result');
       if (result['success'] == true && result['data'] != null) {
           if (result['data'] is Map<String, dynamic>) {
             _user = User.fromJson(result['data'] as Map<String, dynamic>);
+            // Update SharedPreferences juga di sini
+            final prefs = await SharedPreferences.getInstance();
+            await prefs.setString('userName', _user!.name);
+            await prefs.setString('userEmail', _user!.email);
+            await prefs.setString('userBio', _user!.bio);
+            await prefs.setString('userPhone', _user!.phone);
+            await prefs.setString('userProfileImage', _user!.profileImage);
             print('AuthProvider: User profile di-fetch -> Nama: ${_user?.name}, Bio: "${_user?.bio}"');
           } else {
             _errorMessage = 'Data pengguna dari server (fetch) tidak valid.';
-            _user = null;
           }
       } else {
         _errorMessage = result['message'] ?? 'Gagal mengambil data profil pengguna.';
+        // Jika fetch gagal karena token tidak valid (misalnya expired atau unauthenticated)
+        if (result['message'] != null &&
+            (result['message'].toString().toLowerCase().contains('unauthenticated') ||
+             result['message'].toString().toLowerCase().contains('token has expired'))) {
+          print('AuthProvider: Token tidak valid saat fetchUserProfile. Melakukan logout otomatis.');
+          await logout(); // Ini akan membersihkan _user, _token, dan SharedPreferences
+        }
       }
     } catch (e) {
       _errorMessage = 'Exception saat fetchUserProfile: $e';
       print('AuthProvider: $_errorMessage');
     } finally {
-      _isLoading = false;
-      notifyListeners();
+      if (shouldShowLoading) {
+        _isLoading = false;
+        notifyListeners();
+      }
     }
   }
 
@@ -303,7 +427,7 @@ class AuthProvider with ChangeNotifier {
     _isLoading = true;
     notifyListeners();
     _clearError();
-    
+
     Map<String, dynamic> apiResult = {'success': false, 'message': 'Terjadi kesalahan yang tidak diketahui.'};
 
     try {
@@ -329,15 +453,14 @@ class AuthProvider with ChangeNotifier {
       _isLoading = false;
       notifyListeners();
     }
-    
-    // Kembalikan hasil dari API
-    return apiResult; 
+
+    return apiResult;
   } // <-- TUTUP KURUNG UNTUK METHOD changePassword YANG BENAR
-  // --- PERBAIKAN DIMULAI DI SINI ---
+
   Future<Map<String, dynamic>> requestResetCode(String email) async { // Mengganti nama dari forgotPassword
     _setLoading(true);
     _clearError();
-    
+
     Map<String, dynamic> result = {
       'success': false,
       'message': 'Terjadi kesalahan tidak diketahui.'
@@ -366,7 +489,7 @@ class AuthProvider with ChangeNotifier {
     Map<String, dynamic> result = {'success': false, 'message': 'Terjadi kesalahan.'};
     try {
       result = await ApiService.verifyResetCode(email: email, code: code);
-      if (result['success'] == false) { 
+      if (result['success'] == false) {
         _errorMessage = result['message'] ?? 'Gagal memverifikasi kode.';
       }
     } catch (e) {
@@ -405,5 +528,4 @@ class AuthProvider with ChangeNotifier {
     }
     return result;
   } // <-- TUTUP KURUNG UNTUK METHOD resetPasswordWithVerifiedCode
-  // --- PERBAIKAN SELESAI DI SINI ---
 }

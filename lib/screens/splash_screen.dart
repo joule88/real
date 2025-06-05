@@ -1,10 +1,7 @@
+// lib/screens/splash_screen.dart
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:provider/provider.dart';
-import 'package:real/provider/auth_provider.dart';
-import 'package:real/screens/login/login.dart';
-import 'package:real/screens/main_screen.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -17,65 +14,80 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    _navigateToNextScreen();
-  }
-
-  void _navigateToNextScreen() {
-    Timer(const Duration(seconds: 3), () { // Durasi splash screen bisa disesuaikan
-      if (!mounted) return;
-
-      final authProvider = Provider.of<AuthProvider>(context, listen: false);
-
-      if (authProvider.isAuthenticated) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const MainScreen()),
-        );
-      } else {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const LoginScreen()),
-        );
-      }
+    print("SplashScreen: initState dijalankan.");
+    Timer(const Duration(seconds: 3), () {
+      print("SplashScreen: Timer 3 detik selesai.");
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    // Definisikan warna sesuai permintaanmu
     const Color backgroundColor = Color(0xFF182420);
-    // Warna untuk logo dan teks "Nestora" (sesuaikan jika warna dari gambar berbeda)
-    // Berdasarkan gambar logo yang kamu berikan, warnanya mirip dengan DDEF6D
-    const Color logoAndTextColor = Color(0xFFDDEF6D); 
+    // Mendapatkan ukuran layar
+    final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
 
+    // Menentukan ukuran logo berdasarkan persentase lebar layar
+    // Anda bisa menyesuaikan persentase ini (misalnya 0.4 untuk 40% lebar layar)
+    final logoSize = screenWidth * 0.35; // Contoh: 35% dari lebar layar
+
+    print("SplashScreen: build() dijalankan. ScreenWidth: $screenWidth, LogoSize: $logoSize");
     return Scaffold(
-      backgroundColor: backgroundColor, 
+      backgroundColor: backgroundColor,
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Image.asset(
-              'nestora_logo.png', 
-              width: 150, // Sesuaikan ukuran logo sesuai keinginan
-              // Jika logo PNG-mu sudah memiliki warna yang benar, tidak perlu properti color di Image.asset
-              // Jika logo PNG-mu adalah template (misal putih) dan ingin diwarnai di sini,
-              // kamu bisa menggunakan properti color, tapi biasanya ini untuk ikon atau SVG.
-              // Untuk PNG berwarna, pastikan file gambarnya sudah memiliki warna yang diinginkan.
+              'images/nestora_logo.png', // Path yang sudah benar
+              width: logoSize, // Menggunakan ukuran logo yang dinamis
+              height: logoSize, // Menggunakan ukuran logo yang dinamis
+              fit: BoxFit.contain, // Agar gambar tidak terdistorsi
+              errorBuilder: (context, error, stackTrace) {
+                print("SplashScreen Error dari errorBuilder: Tidak dapat memuat gambar 'images/nestora_logo.png'. Error: $error");
+                // Fallback jika path 'images/nestora_logo.png' juga gagal, coba path asli lagi untuk debug
+                return Image.asset(
+                  'assets/images/nestora_logo.png', // Path asli untuk fallback error message
+                  width: logoSize, // Ukuran dinamis juga untuk errorBuilder
+                  height: logoSize,
+                  fit: BoxFit.contain,
+                  errorBuilder: (ctx, err, st) {
+                    print("SplashScreen Error dari errorBuilder (fallback): Tidak dapat memuat gambar 'assets/images/nestora_logo.png'. Error: $err");
+                    // Konten errorBuilder yang lebih adaptif
+                    return Container(
+                      width: logoSize * 0.8, // Buat kontainer error sedikit lebih kecil dari logoSize
+                      height: logoSize * 0.8,
+                      padding: const EdgeInsets.all(8.0), // Tambahkan padding
+                      decoration: BoxDecoration(
+                        color: Colors.red.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(8), // Tambahkan border radius
+                      ),
+                      child: FittedBox( // Agar konten di dalamnya skala menyesuaikan
+                        fit: BoxFit.scaleDown,
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(Icons.error_outline, color: Colors.red, size: 40),
+                            const SizedBox(height: 8),
+                            Text(
+                              "Gagal memuat logo",
+                              textAlign: TextAlign.center,
+                              style: GoogleFonts.poppins(color: Colors.red.shade800, fontSize: 12),
+                            ),
+                            Text(
+                              "(Cek path aset)", // Pesan lebih singkat
+                              textAlign: TextAlign.center,
+                              style: GoogleFonts.poppins(color: Colors.red.shade700, fontSize: 9),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  }
+                );
+              },
             ),
-            const SizedBox(height: 20), 
-            Text(
-              'Nestora',
-              style: GoogleFonts.poppins(
-                fontSize: 40, 
-                fontWeight: FontWeight.bold,
-                color: logoAndTextColor, // Warna teks sama dengan warna logo
-              ),
-            ),
-            const SizedBox(height: 30), 
-            CircularProgressIndicator(
-              // Warna progress indicator disesuaikan agar kontras dengan background gelap
-              valueColor: AlwaysStoppedAnimation<Color>(logoAndTextColor.withOpacity(0.8)),
-            ),
+            // Teks "Nestora" dan CircularProgressIndicator sudah dihapus sebelumnya
           ],
         ),
       ),
