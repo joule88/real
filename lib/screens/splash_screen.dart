@@ -23,13 +23,8 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   Widget build(BuildContext context) {
     const Color backgroundColor = Color(0xFF182420);
-    // Mendapatkan ukuran layar
     final screenWidth = MediaQuery.of(context).size.width;
-    final screenHeight = MediaQuery.of(context).size.height;
-
-    // Menentukan ukuran logo berdasarkan persentase lebar layar
-    // Anda bisa menyesuaikan persentase ini (misalnya 0.4 untuk 40% lebar layar)
-    final logoSize = screenWidth * 0.35; // Contoh: 35% dari lebar layar
+    final logoSize = screenWidth * 0.35;
 
     print("SplashScreen: build() dijalankan. ScreenWidth: $screenWidth, LogoSize: $logoSize");
     return Scaffold(
@@ -87,7 +82,11 @@ class _SplashScreenState extends State<SplashScreen> {
                 );
               },
             ),
-            // Teks "Nestora" dan CircularProgressIndicator sudah dihapus sebelumnya
+            
+            const SizedBox(height: 40),
+            const CircularProgressIndicator(
+              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+            ),
           ],
         ),
       ),

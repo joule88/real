@@ -31,7 +31,7 @@ class AuthProvider with ChangeNotifier {
     print("AuthProvider: _tryAutoLogin() dimulai.");
 
     // Tambahkan sedikit delay di sini HANYA UNTUK DEBUGGING jika prosesnya terlalu cepat
-    await Future.delayed(const Duration(milliseconds: 10000)); // HAPUS ATAU KOMENTARI DI PRODUKSI
+    await Future.delayed(const Duration(milliseconds: 3000)); // HAPUS ATAU KOMENTARI DI PRODUKSI
 
     try {
       final prefs = await SharedPreferences.getInstance();
