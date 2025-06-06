@@ -2,13 +2,13 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
+import 'package:real/app/themes/app_themes.dart';
 import 'package:real/provider/auth_provider.dart';
 import 'package:real/widgets/textfield_login.dart';
-// Kita akan buat layar ini selanjutnya
 import 'package:real/screens/login/create_new_password_screen.dart';
 
 class VerifyCodeScreen extends StatefulWidget {
-  final String email; // Email dari layar sebelumnya
+  final String email;
 
   const VerifyCodeScreen({super.key, required this.email});
 
@@ -38,14 +38,13 @@ class _VerifyCodeScreenState extends State<VerifyCodeScreen> {
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(result['message'] ?? 'Terjadi kesalahan.'),
+        content: Text(result['message'] ?? 'An error occurred.'), // ENGLISH
         backgroundColor: result['success'] ? Colors.green : Colors.red,
       ),
     );
 
     if (result['success']) {
-      // Navigasi ke layar buat password baru, kirim email dan kode
-      Navigator.pushReplacement( // Ganti push agar tidak bisa kembali ke layar ini
+      Navigator.pushReplacement(
         context,
         MaterialPageRoute(
           builder: (context) => CreateNewPasswordScreen(
@@ -78,7 +77,7 @@ class _VerifyCodeScreenState extends State<VerifyCodeScreen> {
           onPressed: () => Navigator.of(context).pop(),
         ),
         title: Text(
-          'Verifikasi Kode',
+          'Verify Code', // ENGLISH
           style: GoogleFonts.poppins(
             color: Colors.black,
             fontWeight: FontWeight.bold,
@@ -96,35 +95,35 @@ class _VerifyCodeScreenState extends State<VerifyCodeScreen> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Text(
-                  'Masukkan kode 6 digit yang telah dikirimkan ke email Anda:',
+                  'Enter the 6-digit code sent to your email:', // ENGLISH
                   textAlign: TextAlign.center,
                   style: GoogleFonts.poppins(fontSize: 16, color: Colors.grey[700]),
                 ),
                 Text(
-                  widget.email, // Tampilkan email agar pengguna yakin
+                  widget.email,
                   textAlign: TextAlign.center,
                   style: GoogleFonts.poppins(fontSize: 16, color: Colors.black, fontWeight: FontWeight.w500),
                 ),
                 const SizedBox(height: 30),
                 TextFieldLogin(
-                  label: 'Kode Verifikasi',
+                  label: 'Verification Code', // ENGLISH
                   controller: _codeController,
                   hintText: '______',
                   prefixIcon: Icons.password_outlined,
                   keyboardType: TextInputType.number,
                   validator: (value) {
                     if (value == null || value.isEmpty) {
-                      return 'Kode tidak boleh kosong';
+                      return 'Code cannot be empty'; // ENGLISH
                     }
                     if (value.length != 6) {
-                      return 'Kode harus 6 digit';
+                      return 'Code must be 6 digits'; // ENGLISH
                     }
                     return null;
                   },
                 ),
                 const SizedBox(height: 30),
                 _isLoading
-                    ? Center(child: CircularProgressIndicator(color: themeColor))
+                    ? const Center(child: CircularProgressIndicator(color: AppTheme.nearlyBlack))
                     : ElevatedButton(
                         onPressed: _verifyCode,
                         style: ElevatedButton.styleFrom(
@@ -135,7 +134,7 @@ class _VerifyCodeScreenState extends State<VerifyCodeScreen> {
                           ),
                         ),
                         child: Text(
-                          'Verifikasi Kode',
+                          'Verify Code', // ENGLISH
                           style: GoogleFonts.poppins(
                             fontSize: 18,
                             fontWeight: FontWeight.w600,

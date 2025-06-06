@@ -7,7 +7,7 @@ class PropertyActionButtons extends StatelessWidget {
   final bool isLoading;
   final PropertyStatus currentStatus;
   final Function({required PropertyStatus targetStatus}) onSubmit;
-  final VoidCallback onEdit; // Untuk status 'rejected' -> 'draft'
+  final VoidCallback onEdit; // For 'rejected' -> 'draft' status
 
   const PropertyActionButtons({
     super.key,
@@ -37,7 +37,7 @@ class PropertyActionButtons extends StatelessWidget {
 
     List<Widget> buttons = [];
 
-    // Logika untuk status DRAFT
+    // Logic for DRAFT status
     if (currentStatus == PropertyStatus.draft) {
       buttons.add(
         SizedBox(
@@ -48,7 +48,8 @@ class PropertyActionButtons extends StatelessWidget {
               backgroundColor: WidgetStateProperty.all(Colors.blueGrey[700]),
               foregroundColor: WidgetStateProperty.all(Colors.white),
             ),
-            child: const Text("Simpan Draft"),
+            // ENGLISH TRANSLATION
+            child: const Text("Save Draft"),
           ),
         ),
       );
@@ -59,44 +60,46 @@ class PropertyActionButtons extends StatelessWidget {
           child: ElevatedButton(
             onPressed: () => onSubmit(targetStatus: PropertyStatus.pendingVerification),
             style: baseButtonStyle,
-            child: const Text("Ajukan untuk Verifikasi"),
+            // ENGLISH TRANSLATION
+            child: const Text("Submit for Verification"),
           ),
         ),
       );
     }
-    // Logika untuk status REJECTED
+    // Logic for REJECTED status
     else if (currentStatus == PropertyStatus.rejected) {
       buttons.add(
         SizedBox(
           width: double.infinity,
           child: ElevatedButton(
-            onPressed: onEdit, // Ini akan mengubah _currentStatus di form menjadi draft
+            onPressed: onEdit, // This will change _currentStatus in the form to draft
             style: baseButtonStyle.copyWith(
               backgroundColor: WidgetStateProperty.all(Colors.orange[700]),
               foregroundColor: WidgetStateProperty.all(Colors.white),
             ),
-            child: const Text("Revisi & Ajukan Ulang"),
+            // ENGLISH TRANSLATION
+            child: const Text("Revise & Resubmit"),
           ),
         ),
       );
     }
-    // Logika untuk status ARCHIVED
+    // Logic for ARCHIVED status
     else if (currentStatus == PropertyStatus.archived) {
       buttons.add(
         SizedBox(
           width: double.infinity,
           child: ElevatedButton(
-            onPressed: () => onSubmit(targetStatus: PropertyStatus.approved), // Langsung ubah ke approved
+            onPressed: () => onSubmit(targetStatus: PropertyStatus.approved), // Directly change to approved
             style: baseButtonStyle.copyWith(
                backgroundColor: WidgetStateProperty.all(Colors.green[600]),
                foregroundColor: WidgetStateProperty.all(Colors.white),
             ),
-            child: const Text("Tayangkan Kembali"),
+            // ENGLISH TRANSLATION
+            child: const Text("Re-list Property"),
           ),
         ),
       );
     }
-    // Tidak ada tombol aksi default untuk status approved, pendingVerification, sold dari widget ini.
 
     if (buttons.isEmpty) {
       return const SizedBox.shrink();

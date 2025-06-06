@@ -1,3 +1,4 @@
+// lib/services/property_service.dart
 import 'dart:async';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
@@ -8,6 +9,7 @@ import 'dart:typed_data';
 import 'package:http_parser/http_parser.dart';
 
 class PropertyService {
+  // ENGLISH TRANSLATION: All messages are now in English
   Future<Map<String, dynamic>> submitProperty({
     required Property property,
     required List<XFile> newSelectedImages,
@@ -17,21 +19,12 @@ class PropertyService {
     bool isUpdate = property.id.isNotEmpty &&
         !(property.id.contains(RegExp(r'^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+Z?$')));
     
-    // Endpoint tetap sama, baik untuk create (tanpa {id}) maupun update (dengan {id})
     String endpoint = isUpdate
         ? '${ApiConstants.propertiesEndpoint}/${property.id}'
         : ApiConstants.propertiesEndpoint;
 
     var uri = Uri.parse('${ApiConstants.laravelApiBaseUrl}$endpoint');
-
-    // ================== PERUBAHAN METHOD REQUEST DI SINI ==================
-    // Selalu gunakan 'POST' untuk endpoint ini jika bisa melibatkan file,
-    // Laravel menangani POST multipart dengan lebih baik.
-    // Logika di backend (controller) akan membedakan create vs update jika perlu,
-    // atau rute yang berbeda akan menunjuk ke method yang berbeda.
-    // Dalam kasus ini, rute POST /properties/{id} akan menunjuk ke method update.
     var request = http.MultipartRequest('POST', uri);
-    // ================== AKHIR PERUBAHAN METHOD REQUEST ==================
 
     request.headers['Authorization'] = 'Bearer $token';
     request.headers['Accept'] = 'application/json';
@@ -47,15 +40,9 @@ class PropertyService {
     request.fields['propertyType'] = property.propertyType;
     request.fields['status'] = property.status.toString().split('.').last;
 
-    if (property.mainView != null) {
-      request.fields['mainView'] = property.mainView!;
-    }
-    if (property.listingAgeCategory != null) {
-      request.fields['listingAgeCategory'] = property.listingAgeCategory!;
-    }
-    if (property.propertyLabel != null) {
-      request.fields['propertyLabel'] = property.propertyLabel!;
-    }
+    if (property.mainView != null) request.fields['mainView'] = property.mainView!;
+    if (property.listingAgeCategory != null) request.fields['listingAgeCategory'] = property.listingAgeCategory!;
+    if (property.propertyLabel != null) request.fields['propertyLabel'] = property.propertyLabel!;
 
     List<String> retainedImageUrls = [];
     if (isUpdate) {
@@ -65,14 +52,9 @@ class PropertyService {
 
     if (isUpdate) {
       print('DEBUG PropertyService: Sending POST request (for UPDATE) to $uri');
-      print('DEBUG PropertyService: Sending status for update: ${request.fields['status']}');
-      print('DEBUG PropertyService: RetainedImageUrls being sent: ${request.fields['retainedImageUrls']}');
-      print('DEBUG PropertyService: All fields being sent for update: ${request.fields}');
     } else {
       print('DEBUG PropertyService: Sending POST request (for CREATE) to $uri');
-      print('DEBUG PropertyService: All fields being sent for create: ${request.fields}');
     }
-    print('DEBUG PropertyService: Number of new images to upload: ${newSelectedImages.length}');
     
     int imageIndex = 0;
     for (var imageFile in newSelectedImages) {
@@ -80,16 +62,15 @@ class PropertyService {
         Uint8List imageBytes = await imageFile.readAsBytes();
         request.files.add(
           http.MultipartFile.fromBytes(
-            'images[$imageIndex]', // Menggunakan indeks eksplisit untuk array file di backend
+            'images[$imageIndex]',
             imageBytes,
             filename: imageFile.name,
             contentType: MediaType('image', _getExtension(imageFile.name)),
           ),
         );
-        print('INFO: File gambar ${imageFile.name} (index: $imageIndex) berhasil ditambahkan ke request.');
         imageIndex++;
       } catch (e) {
-        print('ERROR: Gagal membaca atau menambahkan file gambar ${imageFile.name}: $e');
+        print('ERROR: Failed to read or add image file ${imageFile.name}: $e');
       }
     }
 
@@ -98,12 +79,10 @@ class PropertyService {
       final response = await http.Response.fromStream(streamedResponse);
 
       if (response.statusCode == 200 || response.statusCode == 201) {
-        print('INFO: Properti berhasil dikirim. Status: ${response.statusCode}, Response: ${response.body}');
         return {'success': true, 'data': jsonDecode(response.body)};
       } else {
-        // ... (error handling sama)
         final errorBody = jsonDecode(response.body);
-        String message = 'Terjadi kesalahan saat mengirim properti.';
+        String message = 'An error occurred while submitting the property.';
         if (errorBody != null && errorBody is Map) {
           message = errorBody['message'] as String? ??
               (errorBody['errors'] != null && errorBody['errors'] is Map
@@ -112,24 +91,20 @@ class PropertyService {
         } else {
           message = response.body;
         }
-        print('ERROR: Gagal mengirim properti. Status: ${response.statusCode}, Pesan: $message, Body: ${response.body}');
         return {'success': false, 'message': message};
       }
     } catch (e) {
-      print('ERROR: Exception saat mengirim properti: $e');
-      return {'success': false, 'message': 'Error saat mengirim properti: $e'};
+      return {'success': false, 'message': 'Error submitting property: $e'};
     }
   }
 
-  // ... (getUserProperties dan predictPropertyPrice tetap sama) ...
+  // ENGLISH TRANSLATION: All messages are now in English
   Future<Map<String, dynamic>> getUserProperties(String token, {List<String>? statuses}) async {
     String statusQuery = '';
     if (statuses != null && statuses.isNotEmpty) {
       statusQuery = '?status=${statuses.join(',')}';
     }
     final uri = Uri.parse('${ApiConstants.laravelApiBaseUrl}${ApiConstants.userPropertiesEndpoint}$statusQuery');
-
-    print("INFO: Fetching user properties from: $uri");
 
     try {
       final response = await http.get(
@@ -143,24 +118,20 @@ class PropertyService {
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         if (data is Map && data.containsKey('data') && data['data'] is List) {
-          print("INFO: User properties fetched successfully.");
           return {'success': true, 'properties': List<Map<String, dynamic>>.from(data['data'])};
         } else if (data is List) { 
-          print("INFO: User properties fetched successfully (direct array).");
           return {'success': true, 'properties': List<Map<String, dynamic>>.from(data)};
         }
-        print("WARNING: Unexpected response format for user properties: $data");
-        return {'success': false, 'message': 'Format data properti tidak sesuai.'};
+        return {'success': false, 'message': 'Invalid property data format.'};
       } else {
-        print("ERROR: Failed to get user properties: ${response.statusCode} - ${response.body}");
-        return {'success': false, 'message': 'Gagal mengambil properti: ${response.statusCode}'};
+        return {'success': false, 'message': 'Failed to fetch properties: ${response.statusCode}'};
       }
     } catch (e) {
-      print("ERROR: Exception getting user properties: $e");
-      return {'success': false, 'message': 'Terjadi kesalahan: $e'};
+      return {'success': false, 'message': 'An error occurred: $e'};
     }
   }
 
+  // ENGLISH TRANSLATION: All messages are now in English
   Future<Map<String, dynamic>> predictPropertyPrice({
     required int bathrooms,
     required int bedrooms,
@@ -172,21 +143,10 @@ class PropertyService {
     required int titleKeyword,
   }) async {
     final String predictUrl = '${ApiConstants.flaskApiBaseUrl}${ApiConstants.predictPriceEndpoint}';
-    print("INFO: Predicting property price with payload: ${{
+    final payload = {
       'bathrooms': bathrooms, 'bedrooms': bedrooms, 'furnishing': furnishing,
       'sizeMin': sizeMin, 'verified': verified, 'listing_age_category': listingAgeCategory,
-      'view_type': viewType, 'title_keyword': titleKeyword
-    }}");
-
-    final payload = {
-      'bathrooms': bathrooms,
-      'bedrooms': bedrooms,
-      'furnishing': furnishing,
-      'sizeMin': sizeMin,
-      'verified': verified,
-      'listing_age_category': listingAgeCategory,
-      'view_type': viewType,
-      'title_keyword': titleKeyword,
+      'view_type': viewType, 'title_keyword': titleKeyword,
     };
 
     try {
@@ -198,14 +158,13 @@ class PropertyService {
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        print("INFO: Price prediction successful. Result: $data");
         return {
           'success': true,
           'predicted_price': data['prediction_result'],
         };
       } else {
         final errorBody = jsonDecode(response.body);
-        String message = 'Gagal mendapatkan prediksi harga.';
+        String message = 'Failed to get price prediction.';
         if (errorBody != null && errorBody is Map && errorBody['message'] != null) {
           message = errorBody['message'];
         } else if (errorBody != null && errorBody is Map && errorBody['error'] != null){
@@ -213,20 +172,17 @@ class PropertyService {
         } else {
           message = response.body;
         }
-        print("ERROR: Failed to predict price: ${response.statusCode} - Message: $message, Body: ${response.body}");
         return {'success': false, 'message': message};
       }
     } catch (e) {
-      print("ERROR: Exception predicting property price: $e");
-      return {'success': false, 'message': 'Error saat prediksi harga: $e'};
+      return {'success': false, 'message': 'Error during price prediction: $e'};
     }
   }
 
+  // ENGLISH TRANSLATION: All messages are now in English
   Future<Map<String, dynamic>> deletePropertyApi(String propertyId, String token) async {
     final String endpoint = '${ApiConstants.propertiesEndpoint}/$propertyId';
     var uri = Uri.parse('${ApiConstants.laravelApiBaseUrl}$endpoint');
-
-    print('PropertyService: Mengirim permintaan DELETE ke $uri');
 
     try {
       final response = await http.delete(
@@ -237,27 +193,23 @@ class PropertyService {
         },
       );
 
-      print('PropertyService: Status respons DELETE: ${response.statusCode}');
-      print('PropertyService: Body respons DELETE: ${response.body}');
-
-      if (response.statusCode == 200 || response.statusCode == 204) { // 204 No Content juga sukses
+      if (response.statusCode == 200 || response.statusCode == 204) {
         final responseBody = response.body.isNotEmpty ? jsonDecode(response.body) : {};
         return {
           'success': true,
-          'message': responseBody['message'] ?? 'Properti berhasil dihapus.',
-          'data': responseBody // Bisa jadi backend mengembalikan sesuatu
+          'message': responseBody['message'] ?? 'Property deleted successfully.',
+          'data': responseBody
         };
       } else {
         final errorBody = response.body.isNotEmpty ? jsonDecode(response.body) : {};
-        String message = errorBody['message'] ?? 'Gagal menghapus properti di server.';
+        String message = errorBody['message'] ?? 'Failed to delete property on the server.';
         if (errorBody['errors'] != null && errorBody['errors'] is Map) {
           message = (errorBody['errors'] as Map).entries.map((e) => '${e.key}: ${(e.value as List).join(", ") }').join('\n');
         }
         return {'success': false, 'message': message};
       }
     } catch (e) {
-      print('PropertyService: Exception saat menghapus properti: $e');
-      return {'success': false, 'message': 'Error koneksi saat menghapus properti: $e'};
+      return {'success': false, 'message': 'Connection error while deleting property: $e'};
     }
   }
 

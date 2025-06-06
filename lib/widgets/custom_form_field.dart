@@ -1,9 +1,8 @@
 // lib/widgets/custom_form_field.dart
-
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-// 1. Custom TextFormField (Tidak ada perubahan di sini terkait error tersebut)
+// 1. Custom TextFormField
 class CustomTextFormField extends StatelessWidget {
   final String label;
   final TextEditingController controller;
@@ -12,7 +11,7 @@ class CustomTextFormField extends StatelessWidget {
   final bool enabled;
   final String? hint;
   final FormFieldValidator<String>? validator;
-  final ValueChanged<String>? onChanged; // Tetap String? karena TextFormField Flutter menangani ini
+  final ValueChanged<String>? onChanged;
   final Widget? suffixIcon;
 
   const CustomTextFormField({
@@ -37,36 +36,55 @@ class CustomTextFormField extends StatelessWidget {
         children: [
           Text(label, style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w600)),
           const SizedBox(height: 8),
-          TextFormField(
-            controller: controller,
-            keyboardType: keyboardType,
-            maxLines: maxLines,
-            enabled: enabled,
-            style: GoogleFonts.poppins(color: enabled ? Colors.black87 : Colors.grey[700]),
-            decoration: InputDecoration(
-              filled: true,
-              fillColor: enabled ? Colors.grey[100] : Colors.grey[200],
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10),
-                borderSide: BorderSide.none,
-              ),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 15, vertical: 12),
-              hintText: hint ?? 'Masukkan $label',
-              hintStyle: GoogleFonts.poppins(color: Colors.grey[500]),
-              suffixIcon: suffixIcon,
+          Container(
+            decoration: BoxDecoration(
+              color: enabled ? Colors.white : Colors.grey[200],
+              borderRadius: BorderRadius.circular(10),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.grey.withOpacity(0.2),
+                  spreadRadius: 1,
+                  blurRadius: 4,
+                  offset: const Offset(0, 1),
+                ),
+              ],
             ),
-            validator: validator ?? (value) {
-              if (value == null || value.isEmpty) {
-                return '$label tidak boleh kosong';
-              }
-              if (keyboardType == TextInputType.number || keyboardType == const TextInputType.numberWithOptions(decimal: true)) {
-                if (num.tryParse(value) == null) {
-                  return 'Masukkan angka yang valid untuk $label';
+            child: TextFormField(
+              controller: controller,
+              keyboardType: keyboardType,
+              maxLines: maxLines,
+              enabled: enabled,
+              style: GoogleFonts.poppins(color: enabled ? Colors.black87 : Colors.grey[700]),
+              decoration: InputDecoration(
+                filled: true,
+                fillColor: Colors.transparent,
+                border: InputBorder.none,
+                enabledBorder: InputBorder.none,
+                focusedBorder: InputBorder.none,
+                errorBorder: InputBorder.none,
+                disabledBorder: InputBorder.none,
+                focusedErrorBorder: InputBorder.none,
+                contentPadding: const EdgeInsets.symmetric(horizontal: 15, vertical: 12),
+                // ENGLISH TRANSLATION
+                hintText: hint ?? 'Enter $label',
+                hintStyle: GoogleFonts.poppins(color: Colors.grey[500]),
+                suffixIcon: suffixIcon,
+              ),
+              validator: validator ?? (value) {
+                if (value == null || value.isEmpty) {
+                  // ENGLISH TRANSLATION
+                  return '$label cannot be empty';
                 }
-              }
-              return null;
-            },
-            onChanged: onChanged,
+                if (keyboardType == TextInputType.number || keyboardType == const TextInputType.numberWithOptions(decimal: true)) {
+                  if (num.tryParse(value) == null) {
+                    // ENGLISH TRANSLATION
+                    return 'Enter a valid number for $label';
+                  }
+                }
+                return null;
+              },
+              onChanged: onChanged,
+            ),
           ),
         ],
       ),
@@ -74,12 +92,12 @@ class CustomTextFormField extends StatelessWidget {
   }
 }
 
-// 2. Custom Dropdown untuk Opsi Map<String, dynamic>
+// 2. Custom Dropdown for Map<String, dynamic> Options
 class CustomDropdownMapField extends StatelessWidget {
   final String label;
   final dynamic value;
   final List<Map<String, dynamic>> options;
-  final ValueChanged<dynamic>? onChanged; // <--- UBAH INI menjadi nullable (?)
+  final ValueChanged<dynamic>? onChanged;
   final bool enabled;
   final String? hint;
   final FormFieldValidator<dynamic>? validator;
@@ -90,7 +108,7 @@ class CustomDropdownMapField extends StatelessWidget {
     required this.label,
     required this.value,
     required this.options,
-    this.onChanged, // <--- TIDAK lagi 'required' jika nullable dan bisa null
+    this.onChanged,
     this.enabled = true,
     this.hint,
     this.validator,
@@ -105,29 +123,44 @@ class CustomDropdownMapField extends StatelessWidget {
         children: [
           Text(label, style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w600)),
           const SizedBox(height: 8),
-          DropdownButtonFormField<dynamic>(
-            style: GoogleFonts.poppins(color: enabled ? Colors.black87 : Colors.grey[700], fontSize: 15),
-            decoration: InputDecoration(
-              filled: true,
-              fillColor: enabled ? Colors.grey[100] : Colors.grey[200],
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10),
-                borderSide: BorderSide.none,
-              ),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 15, vertical: 12),
-              hintText: hint ?? 'Pilih $label',
-              hintStyle: GoogleFonts.poppins(color: Colors.grey[500]),
+          Container(
+            decoration: BoxDecoration(
+              color: enabled ? Colors.white : Colors.grey[200],
+              borderRadius: BorderRadius.circular(10),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.grey.withOpacity(0.2),
+                  spreadRadius: 1,
+                  blurRadius: 4,
+                  offset: const Offset(0, 1),
+                ),
+              ],
             ),
-            value: value,
-            isExpanded: true,
-            items: options.map((option) {
-              return DropdownMenuItem<dynamic>(
-                value: option['value'],
-                child: Text(option['text'].toString(), style: GoogleFonts.poppins()),
-              );
-            }).toList(),
-            onChanged: enabled ? onChanged : null,
-            validator: validator ?? (value) => value == null ? '$label harus dipilih' : null,
+            child: DropdownButtonFormField<dynamic>(
+              style: GoogleFonts.poppins(color: enabled ? Colors.black87 : Colors.grey[700], fontSize: 15),
+              decoration: InputDecoration(
+                filled: true,
+                fillColor: Colors.transparent,
+                border: InputBorder.none,
+                enabledBorder: InputBorder.none,
+                focusedBorder: InputBorder.none,
+                contentPadding: const EdgeInsets.symmetric(horizontal: 15, vertical: 4),
+                // ENGLISH TRANSLATION
+                hintText: hint ?? 'Select $label',
+                hintStyle: GoogleFonts.poppins(color: Colors.grey[500]),
+              ),
+              value: value,
+              isExpanded: true,
+              items: options.map((option) {
+                return DropdownMenuItem<dynamic>(
+                  value: option['value'],
+                  child: Text(option['text'].toString(), style: GoogleFonts.poppins()),
+                );
+              }).toList(),
+              onChanged: enabled ? onChanged : null,
+              // ENGLISH TRANSLATION
+              validator: validator ?? (value) => value == null ? '$label must be selected' : null,
+            ),
           ),
         ],
       ),
@@ -135,12 +168,12 @@ class CustomDropdownMapField extends StatelessWidget {
   }
 }
 
-// 3. Custom Dropdown untuk Opsi String
+// 3. Custom Dropdown for String Options
 class CustomDropdownStringField extends StatelessWidget {
   final String label;
   final String? value;
   final List<String> options;
-  final ValueChanged<String?>? onChanged; // <--- UBAH INI menjadi nullable (?)
+  final ValueChanged<String?>? onChanged;
   final bool enabled;
   final String? hint;
   final FormFieldValidator<String>? validator;
@@ -150,7 +183,7 @@ class CustomDropdownStringField extends StatelessWidget {
     required this.label,
     required this.value,
     required this.options,
-    this.onChanged, // <--- TIDAK lagi 'required' jika nullable dan bisa null
+    this.onChanged,
     this.enabled = true,
     this.hint,
     this.validator,
@@ -165,34 +198,49 @@ class CustomDropdownStringField extends StatelessWidget {
         children: [
           Text(label, style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w600)),
           const SizedBox(height: 8),
-          DropdownButtonFormField<String>(
-            style: GoogleFonts.poppins(color: enabled ? Colors.black87 : Colors.grey[700], fontSize: 15),
-            decoration: InputDecoration(
-              filled: true,
-              fillColor: enabled ? Colors.grey[100] : Colors.grey[200],
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10),
-                borderSide: BorderSide.none,
-              ),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 15, vertical: 12),
-              hintText: hint ?? 'Pilih $label',
-              hintStyle: GoogleFonts.poppins(color: Colors.grey[500]),
+          Container(
+             decoration: BoxDecoration(
+              color: enabled ? Colors.white : Colors.grey[200],
+              borderRadius: BorderRadius.circular(10),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.grey.withOpacity(0.2),
+                  spreadRadius: 1,
+                  blurRadius: 4,
+                  offset: const Offset(0, 1),
+                ),
+              ],
             ),
-            value: value,
-            isExpanded: true,
-            items: options.map((String option) {
-              return DropdownMenuItem<String>(
-                value: option,
-                child: Text(option, style: GoogleFonts.poppins()),
-              );
-            }).toList(),
-            onChanged: enabled ? onChanged : null,
-            validator: validator ?? (value) {
-              if (value == null || value.isEmpty) {
-                return '$label harus dipilih';
-              }
-              return null;
-            },
+            child: DropdownButtonFormField<String>(
+              style: GoogleFonts.poppins(color: enabled ? Colors.black87 : Colors.grey[700], fontSize: 15),
+              decoration: InputDecoration(
+                filled: true,
+                fillColor: Colors.transparent,
+                border: InputBorder.none,
+                enabledBorder: InputBorder.none,
+                focusedBorder: InputBorder.none,
+                contentPadding: const EdgeInsets.symmetric(horizontal: 15, vertical: 4),
+                // ENGLISH TRANSLATION
+                hintText: hint ?? 'Select $label',
+                hintStyle: GoogleFonts.poppins(color: Colors.grey[500]),
+              ),
+              value: value,
+              isExpanded: true,
+              items: options.map((String option) {
+                return DropdownMenuItem<String>(
+                  value: option,
+                  child: Text(option, style: GoogleFonts.poppins()),
+                );
+              }).toList(),
+              onChanged: enabled ? onChanged : null,
+              validator: validator ?? (value) {
+                if (value == null || value.isEmpty) {
+                  // ENGLISH TRANSLATION
+                  return '$label must be selected';
+                }
+                return null;
+              },
+            ),
           ),
         ],
       ),
@@ -200,7 +248,7 @@ class CustomDropdownStringField extends StatelessWidget {
   }
 }
 
-// 4. Custom Number Input dengan Tombol Kontrol +/-
+// 4. Custom Number Input with +/- Controls
 class NumberInputWithControls extends StatefulWidget {
   final String label;
   final TextEditingController controller;
@@ -251,11 +299,6 @@ class _NumberInputWithControlsState extends State<NumberInputWithControls> {
         widget.controller.text = widget.maxValue.toString();
         widget.controller.selection = TextSelection.fromPosition(TextPosition(offset: widget.controller.text.length));
       }
-    } else { // Jika input tidak bisa di-parse sebagai integer (misal ada titik atau karakter non-numerik)
-        // Anda bisa memutuskan untuk menghapus karakter terakhir atau mengembalikan ke nilai valid sebelumnya.
-        // Untuk sederhana, kita bisa set ke minValue jika parse gagal.
-        // Atau biarkan TextFormField validator yang menangani pesan error lebih detail.
-        // widget.controller.text = widget.minValue.toString();
     }
   }
 
@@ -284,6 +327,8 @@ class _NumberInputWithControlsState extends State<NumberInputWithControls> {
 
   @override
   Widget build(BuildContext context) {
+    const Color buttonColor = Color(0xFF182420);
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 15.0),
       child: Column(
@@ -294,8 +339,16 @@ class _NumberInputWithControlsState extends State<NumberInputWithControls> {
           Container(
             height: 50,
             decoration: BoxDecoration(
-              color: widget.enabled ? Colors.grey[100] : Colors.grey[200],
+              color: widget.enabled ? Colors.white : Colors.grey[200],
               borderRadius: BorderRadius.circular(10),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.grey.withOpacity(0.2),
+                  spreadRadius: 1,
+                  blurRadius: 4,
+                  offset: const Offset(0, 1),
+                ),
+              ],
             ),
             child: Row(
               children: [
@@ -309,8 +362,8 @@ class _NumberInputWithControlsState extends State<NumberInputWithControls> {
                     padding: const EdgeInsets.symmetric(horizontal: 12.0),
                     child: Icon(
                       Icons.remove,
-                      size: 20, 
-                      color: widget.enabled ? Theme.of(context).primaryColorDark : Colors.grey,
+                      size: 20,
+                      color: widget.enabled ? buttonColor : Colors.grey,
                     ),
                   ),
                 ),
@@ -321,21 +374,23 @@ class _NumberInputWithControlsState extends State<NumberInputWithControls> {
                     textAlign: TextAlign.center,
                     enabled: widget.enabled,
                     style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w500, color: widget.enabled ? Colors.black87 : Colors.grey[700]),
-                    decoration: InputDecoration(
+                    decoration: const InputDecoration(
                       border: InputBorder.none,
-                      contentPadding: const EdgeInsets.symmetric(vertical: 0), 
-                      fillColor: Colors.transparent, 
+                      contentPadding: EdgeInsets.symmetric(vertical: 0),
+                      fillColor: Colors.transparent,
                       filled: true,
-                      counterText: "", 
+                      counterText: "",
                     ),
-                    maxLength: 2, 
+                    maxLength: 2,
                     validator: (value) {
                       if (value == null || value.isEmpty) {
-                        return 'Wajib'; // Pesan error singkat untuk UI yang lebih rapi
+                        // ENGLISH TRANSLATION
+                        return 'Req.'; // Short for 'Required'
                       }
                       final n = int.tryParse(value);
                       if (n == null) {
-                        return '!Angka';
+                        // ENGLISH TRANSLATION
+                        return '!Num'; // Short for 'Invalid Number'
                       }
                       if (n < widget.minValue) {
                         return '<${widget.minValue}';
@@ -357,8 +412,8 @@ class _NumberInputWithControlsState extends State<NumberInputWithControls> {
                     padding: const EdgeInsets.symmetric(horizontal: 12.0),
                     child: Icon(
                       Icons.add,
-                      size: 20, 
-                      color: widget.enabled ? Theme.of(context).primaryColorDark : Colors.grey,
+                      size: 20,
+                      color: widget.enabled ? buttonColor : Colors.grey,
                     ),
                   ),
                 ),

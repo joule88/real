@@ -1,10 +1,11 @@
+// lib/screens/my_drafts/map_picker_screen.dart
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:http/http.dart' as http;
-import 'package:geolocator/geolocator.dart'; // Opsional
+import 'package:geolocator/geolocator.dart';
 
 class MapPickerScreen extends StatefulWidget {
   const MapPickerScreen({super.key});
@@ -15,12 +16,13 @@ class MapPickerScreen extends StatefulWidget {
 
 class _MapPickerScreenState extends State<MapPickerScreen> {
   late MapController _mapController;
-  // Default ke Jember, Jawa Timur atau lokasi relevan lainnya
+  // Default to a general location
   LatLng _currentMapCenter = const LatLng(-8.1726, 113.7022); 
   LatLng? _selectedLocation;
-  String _selectedAddressString = "Geser peta dan pilih lokasi";
+  // ENGLISH TRANSLATION
+  String _selectedAddressString = "Pan the map and select a location";
   bool _isLoadingAddress = false;
-  bool _isFetchingInitialLocation = true; // Untuk indikator loading lokasi awal
+  bool _isFetchingInitialLocation = true;
 
   @override
   void initState() {
@@ -39,10 +41,9 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
 
       serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled) {
-        // Jika layanan lokasi mati, gunakan default dan jangan paksa aktifkan
         if (mounted) {
           setState(() {
-             _selectedLocation = _currentMapCenter; // Set default
+            _selectedLocation = _currentMapCenter;
             _isFetchingInitialLocation = false;
           });
           _reverseGeocode(_currentMapCenter);
@@ -56,7 +57,7 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
         if (permission == LocationPermission.denied || permission == LocationPermission.deniedForever) {
            if (mounted) {
              setState(() {
-               _selectedLocation = _currentMapCenter; // Set default
+              _selectedLocation = _currentMapCenter;
               _isFetchingInitialLocation = false;
             });
             _reverseGeocode(_currentMapCenter);
@@ -68,7 +69,7 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
       if (permission == LocationPermission.deniedForever) {
         if (mounted) {
           setState(() {
-            _selectedLocation = _currentMapCenter; // Set default
+            _selectedLocation = _currentMapCenter;
             _isFetchingInitialLocation = false;
           });
           _reverseGeocode(_currentMapCenter);
@@ -77,8 +78,8 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
       }
 
       Position position = await Geolocator.getCurrentPosition(
-          desiredAccuracy: LocationAccuracy.medium, // Medium sudah cukup
-          timeLimit: const Duration(seconds: 10) // Batas waktu
+          desiredAccuracy: LocationAccuracy.medium,
+          timeLimit: const Duration(seconds: 10)
       );
       if (mounted) {
         setState(() {
@@ -90,13 +91,12 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
         _reverseGeocode(_currentMapCenter);
       }
     } catch (e) {
-      print("Error getting current location for map: $e");
       if (mounted) {
         setState(() {
-          _selectedLocation = _currentMapCenter; // Set default jika gagal
+          _selectedLocation = _currentMapCenter;
           _isFetchingInitialLocation = false;
         });
-         _reverseGeocode(_currentMapCenter); // Reverse geocode default location
+         _reverseGeocode(_currentMapCenter);
       }
     }
   }
@@ -106,29 +106,34 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
     if (!mounted) return;
     setState(() {
       _isLoadingAddress = true;
-      _selectedAddressString = "Memuat alamat...";
+      // ENGLISH TRANSLATION
+      _selectedAddressString = "Loading address...";
     });
 
+    // Request in English
     final Uri uri = Uri.parse(
-        'https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${point.latitude}&lon=${point.longitude}&addressdetails=1&accept-language=id'); // Prioritaskan Bahasa Indonesia
+        'https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${point.latitude}&lon=${point.longitude}&addressdetails=1&accept-language=en');
 
     try {
       final response = await http.get(uri, headers: {
-        'User-Agent': 'NestoraApp/1.0 (muhammadjulianromadhoni@gmail.com)' // GANTI DENGAN INFO VALID APLIKASI ANDA
+        'User-Agent': 'NestoraApp/1.0 (muhammadjulianromadhoni@gmail.com)'
       });
       if (!mounted) return;
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         setState(() {
-          _selectedAddressString = data['display_name'] ?? 'Alamat tidak ditemukan pada koordinat ini.';
+          // ENGLISH TRANSLATION
+          _selectedAddressString = data['display_name'] ?? 'Address not found for these coordinates.';
         });
       } else {
-        setState(() => _selectedAddressString = 'Gagal mendapatkan alamat. Kode: ${response.statusCode}');
+        // ENGLISH TRANSLATION
+        setState(() => _selectedAddressString = 'Failed to get address. Code: ${response.statusCode}');
       }
     } catch (e) {
       if (!mounted) return;
-      setState(() => _selectedAddressString = 'Terjadi kesalahan: ${e.toString()}');
+      // ENGLISH TRANSLATION
+      setState(() => _selectedAddressString = 'An error occurred: ${e.toString()}');
     } finally {
       if (!mounted) return;
       setState(() => _isLoadingAddress = false);
@@ -138,14 +143,15 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
   void _onMapConfirm() {
     if (_selectedLocation != null &&
         _selectedAddressString.isNotEmpty &&
-        _selectedAddressString != "Memuat alamat..." &&
-        !_selectedAddressString.toLowerCase().contains("gagal") &&
+        !_selectedAddressString.toLowerCase().contains("loading") &&
+        !_selectedAddressString.toLowerCase().contains("failed") &&
         !_selectedAddressString.toLowerCase().contains("error") &&
-        !_selectedAddressString.toLowerCase().contains("tidak ditemukan")) {
+        !_selectedAddressString.toLowerCase().contains("not found")) {
       Navigator.pop(context, _selectedAddressString);
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Alamat belum valid atau gagal dimuat. Silakan coba lagi atau pilih titik lain.')),
+        // ENGLISH TRANSLATION
+        const SnackBar(content: Text('Address is not valid or failed to load. Please try again or pick another point.')),
       );
     }
   }
@@ -155,7 +161,8 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Pilih Lokasi dari Peta', style: GoogleFonts.poppins(fontWeight: FontWeight.bold)),
+        // ENGLISH TRANSLATION
+        title: Text('Select Location from Map', style: GoogleFonts.poppins(fontWeight: FontWeight.bold)),
         backgroundColor: Colors.white,
         elevation: 1,
         iconTheme: const IconThemeData(color: Colors.black),
@@ -172,21 +179,16 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
                     initialZoom: 16.0,
                     onPositionChanged: (position, hasGesture) {
                       if (hasGesture) {
-                        // Update _selectedLocation saat peta digeser oleh pengguna
-                        // Ini akan membuat marker di tengah "mengikuti"
-                         if (_selectedLocation != position.center) { // Hanya update jika berbeda
+                         if (_selectedLocation != position.center) {
                             setState(() {
                               _selectedLocation = position.center;
                             });
                          }
                       }
                     },
-                    // Hentikan reverse geocode otomatis saat peta bergerak untuk UX yg lebih baik
-                    // Cukup saat tap atau saat tombol "gunakan lokasi tengah" ditekan
                     onTap: (tapPosition, point) {
                        setState(() {
                          _selectedLocation = point;
-                         // Pindahkan marker ke titik yang di-tap
                          _mapController.move(point, _mapController.camera.zoom);
                        });
                        _reverseGeocode(point);
@@ -195,10 +197,9 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
                   children: [
                     TileLayer(
                       urlTemplate: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-                      subdomains: const ['a', 'b', 'c'], // Subdomain untuk tile server OSM
-                      userAgentPackageName: 'com.muhammadjulianromadhoni.nestoraapp', // GANTI DENGAN PACKAGE NAME APLIKASI ANDA
+                      subdomains: const ['a', 'b', 'c'],
+                      userAgentPackageName: 'com.muhammadjulianromadhoni.nestoraapp',
                     ),
-                    // Marker yang bergerak sesuai _selectedLocation
                     if (_selectedLocation != null)
                        MarkerLayer(
                          markers: [
@@ -212,20 +213,12 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
                        ),
                   ],
                 ),
-                // Marker statis di tengah layar (opsional, jika ingin model seperti Gojek/Grab)
-                // Positioned.fill(
-                //   child: IgnorePointer( // Agar tap tembus ke peta
-                //     child: Center(
-                //       child: Icon(Icons.location_pin, size: 50, color: Colors.blue),
-                //     ),
-                //   ),
-                // ),
                 Positioned(
                   top: 10,
                   right: 10,
                   child: FloatingActionButton(
                     mini: true,
-                    onPressed: _initializeMapLocation, // Kembali ke lokasi saat ini/awal
+                    onPressed: _initializeMapLocation,
                     backgroundColor: Colors.white,
                     child: const Icon(Icons.my_location, color: Colors.blueAccent),
                   ),
@@ -246,7 +239,8 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
                             const SizedBox(width: 8),
                             Expanded(
                               child: Text(
-                                _isLoadingAddress ? "Memuat alamat..." : _selectedAddressString,
+                                // ENGLISH TRANSLATION
+                                _isLoadingAddress ? "Loading address..." : _selectedAddressString,
                                 style: GoogleFonts.poppins(color: Colors.white, fontSize: 13),
                                 maxLines: 2,
                                 overflow: TextOverflow.ellipsis,
@@ -257,11 +251,12 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
                       ),
                       Container(
                         width: double.infinity,
-                        padding: const EdgeInsets.fromLTRB(16,8,16,16), // Padding untuk tombol
-                        color: Colors.black.withOpacity(0.75), // Samakan background atau bedakan sedikit
+                        padding: const EdgeInsets.fromLTRB(16,8,16,16),
+                        color: Colors.black.withOpacity(0.75),
                         child: ElevatedButton.icon(
-                          icon: const Icon(Icons.check_circle_outline),
-                          label: Text("Gunakan Alamat Ini", style: GoogleFonts.poppins(fontWeight: FontWeight.bold)),
+                          // ENGLISH TRANSLATION
+                          label: Text("Use This Address", style: GoogleFonts.poppins(fontWeight: FontWeight.bold)),
+                          icon: const Icon(Icons.check_circle),
                           onPressed: (_selectedLocation == null || _isLoadingAddress) ? null : _onMapConfirm,
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Theme.of(context).primaryColor,

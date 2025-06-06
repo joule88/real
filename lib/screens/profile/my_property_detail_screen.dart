@@ -1,3 +1,4 @@
+// lib/screens/profile/my_property_detail_screen.dart
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
@@ -23,9 +24,12 @@ class MyPropertyDetailScreen extends StatefulWidget {
 class _MyPropertyDetailScreenState extends State<MyPropertyDetailScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
+  
+  // INDONESIAN DATE FORMAT RETAINED as requested by the user
   final DateFormat _dateFormatter = DateFormat('dd MMMM yyyy', 'id_ID');
   final DateFormat _labelDailyFormatter = DateFormat('dd MMM', 'id_ID');
   final DateFormat _labelMonthlyFormatter = DateFormat('MMM yy', 'id_ID');
+  
   final DateFormat _backendDailyParser = DateFormat('yyyy-MM-dd');
   final DateFormat _backendMonthlyParser = DateFormat('yyyy-MM');
 
@@ -37,17 +41,14 @@ class _MyPropertyDetailScreenState extends State<MyPropertyDetailScreen>
   late String _currentMainImageUrlOnDetailTab;
   late List<String> _allImageUrlsForDetailTab;
 
-  static const Color colorPaletHitam = Color(0xFF182420);
-  static const Color colorPaletHijauMuda = Color(0xFFDDEF6D);
-  static const Color colorPaletHijauGelap = Color(0xFF121212);
-
+  static const Color colorNavbarBg = Color(0xFF182420);
+  static const Color colorLemonGreen = Color(0xFFDDEF6D);
+  static const Color colorPrimaryBlue = Color(0xFF205295);
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
-    print(
-        "_MyPropertyDetailScreenState initState: ID Properti yang diterima adalah ${widget.property.id} untuk judul '${widget.property.title}'");
 
     _allImageUrlsForDetailTab = {
       if (widget.property.imageUrl.isNotEmpty && Uri.tryParse(widget.property.imageUrl)?.isAbsolute == true)
@@ -76,7 +77,6 @@ class _MyPropertyDetailScreenState extends State<MyPropertyDetailScreen>
 
   Future<void> _fetchAndProcessStatistics() async {
     if (!mounted) return;
-    print("_MyPropertyDetailScreenState _fetchAndProcessStatistics: Memulai untuk ID ${widget.property.id}");
     setState(() {
       _isLoadingStats = true;
       _statsError = null;
@@ -88,33 +88,29 @@ class _MyPropertyDetailScreenState extends State<MyPropertyDetailScreen>
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
 
     try {
-      print("_MyPropertyDetailScreenState _fetchAndProcessStatistics: Memanggil provider dengan ID ${widget.property.id}");
       final statsData = await propertyProvider.fetchPropertyStatistics(widget.property.id, authProvider.token);
-      print('_MyPropertyDetailScreenState: Data statistik mentah diterima untuk ID ${widget.property.id}: $statsData');
-      
       if (mounted && statsData != null) {
         setState(() {
           _processedDailyStats = _getProcessedDailyData(Map<String, dynamic>.from(statsData['daily'] ?? {}));
           _processedMonthlyStats = _getProcessedMonthlyData(Map<String, dynamic>.from(statsData['monthly'] ?? {}));
-          print('_MyPropertyDetailScreenState: Processed Daily Stats untuk ID ${widget.property.id}: $_processedDailyStats');
-          print('_MyPropertyDetailScreenState: Processed Monthly Stats untuk ID ${widget.property.id}: $_processedMonthlyStats');
         });
       } else if (mounted) {
         setState(() {
-          _statsError = "Gagal mengambil data statistik atau data tidak ditemukan untuk properti ini.";
-          _processedDailyStats = {}; 
+          // ENGLISH TRANSLATION
+          _statsError = "Failed to load statistics or no data found for this property.";
+          _processedDailyStats = {};
           _processedMonthlyStats = {};
         });
       }
     } catch (e) {
       if (mounted) {
         setState(() {
-          _statsError = "Terjadi kesalahan saat mengambil statistik: ${e.toString()}";
+          // ENGLISH TRANSLATION
+          _statsError = "An error occurred while fetching statistics: ${e.toString()}";
           _processedDailyStats = {};
           _processedMonthlyStats = {};
         });
       }
-      print("Error fetching/processing stats for ID ${widget.property.id}: $e");
     } finally {
       if (mounted) {
         setState(() {
@@ -179,15 +175,16 @@ class _MyPropertyDetailScreenState extends State<MyPropertyDetailScreen>
         centerTitle: true,
         bottom: TabBar(
           controller: _tabController,
-          labelColor: colorPaletHitam, // Perubahan warna
+          labelColor: colorNavbarBg,
           unselectedLabelColor: Colors.grey[700],
-          indicatorColor: colorPaletHitam, // Perubahan warna
+          indicatorColor: colorNavbarBg,
           indicatorWeight: 2.5,
           labelStyle: GoogleFonts.poppins(fontWeight: FontWeight.w600, fontSize: 14.5),
           unselectedLabelStyle: GoogleFonts.poppins(fontWeight: FontWeight.w500, fontSize: 14.5),
+          // ENGLISH TRANSLATION
           tabs: const [
-            Tab(text: "Detail Properti"),
-            Tab(text: "Statistik"),
+            Tab(text: "Property Details"),
+            Tab(text: "Statistics"),
           ],
         ),
       ),
@@ -202,6 +199,14 @@ class _MyPropertyDetailScreenState extends State<MyPropertyDetailScreen>
   }
 
   Widget _buildDetailTabContent(BuildContext context, NumberFormat currencyFormatter, AuthProvider authProvider, PropertyProvider propertyProvider) {
+    ButtonStyle primaryButtonStyle = ElevatedButton.styleFrom(
+      backgroundColor: colorPrimaryBlue,
+      foregroundColor: Colors.white,
+      padding: const EdgeInsets.symmetric(vertical: 14),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      elevation: 2,
+    );
+
     return SingleChildScrollView(
       key: const PageStorageKey<String>('myPropertyDetailTab'),
       physics: const BouncingScrollPhysics(),
@@ -225,9 +230,11 @@ class _MyPropertyDetailScreenState extends State<MyPropertyDetailScreen>
                             height: 220,
                             fit: BoxFit.cover,
                             placeholder: (context, url) => _imageLoadingPlaceholder(220, null),
-                            errorWidget: (context, url, error) => _imageErrorPlaceholder(220, customText: "Gambar utama tidak tersedia"),
+                            // ENGLISH TRANSLATION
+                            errorWidget: (context, url, error) => _imageErrorPlaceholder(220, customText: "Main image unavailable"),
                           )
-                        : _imageErrorPlaceholder(220, customText: "Tidak ada gambar utama"),
+                        // ENGLISH TRANSLATION
+                        : _imageErrorPlaceholder(220, customText: "No main image"),
                     ),
                   ),
                 ),
@@ -291,7 +298,8 @@ class _MyPropertyDetailScreenState extends State<MyPropertyDetailScreen>
                 if (_allImageUrlsForDetailTab.isEmpty)
                      Padding(
                         padding: const EdgeInsets.only(top:8.0, bottom: 10),
-                        child: Center(child: Text("Tidak ada gambar untuk properti ini.", style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey[600]))),
+                        // ENGLISH TRANSLATION
+                        child: Center(child: Text("No images for this property.", style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey[600]))),
                     ),
                 const SizedBox(height: 10),
               ],
@@ -299,11 +307,12 @@ class _MyPropertyDetailScreenState extends State<MyPropertyDetailScreen>
           ),
           Padding(
             padding: const EdgeInsets.fromLTRB(20.0, 0, 20.0, 8.0),
-            child: Row( // Hanya menampilkan "Dilihat"
-              mainAxisAlignment: MainAxisAlignment.center, // Pusatkan jika hanya satu item
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
+                // ENGLISH TRANSLATION
                 _buildStatItem(
-                    EvaIcons.eyeOutline, '${widget.property.viewsCount} Dilihat'),
+                    EvaIcons.eyeOutline, '${widget.property.viewsCount} Views'),
               ],
             ),
           ),
@@ -339,13 +348,13 @@ class _MyPropertyDetailScreenState extends State<MyPropertyDetailScreen>
                     style: GoogleFonts.poppins(
                         fontSize: 18,
                         fontWeight: FontWeight.w600,
-                        color: colorPaletHitam), // Perubahan warna harga
+                        color: colorNavbarBg),
                   ),
                   const SizedBox(height: 12),
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Icon(EvaIcons.pinOutline, color: Colors.red, size: 18), // Perubahan warna ikon lokasi
+                      Icon(EvaIcons.pinOutline, color: Colors.red, size: 18),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
@@ -360,46 +369,48 @@ class _MyPropertyDetailScreenState extends State<MyPropertyDetailScreen>
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceAround,
                     children: [
+                      // ENGLISH TRANSLATION
                       _buildFeatureItem(Icons.king_bed_outlined,
-                          '${widget.property.bedrooms} Kamar Tidur'),
+                          '${widget.property.bedrooms} Bedrooms'),
                       _buildFeatureItem(Icons.bathtub_outlined,
-                          '${widget.property.bathrooms} Kamar Mandi'),
+                          '${widget.property.bathrooms} Bathrooms'),
                       _buildFeatureItem(Icons.aspect_ratio_outlined,
                           '${widget.property.areaSqft.toStringAsFixed(0)} sqft'),
                     ],
                   ),
                   const Divider(height: 30, thickness: 0.7),
+                  // ENGLISH TRANSLATION
                   _buildInfoRow(
-                    "Status Properti:",
+                    "Property Status:",
                     widget.property.status.name.replaceAllMapped(RegExp(r'(?<=[a-z])(?=[A-Z])'), (match) => ' ${match.group(0)}').replaceFirstMapped(RegExp(r'^[a-z]'), (m) => m[0]!.toUpperCase()),
                     chipColor: _getStatusColor(widget.property.status).withOpacity(0.12),
                     textColor: _getStatusColor(widget.property.status),
                     isChip: true,
                   ),
                    if (widget.property.propertyType.isNotEmpty)
-                    _buildInfoRow("Tipe Properti:", widget.property.propertyType),
+                    _buildInfoRow("Property Type:", widget.property.propertyType),
                   if (widget.property.furnishings.isNotEmpty)
-                    _buildInfoRow("Kondisi Furnishing:", widget.property.furnishings),
+                    _buildInfoRow("Furnishing:", widget.property.furnishings),
                    if (widget.property.mainView != null && widget.property.mainView!.isNotEmpty)
-                    _buildInfoRow("Pemandangan Utama:", widget.property.mainView!),
+                    _buildInfoRow("Main View:", widget.property.mainView!),
                   if (widget.property.listingAgeCategory != null && widget.property.listingAgeCategory!.isNotEmpty)
-                    _buildInfoRow("Usia Listing:", widget.property.listingAgeCategory!),
+                    _buildInfoRow("Listing Age:", widget.property.listingAgeCategory!),
                   if (widget.property.propertyLabel != null && widget.property.propertyLabel!.isNotEmpty)
-                    _buildInfoRow("Label Properti:", widget.property.propertyLabel!),
+                    _buildInfoRow("Property Label:", widget.property.propertyLabel!),
 
                   if (widget.property.approvalDate != null)
-                    _buildInfoRow("Tanggal Tayang:",
-                        _dateFormatter.format(widget.property.approvalDate!)),
+                    _buildInfoRow("Live Since:", // ENGLISH TRANSLATION
+                        _dateFormatter.format(widget.property.approvalDate!)), // INDONESIAN DATE FORMAT RETAINED
                   if (widget.property.submissionDate != null && widget.property.status == PropertyStatus.pendingVerification)
-                     _buildInfoRow("Tanggal Diajukan:",
-                        _dateFormatter.format(widget.property.submissionDate!)),
+                     _buildInfoRow("Submitted On:", // ENGLISH TRANSLATION
+                        _dateFormatter.format(widget.property.submissionDate!)), // INDONESIAN DATE FORMAT RETAINED
                   if (widget.property.rejectionReason != null && widget.property.status == PropertyStatus.rejected)
-                    _buildInfoRow("Alasan Ditolak:", widget.property.rejectionReason!, valueColor: Colors.red[700]),
+                    _buildInfoRow("Rejection Reason:", widget.property.rejectionReason!, valueColor: Colors.red[700]), // ENGLISH TRANSLATION
 
                   if(widget.property.description.isNotEmpty) ...[
                     const Divider(height: 30, thickness: 0.7),
                     Text(
-                      "Deskripsi",
+                      "Description", // ENGLISH TRANSLATION
                       style: GoogleFonts.poppins(
                           fontSize: 15,
                           fontWeight: FontWeight.w600,
@@ -417,19 +428,21 @@ class _MyPropertyDetailScreenState extends State<MyPropertyDetailScreen>
 
                   const Divider(height: 30, thickness: 0.7),
                   Text(
-                    "Tindakan",
+                    "Actions", // ENGLISH TRANSLATION
                     style: GoogleFonts.poppins(
                         fontSize: 15,
                         fontWeight: FontWeight.w600,
                         color: Colors.black87),
                   ),
                   const SizedBox(height: 16),
+
                   if (widget.property.status == PropertyStatus.approved || widget.property.status == PropertyStatus.draft || widget.property.status == PropertyStatus.rejected)
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton.icon(
-                        icon: const Icon(EvaIcons.edit2Outline, size: 20),
-                        label: Text("Edit Iklan", style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
+                        icon: const Icon(EvaIcons.edit2Outline, size: 20, color: Colors.white),
+                        // ENGLISH TRANSLATION
+                        label: Text("Edit Listing", style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
                         onPressed: () {
                           Navigator.push(
                             context,
@@ -447,80 +460,97 @@ class _MyPropertyDetailScreenState extends State<MyPropertyDetailScreen>
                                     propertyProvider.fetchPublicProperties()
                                   ]);
                                 }
-                                if (mounted) Navigator.pop(context); 
+                                if (mounted) Navigator.pop(context);
                               }
                           });
                         },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Theme.of(context).colorScheme.primary,
-                          foregroundColor: Theme.of(context).colorScheme.onPrimary,
-                          padding: const EdgeInsets.symmetric(vertical: 13),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                        ),
+                        style: primaryButtonStyle,
                       ),
                     ),
                   if (widget.property.status == PropertyStatus.approved || widget.property.status == PropertyStatus.draft || widget.property.status == PropertyStatus.rejected)
                       const SizedBox(height: 12),
 
-                  SizedBox(
-                    width: double.infinity,
-                    child: OutlinedButton.icon(
-                      icon: const Icon(EvaIcons.externalLinkOutline, size: 20),
-                      label: Text("Lihat Halaman Publik", style: GoogleFonts.poppins(fontWeight: FontWeight.w500)),
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => ChangeNotifierProvider.value(
-                              value: widget.property,
-                              child: PropertyDetailPage(property: widget.property),
-                            ),
-                          ),
-                        );
-                      },
-                      style: OutlinedButton.styleFrom(
-                        side: BorderSide(color: Theme.of(context).colorScheme.primary.withOpacity(0.7)),
-                        foregroundColor: Theme.of(context).colorScheme.primary,
-                        padding: const EdgeInsets.symmetric(vertical: 13),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-
                   if (widget.property.status == PropertyStatus.approved)
                     SizedBox(
                       width: double.infinity,
-                      child: OutlinedButton.icon(
-                        icon: Icon(Icons.archive_outlined, size: 20, color: Colors.orange.shade800),
-                        label: Text("Arsipkan Iklan", style: GoogleFonts.poppins(fontWeight: FontWeight.w500, color: Colors.orange.shade800)),
-                        onPressed: () => _updatePropertyStatus(PropertyStatus.archived, "Arsipkan Properti?", "Properti ini akan dipindahkan ke arsip dan tidak akan tampil di publik.", authProvider, propertyProvider),
-                        style: OutlinedButton.styleFrom(
-                          side: BorderSide(color: Colors.orange.shade700.withOpacity(0.7)),
-                          padding: const EdgeInsets.symmetric(vertical: 13),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      child: ElevatedButton.icon(
+                        icon: const Icon(Icons.archive_outlined, size: 20, color: Colors.white),
+                        // ENGLISH TRANSLATION
+                        label: Text("Archive Listing", style: GoogleFonts.poppins(fontWeight: FontWeight.w600, color: Colors.white)),
+                        onPressed: () => _updatePropertyStatus(PropertyStatus.archived, "Archive Property?", "This property will be moved to the archive and will no longer be public.", authProvider, propertyProvider),
+                        style: primaryButtonStyle.copyWith(
+                          backgroundColor: WidgetStateProperty.all(Colors.grey[700]),
                         ),
                       ),
                     ),
                   if (widget.property.status == PropertyStatus.approved) const SizedBox(height: 12),
 
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      icon: const Icon(EvaIcons.externalLinkOutline, size: 20, color: colorNavbarBg),
+                      // ENGLISH TRANSLATION
+                      label: Text("View Public Page", style: GoogleFonts.poppins(fontWeight: FontWeight.w600, color: colorNavbarBg)),
+                      onPressed: () async {
+                        showDialog(
+                          context: context,
+                          barrierDismissible: false,
+                          builder: (BuildContext dialogContext) => const Center(child: CircularProgressIndicator()),
+                        );
+
+                        Property? freshPropertyData = await propertyProvider.fetchPublicPropertyDetail(
+                          widget.property.id,
+                          authProvider.token,
+                        );
+
+                        if (!mounted) return;
+                        Navigator.pop(context); // Close dialog
+
+                        if (freshPropertyData != null) {
+                          if (freshPropertyData.uploaderInfo == null && widget.property.uploaderInfo != null) {
+                            freshPropertyData = freshPropertyData.copyWith(uploaderInfo: widget.property.uploaderInfo);
+                          }
+
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => ChangeNotifierProvider.value(
+                                value: freshPropertyData!,
+                                child: PropertyDetailPage(
+                                  key: ValueKey(freshPropertyData.id),
+                                  property: freshPropertyData,
+                                ),
+                              ),
+                            ),
+                          );
+                        } else {
+                          // ENGLISH TRANSLATION
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Failed to load public property details.')),
+                          );
+                        }
+                      },
+                      style: primaryButtonStyle.copyWith(
+                        backgroundColor: WidgetStateProperty.all(colorLemonGreen),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  
                   if (widget.property.status == PropertyStatus.approved)
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton.icon(
-                        icon: const Icon(Icons.paid_outlined, size: 20, color: colorPaletHitam), // Perubahan warna ikon
-                        label: Text("Tandai sebagai Terjual", style: GoogleFonts.poppins(fontWeight: FontWeight.w600, color: colorPaletHitam)), // Perubahan warna teks
-                        onPressed: () => _updatePropertyStatus(PropertyStatus.sold, "Tandai Properti Terjual?", "Status properti akan diubah menjadi 'Terjual'. Properti ini tidak akan tampil di publik lagi.", authProvider, propertyProvider),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.purple.shade600,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 13),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        icon: const Icon(Icons.paid_outlined, size: 20, color: colorLemonGreen),
+                        // ENGLISH TRANSLATION
+                        label: Text("Mark as Sold", style: GoogleFonts.poppins(fontWeight: FontWeight.w600, color: colorLemonGreen)),
+                        onPressed: () => _updatePropertyStatus(PropertyStatus.sold, "Mark Property as Sold?", "The property's status will be changed to 'Sold'. It will no longer be publicly visible.", authProvider, propertyProvider),
+                        style: primaryButtonStyle.copyWith(
+                          backgroundColor: WidgetStateProperty.all(colorNavbarBg),
                         ),
                       ),
                     ),
 
-                  // Tombol Hapus (hanya untuk status tertentu)
                   if (widget.property.status == PropertyStatus.draft ||
                       widget.property.status == PropertyStatus.rejected ||
                       widget.property.status == PropertyStatus.approved ||
@@ -529,16 +559,14 @@ class _MyPropertyDetailScreenState extends State<MyPropertyDetailScreen>
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton.icon(
-                        icon: Icon(Icons.delete_outline, size: 20, color: Colors.white),
-                        label: Text("Hapus Iklan Ini", style: GoogleFonts.poppins(fontWeight: FontWeight.w600, color: Colors.white)),
+                        icon: const Icon(Icons.delete_outline, size: 20, color: Colors.white),
+                        // ENGLISH TRANSLATION
+                        label: Text("Delete This Listing", style: GoogleFonts.poppins(fontWeight: FontWeight.w600, color: Colors.white)),
                         onPressed: () {
                           _confirmAndDeleteProperty(authProvider, propertyProvider);
                         },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.red[700],
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 13),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        style: primaryButtonStyle.copyWith(
+                          backgroundColor: WidgetStateProperty.all(Colors.red[700]),
                         ),
                       ),
                     ),
@@ -578,7 +606,8 @@ class _MyPropertyDetailScreenState extends State<MyPropertyDetailScreen>
               const SizedBox(height:15),
               ElevatedButton.icon(
                 icon: const Icon(Icons.refresh),
-                label: const Text("Coba Lagi"),
+                // ENGLISH TRANSLATION
+                label: const Text("Try Again"),
                 onPressed: _fetchAndProcessStatistics,
               )
             ],
@@ -597,8 +626,9 @@ class _MyPropertyDetailScreenState extends State<MyPropertyDetailScreen>
             children: [
               Icon(Icons.trending_flat_rounded, color: Colors.grey.shade300, size: 70),
               const SizedBox(height:15),
+              // ENGLISH TRANSLATION
               Text(
-                "Belum ada aktivitas tampilan yang signifikan untuk periode ini.",
+                "No significant view activity for this period yet.",
                 textAlign: TextAlign.center,
                 style: GoogleFonts.poppins(fontSize: 15, color: Colors.grey[700]),
               ),
@@ -616,8 +646,9 @@ class _MyPropertyDetailScreenState extends State<MyPropertyDetailScreen>
             children: [
               Icon(Icons.bar_chart_rounded, color: Colors.grey.shade300, size: 70),
               const SizedBox(height:15),
+              // ENGLISH TRANSLATION
               Text(
-                "Data statistik tampilan untuk properti ini belum tersedia.",
+                "View statistics for this property are not available yet.",
                 textAlign: TextAlign.center,
                 style: GoogleFonts.poppins(fontSize: 15, color: Colors.grey[700]),
               ),
@@ -634,7 +665,8 @@ class _MyPropertyDetailScreenState extends State<MyPropertyDetailScreen>
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            "Grafik Tampilan Postingan",
+            // ENGLISH TRANSLATION
+            "Listing View Analytics",
             style: GoogleFonts.poppins(
                 fontSize: 17,
                 fontWeight: FontWeight.w600,
@@ -642,7 +674,8 @@ class _MyPropertyDetailScreenState extends State<MyPropertyDetailScreen>
           ),
           const SizedBox(height: 6),
           Text(
-            "Lihat tren berapa kali postingan ini dilihat oleh pengguna lain, baik secara harian maupun bulanan.",
+            // ENGLISH TRANSLATION
+            "See the trend of how many times this listing has been viewed by other users, both daily and monthly.",
             style: GoogleFonts.poppins(fontSize: 12.5, color: Colors.grey[700], height: 1.5),
           ),
           const SizedBox(height: 20),
@@ -683,13 +716,13 @@ class _MyPropertyDetailScreenState extends State<MyPropertyDetailScreen>
                     loadingProgress.expectedTotalBytes!
                 : null,
             strokeWidth: 2.5,
-            color: colorPaletHijauGelap,
+            color: colorNavbarBg,
         ),
         ),
     );
   }
 
-  Widget _imageErrorPlaceholder(double height, {double iconSize = 40, String customText = "Gambar tidak tersedia"}){
+  Widget _imageErrorPlaceholder(double height, {double iconSize = 40, String customText = "Image unavailable"}){
       return Container(
         height: height,
         width: double.infinity,
@@ -810,10 +843,24 @@ class _MyPropertyDetailScreenState extends State<MyPropertyDetailScreen>
   }
 
   Future<void> _updatePropertyStatus(PropertyStatus newStatus, String dialogTitle, String dialogContent, AuthProvider authProvider, PropertyProvider propertyProvider) async {
+    Color confirmButtonColor = colorPrimaryBlue;
+    Color confirmTextColor = Colors.white;
+
+    if (newStatus == PropertyStatus.sold) {
+      confirmButtonColor = colorNavbarBg;
+      confirmTextColor = colorLemonGreen;
+    } else if (newStatus == PropertyStatus.archived) {
+      confirmButtonColor = Colors.grey[700]!;
+    } else if (newStatus == PropertyStatus.approved) {
+      confirmButtonColor = Colors.green[600]!;
+    }
+
     _showConfirmationDialog(
       context,
       title: dialogTitle,
       content: dialogContent,
+      confirmButtonColor: confirmButtonColor,
+      confirmTextColor: confirmTextColor,
       onConfirm: () async {
         if (authProvider.token != null) {
           final result = await propertyProvider.updatePropertyStatus(
@@ -821,31 +868,34 @@ class _MyPropertyDetailScreenState extends State<MyPropertyDetailScreen>
             newStatus,
             authProvider.token!,
           );
-          if (mounted) { 
+          if (mounted) {
             if (result['success'] == true) {
+              // ENGLISH TRANSLATION
               ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('Status properti berhasil diperbarui ke ${newStatus.name}.'), backgroundColor: Colors.green),
+                SnackBar(content: Text('Property status successfully updated to ${newStatus.name}.'), backgroundColor: Colors.green),
               );
-              final String? token = authProvider.token; 
+              final String? token = authProvider.token;
                if (token != null) {
                  await Future.wait([
                     propertyProvider.fetchUserApprovedProperties(token),
                     propertyProvider.fetchUserManageableProperties(token),
                     propertyProvider.fetchUserSoldProperties(token),
-                    propertyProvider.fetchPublicProperties(), 
+                    propertyProvider.fetchPublicProperties(),
                  ]);
               }
-              if (mounted) Navigator.pop(context); 
+              if (mounted) Navigator.pop(context);
             } else {
+              // ENGLISH TRANSLATION
               ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('Gagal memperbarui status: ${result['message'] ?? "Terjadi kesalahan."}')),
+                SnackBar(content: Text('Failed to update status: ${result['message'] ?? "An error occurred."}')),
               );
             }
           }
         } else {
             if (mounted) {
+                // ENGLISH TRANSLATION
                 ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Sesi tidak valid. Silakan login ulang.')),
+                    const SnackBar(content: Text('Invalid session. Please log in again.')),
                 );
             }
         }
@@ -854,27 +904,29 @@ class _MyPropertyDetailScreenState extends State<MyPropertyDetailScreen>
   }
 
   Future<void> _confirmAndDeleteProperty(AuthProvider authProvider, PropertyProvider propertyProvider) async {
-    // Tampilkan dialog konfirmasi
     final bool? confirmDelete = await showDialog<bool>(
       context: context,
-      barrierDismissible: false, // User must tap button!
+      barrierDismissible: false,
       builder: (BuildContext dialogContext) {
         return AlertDialog(
-          title: Text("Konfirmasi Hapus", style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
-          content: Text("Apakah Anda yakin ingin menghapus properti ' 24{widget.property.title}' secara permanen? Tindakan ini tidak dapat diurungkan.", style: GoogleFonts.poppins()),
+          // ENGLISH TRANSLATION
+          title: Text("Confirm Deletion", style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
+          content: Text("Are you sure you want to permanently delete the property '${widget.property.title}'? This action cannot be undone.", style: GoogleFonts.poppins()),
           actionsAlignment: MainAxisAlignment.end,
           actions: <Widget>[
             TextButton(
-              child: Text("Batal", style: GoogleFonts.poppins(color: Colors.grey[700])),
+              // ENGLISH TRANSLATION
+              child: Text("Cancel", style: GoogleFonts.poppins(color: Colors.grey[700])),
               onPressed: () {
-                Navigator.of(dialogContext).pop(false); // Mengembalikan false
+                Navigator.of(dialogContext).pop(false);
               },
             ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(backgroundColor: Colors.red[700]),
-              child: Text("Hapus", style: GoogleFonts.poppins(color: Colors.white)),
+              // ENGLISH TRANSLATION
+              child: Text("Delete", style: GoogleFonts.poppins(color: Colors.white)),
               onPressed: () {
-                Navigator.of(dialogContext).pop(true); // Mengembalikan true
+                Navigator.of(dialogContext).pop(true);
               },
             ),
           ],
@@ -882,39 +934,32 @@ class _MyPropertyDetailScreenState extends State<MyPropertyDetailScreen>
       },
     );
 
-    // Jika pengguna mengkonfirmasi penghapusan
     if (confirmDelete == true) {
       if (authProvider.token != null) {
-        // Tampilkan loading indicator jika perlu
-        // setState(() => _isDeleting = true); // Anda perlu state _isDeleting
-
-        final result = await propertyProvider.deleteProperty( // Anda perlu membuat method ini di PropertyProvider
+        final result = await propertyProvider.deleteProperty(
           widget.property.id,
           authProvider.token!,
         );
-
-        // if (mounted) setState(() => _isDeleting = false);
 
         if (!mounted) return;
 
         if (result['success'] == true) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(result['message'] ?? 'Properti berhasil dihapus.'), backgroundColor: Colors.green),
+            // ENGLISH TRANSLATION
+            SnackBar(content: Text(result['message'] ?? 'Property successfully deleted.'), backgroundColor: Colors.green),
           );
-          // Setelah berhasil hapus, kembali ke halaman sebelumnya (misalnya ProfileScreen atau MyDraftsScreen)
-          // Dan refresh list di sana.
-          // PropertyProvider harusnya sudah mengupdate list internalnya dan memanggil notifyListeners()
-          // Jadi ketika pop, halaman sebelumnya akan rebuild dengan data terbaru.
           int count = 0;
-          Navigator.of(context).popUntil((_) => count++ >= 1); // Kembali satu halaman, atau lebih jika perlu
+          Navigator.of(context).popUntil((_) => count++ >= 1);
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(result['message'] ?? 'Gagal menghapus properti.'), backgroundColor: Colors.red),
+            // ENGLISH TRANSLATION
+            SnackBar(content: Text(result['message'] ?? 'Failed to delete property.'), backgroundColor: Colors.red),
           );
         }
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Sesi tidak valid. Silakan login ulang.')),
+          // ENGLISH TRANSLATION
+          const SnackBar(content: Text('Invalid session. Please log in again.')),
         );
       }
     }
@@ -925,10 +970,12 @@ class _MyPropertyDetailScreenState extends State<MyPropertyDetailScreen>
     required String title,
     required String content,
     required VoidCallback onConfirm,
+    Color? confirmButtonColor,
+    Color? confirmTextColor,
   }) async {
     return showDialog<void>(
       context: context,
-      barrierDismissible: false, 
+      barrierDismissible: false,
       builder: (BuildContext dialogContext) {
         return AlertDialog(
           title: Text(title, style: GoogleFonts.poppins(fontWeight: FontWeight.w600, fontSize: 17)),
@@ -943,17 +990,19 @@ class _MyPropertyDetailScreenState extends State<MyPropertyDetailScreen>
           actionsPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           actions: <Widget>[
             TextButton(
-              child: Text('Batal', style: GoogleFonts.poppins(color: Colors.grey[700], fontWeight: FontWeight.w500)),
+              // ENGLISH TRANSLATION
+              child: Text('Cancel', style: GoogleFonts.poppins(color: Colors.grey[700], fontWeight: FontWeight.w500)),
               onPressed: () {
                 Navigator.of(dialogContext).pop();
               },
             ),
             ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: Theme.of(context).primaryColorDark),
-              child: Text('Konfirmasi', style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.w500)),
+              style: ElevatedButton.styleFrom(backgroundColor: confirmButtonColor ?? colorPrimaryBlue),
+              // ENGLISH TRANSLATION
+              child: Text('Confirm', style: GoogleFonts.poppins(color: confirmTextColor ?? Colors.white, fontWeight: FontWeight.w500)),
               onPressed: () {
-                Navigator.of(dialogContext).pop(); 
-                onConfirm(); 
+                Navigator.of(dialogContext).pop();
+                onConfirm();
               },
             ),
           ],

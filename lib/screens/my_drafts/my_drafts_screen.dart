@@ -17,10 +17,13 @@ class MyDraftsScreen extends StatefulWidget {
 class _MyDraftsScreenState extends State<MyDraftsScreen> with SingleTickerProviderStateMixin {
   late TabController _tabController;
 
+  static const Color colorNavbarBg = Color(0xFF182420);
+  static const Color colorLemonGreen = Color(0xFFDDEF6D);
+
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this); // 2 Tab
+    _tabController = TabController(length: 2, vsync: this);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _fetchAllUserProperties();
     });
@@ -38,51 +41,49 @@ class _MyDraftsScreenState extends State<MyDraftsScreen> with SingleTickerProvid
     final token = authProvider.token;
 
     if (token != null && mounted) {
-      // Fetch semua jenis properti pengguna secara bersamaan
       await Future.wait([
         propertyProvider.fetchUserManageableProperties(token),
         propertyProvider.fetchUserSoldProperties(token),
-        propertyProvider.fetchUserApprovedProperties(token), // Untuk refresh ProfileScreen jika ada perubahan dari sini
+        propertyProvider.fetchUserApprovedProperties(token),
       ]);
     } else if (token == null && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Sesi tidak valid. Silakan login ulang.')),
+        // ENGLISH TRANSLATION
+        const SnackBar(content: Text('Invalid session. Please log in again.')),
       );
     }
   }
 
   void _navigateToForm({Property? existingProperty, bool isSold = false}) async {
-    final result = await Navigator.push<bool>( 
+    final result = await Navigator.push<bool>(
       context,
       MaterialPageRoute(
         builder: (context) => AddPropertyFormScreen(
           propertyToEdit: existingProperty,
-          // Anda bisa menambahkan parameter `isReadOnly` atau `targetStatus` ke AddPropertyFormScreen
-          // jika ingin mengontrol perilaku form lebih lanjut berdasarkan tab.
-          // Untuk properti sold, form akan read-only.
         ),
       ),
     );
 
-    if (result == true && mounted) { 
-      _fetchAllUserProperties(); // Refresh semua list
+    if (result == true && mounted) {
+      _fetchAllUserProperties();
     }
   }
 
-  String _getStatusText(PropertyStatus status) { /* ... (tetap sama seperti sebelumnya, pastikan ada case sold) ... */ 
+  String _getStatusText(PropertyStatus status) {
+    // ENGLISH TRANSLATION
     switch (status) {
       case PropertyStatus.draft:
         return 'Draft';
       case PropertyStatus.pendingVerification:
-        return 'Menunggu Verifikasi';
+        return 'Pending Verification';
       case PropertyStatus.approved:
-        return 'Disetujui';
+        return 'Approved';
       case PropertyStatus.rejected:
-        return 'Ditolak';
+        return 'Rejected';
       case PropertyStatus.sold:
-        return 'Terjual'; 
+        return 'Sold';
       case PropertyStatus.archived:
-        return 'Diarsipkan'; 
+        return 'Archived';
       default:
         String name = status.name;
         return name.replaceAllMapped(RegExp(r'(?<=[a-z])(?=[A-Z])'), (Match m) => ' ${m[0]}')
@@ -95,7 +96,7 @@ class _MyDraftsScreenState extends State<MyDraftsScreen> with SingleTickerProvid
       case PropertyStatus.draft:
         return Colors.blueGrey[600]!;
       case PropertyStatus.pendingVerification:
-        return Colors.orange[700]!;
+        return colorLemonGreen;
       case PropertyStatus.approved:
         return Colors.green[600]!;
       case PropertyStatus.rejected:
@@ -103,7 +104,7 @@ class _MyDraftsScreenState extends State<MyDraftsScreen> with SingleTickerProvid
       case PropertyStatus.archived:
         return Colors.grey[700]!;
       case PropertyStatus.sold:
-        return Colors.purple[700]!;
+        return colorNavbarBg;
       default:
         return Colors.grey;
     }
@@ -133,13 +134,13 @@ class _MyDraftsScreenState extends State<MyDraftsScreen> with SingleTickerProvid
       case PropertyStatus.rejected:
         return Colors.blueAccent.shade700;
       case PropertyStatus.pendingVerification:
-        return Colors.orange.shade800;
+        return colorNavbarBg;
       case PropertyStatus.approved:
         return Colors.green.shade700;
       case PropertyStatus.archived:
         return Colors.grey.shade800;
       case PropertyStatus.sold:
-        return Colors.purple.shade800;
+        return colorNavbarBg;
       default:
         return Colors.grey[700]!;
     }
@@ -157,11 +158,13 @@ class _MyDraftsScreenState extends State<MyDraftsScreen> with SingleTickerProvid
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Text('Gagal memuat data: $errorMessage', textAlign: TextAlign.center, style: GoogleFonts.poppins(color: Colors.red[700])),
+              // ENGLISH TRANSLATION
+              Text('Failed to load data: $errorMessage', textAlign: TextAlign.center, style: GoogleFonts.poppins(color: Colors.red[700])),
               const SizedBox(height: 10),
               ElevatedButton.icon(
                 icon: const Icon(Icons.refresh),
-                label: const Text("Coba Lagi"),
+                // ENGLISH TRANSLATION
+                label: const Text("Try Again"),
                 onPressed: _fetchAllUserProperties,
               )
             ],
@@ -188,12 +191,21 @@ class _MyDraftsScreenState extends State<MyDraftsScreen> with SingleTickerProvid
         itemCount: properties.length,
         itemBuilder: (context, index) {
           final property = properties[index];
+          final Color chipTextColor;
+          if (property.status == PropertyStatus.sold) {
+            chipTextColor = colorLemonGreen;
+          } else if (property.status == PropertyStatus.pendingVerification) {
+            chipTextColor = colorNavbarBg;
+          } else {
+            chipTextColor = Colors.white;
+          }
+
           return Card(
             elevation: 2,
             margin: const EdgeInsets.only(bottom: 15),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             child: ListTile(
-              leading: ClipRRect( /* ... (leading image) ... */ 
+              leading: ClipRRect(
                 borderRadius: BorderRadius.circular(8.0),
                 child: property.imageUrl.isNotEmpty
                   ? Image.network(
@@ -212,7 +224,10 @@ class _MyDraftsScreenState extends State<MyDraftsScreen> with SingleTickerProvid
                   Text(property.address, maxLines: 1, overflow: TextOverflow.ellipsis, style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey[700])),
                   const SizedBox(height: 4),
                   Chip(
-                    label: Text(_getStatusText(property.status), style: GoogleFonts.poppins(fontSize: 11, fontWeight: FontWeight.w500, color: Colors.white)),
+                    label: Text(
+                      _getStatusText(property.status),
+                      style: GoogleFonts.poppins(fontSize: 11, fontWeight: FontWeight.w600, color: chipTextColor),
+                    ),
                     backgroundColor: _getStatusColor(property.status),
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                     materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
@@ -221,7 +236,6 @@ class _MyDraftsScreenState extends State<MyDraftsScreen> with SingleTickerProvid
               ),
               trailing: Icon(_getStatusIcon(property.status), color: _getTrailingIconColor(property.status)),
               onTap: () {
-                // Untuk properti 'sold', form akan read-only.
                 _navigateToForm(existingProperty: property, isSold: property.status == PropertyStatus.sold);
               },
             ),
@@ -234,7 +248,7 @@ class _MyDraftsScreenState extends State<MyDraftsScreen> with SingleTickerProvid
   @override
   Widget build(BuildContext context) {
     final propertyProvider = Provider.of<PropertyProvider>(context);
-    const Color warnaHijauPekatUntukTab = Color(0xFF121212);
+    const Color tabColor = Color(0xFF121212);
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
@@ -243,36 +257,38 @@ class _MyDraftsScreenState extends State<MyDraftsScreen> with SingleTickerProvid
           icon: const Icon(Icons.arrow_back),
           onPressed: () => Navigator.of(context).pop(),
         ),
-        title: Text("Kelola Iklan Saya"),
+        // ENGLISH TRANSLATION
+        title: Text("Manage My Listings"),
         centerTitle: true,
         bottom: TabBar(
           controller: _tabController,
-          labelColor: warnaHijauPekatUntukTab,
+          labelColor: tabColor,
           unselectedLabelColor: Colors.grey[500],
-          indicatorColor: warnaHijauPekatUntukTab,
+          indicatorColor: tabColor,
           indicatorWeight: 2.5,
           labelStyle: GoogleFonts.poppins(fontWeight: FontWeight.w600, fontSize: 15),
           unselectedLabelStyle: GoogleFonts.poppins(fontWeight: FontWeight.w500, fontSize: 15),
+          // ENGLISH TRANSLATION
           tabs: const [
-            Tab(text: "Draft & Arsip"),
-            Tab(text: "Terjual"),
+            Tab(text: "Drafts & Archives"),
+            Tab(text: "Sold"),
           ],
         ),
       ),
       body: TabBarView(
         controller: _tabController,
         children: [
-          // Tab untuk Draft, Pending, Rejected, Archived
           _buildPropertyList(
-            propertyProvider.userProperties, 
-            "Tidak ada draft, pengajuan, atau arsip properti.",
+            propertyProvider.userProperties,
+            // ENGLISH TRANSLATION
+            "No drafts, submissions, or archived properties found.",
             propertyProvider.isLoadingUserProperties,
             propertyProvider.userPropertiesError
           ),
-          // Tab untuk Sold
           _buildPropertyList(
             propertyProvider.userSoldProperties,
-            "Belum ada properti yang terjual.",
+            // ENGLISH TRANSLATION
+            "No sold properties yet.",
             propertyProvider.isLoadingUserSoldProperties,
             propertyProvider.userSoldPropertiesError
           ),
@@ -282,7 +298,8 @@ class _MyDraftsScreenState extends State<MyDraftsScreen> with SingleTickerProvid
         onPressed: () => _navigateToForm(),
         backgroundColor: const Color(0xFF1F2937),
         icon: const Icon(Icons.add, color: Colors.white),
-        label: Text("Iklan Baru", style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.w600)),
+        // ENGLISH TRANSLATION
+        label: Text("New Listing", style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.w600)),
       ),
     );
   }

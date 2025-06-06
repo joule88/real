@@ -1,3 +1,4 @@
+// lib/widgets/property_image_picker.dart
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -60,21 +61,23 @@ class _PropertyImagePickerState extends State<PropertyImagePicker> {
             _selectedImages.addAll(pickedFiles);
             widget.onSelectedImagesChanged(List.from(_selectedImages));
           } else {
-            int sisaSlot = widget.maxImages - (_existingImageUrls.length + _selectedImages.length);
-            if (sisaSlot > 0 && pickedFiles.length > sisaSlot) {
-                 _selectedImages.addAll(pickedFiles.take(sisaSlot));
+            int remainingSlots = widget.maxImages - (_existingImageUrls.length + _selectedImages.length);
+            if (remainingSlots > 0 && pickedFiles.length > remainingSlots) {
+                 _selectedImages.addAll(pickedFiles.take(remainingSlots));
                  widget.onSelectedImagesChanged(List.from(_selectedImages));
                  if (mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
+                    // ENGLISH TRANSLATION
                     SnackBar(
-                        content: Text('Hanya $sisaSlot gambar pertama yang ditambahkan. Maksimal ${widget.maxImages} gambar.'),
+                        content: Text('Only the first $remainingSlots images were added. Maximum ${widget.maxImages} images allowed.'),
                     ),
                     );
                  }
-            } else if (sisaSlot <=0 && mounted) {
+            } else if (remainingSlots <=0 && mounted) {
                  ScaffoldMessenger.of(context).showSnackBar(
+                 // ENGLISH TRANSLATION
                  SnackBar(
-                    content: Text('Maksimal ${widget.maxImages} gambar sudah tercapai.'),
+                    content: Text('Maximum of ${widget.maxImages} images has been reached.'),
                  ),
                  );
             }
@@ -83,7 +86,8 @@ class _PropertyImagePickerState extends State<PropertyImagePicker> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Gagal memilih gambar: $e')));
+        // ENGLISH TRANSLATION
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to pick images: $e')));
       }
     }
   }
@@ -110,39 +114,51 @@ class _PropertyImagePickerState extends State<PropertyImagePicker> {
       child: Stack(
         clipBehavior: Clip.none,
         children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(10),
-            child: isExisting
-                ? Image.network(
-                    imageData as String,
-                    height: 150, width: 100, fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) => Container(
-                        height: 150, width: 100, color: Colors.grey[200],
-                        child: Icon(Icons.error_outline, color: Colors.red[300])),
-                  )
-                : kIsWeb
-                    ? Image.network(
-                        (imageData as XFile).path,
-                        height: 150,
-                        width: 100,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) => Container(
+          Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(10),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  blurRadius: 4,
+                  offset: const Offset(0, 2),
+                )
+              ]
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(10),
+              child: isExisting
+                  ? Image.network(
+                      imageData as String,
+                      height: 150, width: 100, fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) => Container(
+                          height: 150, width: 100, color: Colors.grey[200],
+                          child: Icon(Icons.error_outline, color: Colors.red[300])),
+                    )
+                  : kIsWeb
+                      ? Image.network(
+                          (imageData as XFile).path,
+                          height: 150,
+                          width: 100,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) => Container(
+                              height: 150,
+                              width: 100,
+                              color: Colors.grey[200],
+                              child: Icon(Icons.error_outline, color: Colors.red[300], semanticLabel: 'Web image load error')),
+                        )
+                      : Image.file(
+                          File((imageData as XFile).path),
+                          height: 150,
+                          width: 100,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) => Container(
                             height: 150,
                             width: 100,
                             color: Colors.grey[200],
-                            child: Icon(Icons.error_outline, color: Colors.red[300], semanticLabel: 'Web image load error')),
-                      )
-                    : Image.file(
-                        File((imageData as XFile).path),
-                        height: 150,
-                        width: 100,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) => Container(
-                          height: 150,
-                          width: 100,
-                          color: Colors.grey[200],
-                          child: Icon(Icons.error_outline, color: Colors.red[300], semanticLabel: 'Mobile image load error')),
-                      ),
+                            child: Icon(Icons.error_outline, color: Colors.red[300], semanticLabel: 'Mobile image load error')),
+                        ),
+            ),
           ),
           if (widget.canEdit)
             Positioned(
@@ -157,7 +173,7 @@ class _PropertyImagePickerState extends State<PropertyImagePicker> {
                   child: Container(
                     padding: const EdgeInsets.all(2),
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.8),
+                      color: Colors.white.withOpacity(0.9),
                       shape: BoxShape.circle,
                       boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 2, offset: Offset(0,1))]
                     ),
@@ -180,7 +196,8 @@ class _PropertyImagePickerState extends State<PropertyImagePicker> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          "Foto Properti (Maksimal ${widget.maxImages})",
+          // ENGLISH TRANSLATION
+          "Property Photos (Maximum ${widget.maxImages})",
           style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.black87),
         ),
         const SizedBox(height: 8),
@@ -204,16 +221,23 @@ class _PropertyImagePickerState extends State<PropertyImagePicker> {
                       height: 150,
                       width: 100,
                       decoration: BoxDecoration(
-                        color: Colors.grey[200],
+                        color: Colors.grey[50],
                         borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: Colors.grey[400]!, style: BorderStyle.solid),
+                        boxShadow: [
+                           BoxShadow(
+                            color: Colors.grey.withOpacity(0.2),
+                            spreadRadius: 1,
+                            blurRadius: 3,
+                          )
+                        ]
                       ),
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Icon(Icons.add_a_photo_outlined, size: 30, color: Colors.grey[600]),
                            const SizedBox(height: 4),
-                           Text("Tambah", style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey[600])),
+                           // ENGLISH TRANSLATION
+                           Text("Add", style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey[600])),
                         ],
                       ),
                     ),
@@ -229,16 +253,23 @@ class _PropertyImagePickerState extends State<PropertyImagePicker> {
               height: 150,
               width: double.infinity,
               decoration: BoxDecoration(
-                color: Colors.grey[200],
+                color: Colors.grey[100],
                 borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: Colors.grey[400]!, style: BorderStyle.solid),
+                boxShadow: [
+                   BoxShadow(
+                    color: Colors.grey.withOpacity(0.25),
+                    spreadRadius: 1,
+                    blurRadius: 4,
+                  )
+                ]
               ),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Icon(Icons.add_a_photo_outlined, size: 40, color: Colors.grey[600]),
                   const SizedBox(height: 8),
-                  Text("Ketuk untuk menambah foto", style: GoogleFonts.poppins(color: Colors.grey[600])),
+                  // ENGLISH TRANSLATION
+                  Text("Tap to add photos", style: GoogleFonts.poppins(color: Colors.grey[600])),
                 ],
               ),
             ),

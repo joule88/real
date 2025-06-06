@@ -1,3 +1,4 @@
+// lib/screens/detail/detailpost.dart
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
@@ -21,28 +22,28 @@ class PropertyDetailPage extends StatefulWidget {
 class _PropertyDetailPageState extends State<PropertyDetailPage> {
   late String _currentMainImageUrl;
   late List<String> _allImageUrls;
+  late bool _isBookmarked;
 
   static const Color colorPaletHijauGelap = Color(0xFF121212);
   static const Color colorPaletHitam = Color(0xFF182420);
 
-
   @override
   void initState() {
     super.initState();
+    _isBookmarked = widget.property.isFavorite;
+
     _allImageUrls = {
       if (widget.property.imageUrl.isNotEmpty && Uri.tryParse(widget.property.imageUrl)?.isAbsolute == true)
         widget.property.imageUrl,
       ...widget.property.additionalImageUrls
           .where((url) => url.isNotEmpty && Uri.tryParse(url)?.isAbsolute == true)
-    }
-    .toList();
+    }.toList();
 
     if (_allImageUrls.isNotEmpty) {
       _currentMainImageUrl = _allImageUrls.first;
     } else if (widget.property.imageUrl.isNotEmpty && Uri.tryParse(widget.property.imageUrl)?.isAbsolute == true) {
       _currentMainImageUrl = widget.property.imageUrl;
-    }
-     else {
+    } else {
       _currentMainImageUrl = '';
     }
   }
@@ -84,7 +85,6 @@ class _PropertyDetailPageState extends State<PropertyDetailPage> {
     );
   }
 
-  // Fungsi helper untuk menampilkan baris info, diadaptasi dari MyPropertyDetailScreen
   Widget _buildInfoRow(String label, String value, {Color? valueColor}) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 5.0),
@@ -108,7 +108,7 @@ class _PropertyDetailPageState extends State<PropertyDetailPage> {
                       textAlign: TextAlign.right,
                       style: GoogleFonts.poppins(
                           fontSize: 12.5,
-                          color: valueColor ?? colorPaletHitam, // Default ke colorPaletHitam jika tidak ada valueColor
+                          color: valueColor ?? colorPaletHitam,
                           fontWeight: FontWeight.w600),
                     ),
             ),
@@ -139,17 +139,14 @@ class _PropertyDetailPageState extends State<PropertyDetailPage> {
                     backgroundColor: Colors.white,
                     child: IconButton(
                       icon: const Icon(Icons.arrow_back, color: Colors.black),
-                      onPressed: () {
-                        Navigator.pop(context);
-                      },
+                      onPressed: () => Navigator.pop(context),
                     ),
                   ),
                   Expanded(
-                    // Tambahkan Alignment agar teks "Detail" benar-benar di tengah Row
                     child: Align(
                       alignment: Alignment.center,
                       child: Text(
-                        "Detail",
+                        "Details", // ENGLISH
                         style: GoogleFonts.poppins(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
@@ -159,13 +156,14 @@ class _PropertyDetailPageState extends State<PropertyDetailPage> {
                     ),
                   ),
                   BookmarkButton(
-                    isBookmarked: widget.property.isFavorite,
+                    isBookmarked: _isBookmarked,
                     onPressed: () {
+                      setState(() {
+                        _isBookmarked = !_isBookmarked;
+                      });
                       final authProvider = Provider.of<AuthProvider>(context, listen: false);
                       Provider.of<PropertyProvider>(context, listen: false)
                           .togglePropertyBookmark(widget.property.id, authProvider.token);
-                      // widget.property (sebagai ChangeNotifier) akan update UI detail page secara otomatis.
-                      // PropertyProvider akan menangani update di BookmarkScreen.
                     },
                   ),
                 ],
@@ -186,9 +184,9 @@ class _PropertyDetailPageState extends State<PropertyDetailPage> {
                             height: 240,
                             fit: BoxFit.cover,
                             placeholder: (context, url) => _imageLoadingPlaceholder(240, null),
-                            errorWidget: (context, url, error) => _imageErrorPlaceholder(240, customText: "Gambar utama tidak tersedia"),
+                            errorWidget: (context, url, error) => _imageErrorPlaceholder(240, customText: "Main image unavailable"), // ENGLISH
                           )
-                        : _imageErrorPlaceholder(240, customText: "Tidak ada gambar utama"),
+                        : _imageErrorPlaceholder(240, customText: "No main image"), // ENGLISH
                     ),
                   ),
                 ),
@@ -252,7 +250,7 @@ class _PropertyDetailPageState extends State<PropertyDetailPage> {
                 if (_allImageUrls.isEmpty)
                     Padding(
                         padding: const EdgeInsets.only(top:8.0, bottom: 10),
-                        child: Center(child: Text("Tidak ada gambar galeri.", style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey[600]))),
+                        child: Center(child: Text("No gallery images.", style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey[600]))), // ENGLISH
                     ),
                  const SizedBox(height: 10),
               ],
@@ -270,6 +268,15 @@ class _PropertyDetailPageState extends State<PropertyDetailPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      Text(
+                        widget.property.title,
+                        style: GoogleFonts.poppins(
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                          color: colorPaletHitam,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
@@ -278,7 +285,7 @@ class _PropertyDetailPageState extends State<PropertyDetailPage> {
                             style: GoogleFonts.poppins(
                               fontSize: 20,
                               fontWeight: FontWeight.bold,
-                              color: colorPaletHitam, // Menggunakan colorPaletHitam
+                              color: colorPaletHitam,
                             ),
                           ),
                         ],
@@ -287,7 +294,7 @@ class _PropertyDetailPageState extends State<PropertyDetailPage> {
                       Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Icon(Icons.location_on_outlined, size: 18, color: Colors.red), // Ikon lokasi merah
+                          Icon(Icons.location_on_outlined, size: 18, color: Colors.red),
                           const SizedBox(width: 6),
                           Expanded(
                             child: Text(
@@ -304,11 +311,11 @@ class _PropertyDetailPageState extends State<PropertyDetailPage> {
                       Row(
                         children: [
                           Expanded(
-                            child: _buildDetailItem(Icons.king_bed_outlined, '${widget.property.bedrooms} Kamar Tidur', screenWidth),
+                            child: _buildDetailItem(Icons.king_bed_outlined, '${widget.property.bedrooms} Bedrooms', screenWidth), // ENGLISH
                           ),
                           const SizedBox(width: 8),
                           Expanded(
-                            child: _buildDetailItem(Icons.bathtub_outlined, '${widget.property.bathrooms} Kamar Mandi', screenWidth),
+                            child: _buildDetailItem(Icons.bathtub_outlined, '${widget.property.bathrooms} Bathrooms', screenWidth), // ENGLISH
                           ),
                           const SizedBox(width: 8),
                           Expanded(
@@ -316,27 +323,25 @@ class _PropertyDetailPageState extends State<PropertyDetailPage> {
                           ),
                         ],
                       ),
-                      const SizedBox(height: 10), // Sedikit jarak sebelum info tambahan
+                      const SizedBox(height: 10),
 
-                      // === AWAL PENAMBAHAN INFORMASI PROPERTI ===
                       const Divider(height: 20, thickness: 0.7),
                       if (widget.property.propertyType.isNotEmpty)
-                        _buildInfoRow("Tipe Properti:", widget.property.propertyType),
+                        _buildInfoRow("Property Type:", widget.property.propertyType), // ENGLISH
                       if (widget.property.furnishings.isNotEmpty)
-                        _buildInfoRow("Kondisi Furnishing:", widget.property.furnishings),
+                        _buildInfoRow("Furnishing:", widget.property.furnishings), // ENGLISH
                       if (widget.property.mainView != null && widget.property.mainView!.isNotEmpty)
-                        _buildInfoRow("Pemandangan Utama:", widget.property.mainView!),
+                        _buildInfoRow("Main View:", widget.property.mainView!), // ENGLISH
                       if (widget.property.listingAgeCategory != null && widget.property.listingAgeCategory!.isNotEmpty)
-                        _buildInfoRow("Usia Listing:", widget.property.listingAgeCategory!),
+                        _buildInfoRow("Listing Age:", widget.property.listingAgeCategory!), // ENGLISH
                       if (widget.property.propertyLabel != null && widget.property.propertyLabel!.isNotEmpty)
-                        _buildInfoRow("Label Properti:", widget.property.propertyLabel!),
+                        _buildInfoRow("Property Label:", widget.property.propertyLabel!), // ENGLISH
                       const Divider(height: 20, thickness: 0.7),
-                      // === AKHIR PENAMBAHAN INFORMASI PROPERTI ===
                       
-                      const SizedBox(height: 10), // Jarak setelah info tambahan, sebelum deskripsi
+                      const SizedBox(height: 10),
 
                       Text(
-                        'Deskripsi',
+                        'Description', // ENGLISH
                         style: GoogleFonts.poppins(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
@@ -344,7 +349,8 @@ class _PropertyDetailPageState extends State<PropertyDetailPage> {
                       ),
                       const SizedBox(height: 6),
                       Text(
-                        widget.property.description.isNotEmpty ? widget.property.description : "Tidak ada deskripsi untuk properti ini.",
+                        // ENGLISH
+                        widget.property.description.isNotEmpty ? widget.property.description : "No description for this property.",
                         style: GoogleFonts.poppins(
                           fontSize: 12,
                           color: widget.property.description.isNotEmpty ? Colors.grey[700] : Colors.grey[500],

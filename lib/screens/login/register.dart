@@ -1,11 +1,10 @@
 // lib/screens/login/register.dart
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:real/app/themes/app_themes.dart';
 import 'package:real/provider/auth_provider.dart';
-import 'package:real/widgets/textfield_login.dart'; // Pastikan ini diimpor
+import 'package:real/widgets/textfield_login.dart';
 import 'package:google_fonts/google_fonts.dart';
-// import 'dart:io'; // Untuk File, jika Anda menggunakan image picker
-// import 'package:image_picker/image_picker.dart'; // Jika Anda menggunakan image picker
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -22,16 +21,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final TextEditingController _phoneController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
 
-  bool _isRegisterButtonLoading = false; // State loading lokal
-  // _isPasswordVisible dan _isConfirmPasswordVisible tidak diperlukan lagi di sini
-  // karena TextFieldLogin dengan isPassword:true akan mengelolanya.
+  bool _isRegisterButtonLoading = false;
 
-  // Definisikan warna tema Anda
   final Color themeColor = const Color(0xFFDAF365);
-  final Color textOnThemeColor = Colors.black87; // Atau warna gelap lain yang kontras
-
-  // File? _image; // Untuk menyimpan gambar profil jika ada
-  // final ImagePicker _picker = ImagePicker();
+  final Color textOnThemeColor = Colors.black87;
 
   @override
   void dispose() {
@@ -43,17 +36,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
     super.dispose();
   }
 
-  // Future<void> _pickImage() async {
-  //   final XFile? pickedFile = await _picker.pickImage(source: ImageSource.gallery);
-  //   if (pickedFile != null) {
-  //     setState(() {
-  //       _image = File(pickedFile.path);
-  //     });
-  //   }
-  // }
-
   Future<void> _register() async {
-    if (_isRegisterButtonLoading) return; // Mencegah klik ganda
+    if (_isRegisterButtonLoading) return;
 
     if (_formKey.currentState?.validate() ?? false) {
       if (mounted) {
@@ -65,8 +49,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
       }
 
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
-      print('Register.dart: Memanggil authProvider.register...');
-
       Map<String, dynamic>? result;
       try {
         result = await authProvider.register(
@@ -74,30 +56,28 @@ class _RegisterScreenState extends State<RegisterScreen> {
           email: _emailController.text.trim(),
           password: _passwordController.text.trim(),
           phone: _phoneController.text.trim(),
-          // profileImage: _image?.path, // Jika Anda implementasi upload gambar
         );
-        print('Register.dart: Hasil dari authProvider.register TELAH DITERIMA: $result');
       } catch (e) {
-        print('Register.dart: Exception saat memanggil authProvider.register: $e');
-        result = {'success': false, 'message': 'Terjadi kesalahan internal: $e'};
+        // ENGLISH TRANSLATION
+        result = {'success': false, 'message': 'An internal error occurred: $e'};
       }
 
       if (!mounted) return;
 
       if (result['success'] == true) {
-        print('Register.dart: Registrasi SUKSES. Pesan: ${result['message']}');
         ScaffoldMessenger.of(context).showSnackBar(
+          // ENGLISH TRANSLATION
           SnackBar(
-            content: Text(result['message'] ?? 'Registrasi berhasil! Silakan login.'),
+            content: Text(result['message'] ?? 'Registration successful! Please log in.'),
             backgroundColor: Colors.green,
           ),
         );
-        Navigator.pop(context); // Kembali ke halaman login
+        Navigator.pop(context); 
       } else {
-        print('Register.dart: Registrasi GAGAL. Pesan: ${result['message']}');
         ScaffoldMessenger.of(context).showSnackBar(
+          // ENGLISH TRANSLATION
           SnackBar(
-            content: Text(result['message'] ?? 'Registrasi gagal. Mohon coba lagi.'),
+            content: Text(result['message'] ?? 'Registration failed. Please try again.'),
             backgroundColor: Colors.red,
           ),
         );
@@ -124,16 +104,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
         backgroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios_new, color: const Color.fromARGB(255, 0, 0, 0)), // Warna tema
+          icon: Icon(Icons.arrow_back_ios_new, color: const Color.fromARGB(255, 0, 0, 0)),
           onPressed: () {
-            if (_isRegisterButtonLoading) return; // Cegah pop saat loading
+            if (_isRegisterButtonLoading) return;
             Navigator.of(context).pop();
           }
         ),
         title: Text(
-          'Buat Akun Baru',
+          'Create New Account', // ENGLISH
           style: GoogleFonts.poppins(
-              color: const Color.fromARGB(255, 0, 0, 0), fontWeight: FontWeight.bold), // Warna tema
+              color: const Color.fromARGB(255, 0, 0, 0), fontWeight: FontWeight.bold),
         ),
         centerTitle: true,
       ),
@@ -147,96 +127,92 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // Widget untuk pilih gambar (jika diaktifkan)
-                  // ... (kode _pickImage dan UI-nya bisa Anda tambahkan kembali jika perlu) ...
-                  // const SizedBox(height: 20),
-
                   TextFieldLogin(
-                    label: 'Nama Lengkap', // TAMBAHKAN LABEL
+                    label: 'Full Name',
                     controller: _nameController,
-                    hintText: 'Masukkan nama lengkap Anda',
+                    hintText: 'Enter your full name',
                     prefixIcon: Icons.person_outline,
                     validator: (value) {
                       if (value == null || value.isEmpty) {
-                        return 'Nama tidak boleh kosong';
+                        return 'Name cannot be empty';
                       }
                       if (value.length < 3) {
-                        return 'Nama minimal 3 karakter';
+                        return 'Name must be at least 3 characters';
                       }
                       return null;
                     },
                   ),
                   const SizedBox(height: 20),
                   TextFieldLogin(
-                    label: 'Email', // TAMBAHKAN LABEL
+                    label: 'Email',
                     controller: _emailController,
-                    hintText: 'Masukkan email Anda',
+                    hintText: 'Enter your email',
                     prefixIcon: Icons.email_outlined,
                     keyboardType: TextInputType.emailAddress,
                     validator: (value) {
                       if (value == null || value.isEmpty) {
-                        return 'Email tidak boleh kosong';
+                        return 'Email cannot be empty';
                       }
                       if (!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(value)) {
-                        return 'Masukkan email yang valid';
+                        return 'Please enter a valid email';
                       }
                       return null;
                     },
                   ),
                   const SizedBox(height: 20),
                   TextFieldLogin(
-                    label: 'Nomor Telepon', // TAMBAHKAN LABEL
+                    label: 'Phone Number',
                     controller: _phoneController,
-                    hintText: 'Masukkan nomor telepon Anda',
+                    hintText: 'Enter your phone number',
                     prefixIcon: Icons.phone_outlined,
                     keyboardType: TextInputType.phone,
                     validator: (value) {
                       if (value == null || value.isEmpty) {
-                        return 'Nomor telepon tidak boleh kosong';
+                        return 'Phone number cannot be empty';
                       }
-                      if (value.length < 9) { // Validasi panjang nomor telepon
-                        return 'Nomor telepon tidak valid (minimal 9 digit)';
+                      if (value.length < 9) {
+                        return 'Invalid phone number (min 9 digits)';
                       }
                       return null;
                     },
                   ),
                   const SizedBox(height: 20),
                   TextFieldLogin(
-                    label: 'Password', // TAMBAHKAN LABEL
+                    label: 'Password',
                     controller: _passwordController,
-                    hintText: 'Buat password Anda',
+                    hintText: 'Create your password',
                     prefixIcon: Icons.lock_outline,
-                    isPassword: true, // TextFieldLogin akan menghandle visibility
+                    isPassword: true,
                     validator: (value) {
                       if (value == null || value.isEmpty) {
-                        return 'Password tidak boleh kosong';
+                        return 'Password cannot be empty';
                       }
                       if (value.length < 6) {
-                        return 'Password minimal 6 karakter';
+                        return 'Password must be at least 6 characters';
                       }
                       return null;
                     },
                   ),
                   const SizedBox(height: 20),
                   TextFieldLogin(
-                    label: 'Konfirmasi Password', // TAMBAHKAN LABEL
+                    label: 'Confirm Password',
                     controller: _confirmPasswordController,
-                    hintText: 'Ulangi password Anda',
+                    hintText: 'Repeat your password',
                     prefixIcon: Icons.lock_reset_outlined,
-                    isPassword: true, // TextFieldLogin akan menghandle visibility
+                    isPassword: true,
                     validator: (value) {
                       if (value == null || value.isEmpty) {
-                        return 'Konfirmasi password tidak boleh kosong';
+                        return 'Password confirmation cannot be empty';
                       }
                       if (value != _passwordController.text) {
-                        return 'Password tidak cocok';
+                        return 'Passwords do not match';
                       }
                       return null;
                     },
                   ),
                   const SizedBox(height: 30),
                   _isRegisterButtonLoading
-                      ? Center(child: CircularProgressIndicator(color: themeColor))
+                      ? const Center(child: CircularProgressIndicator(color: AppTheme.nearlyBlack))
                       : ElevatedButton(
                           onPressed: _isRegisterButtonLoading ? null : _register,
                           style: ElevatedButton.styleFrom(
@@ -248,7 +224,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             elevation: 3,
                           ),
                           child: Text(
-                            'Daftar',
+                            'Register',
                             style: GoogleFonts.poppins(
                               fontSize: 18,
                               fontWeight: FontWeight.w600,
@@ -261,16 +237,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(
-                        'Sudah punya akun?',
+                        'Already have an account?',
                         style: GoogleFonts.poppins(color: Colors.grey[700]),
                       ),
                       TextButton(
                         onPressed: () {
                           if (_isRegisterButtonLoading) return;
-                          Navigator.pop(context); // Kembali ke halaman login
+                          Navigator.pop(context);
                         },
                         child: Text(
-                          'Masuk di sini',
+                          'Sign in here',
                           style: GoogleFonts.poppins(
                             fontWeight: FontWeight.bold,
                             color: const Color.fromARGB(255, 0, 0, 0)

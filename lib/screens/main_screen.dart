@@ -28,7 +28,7 @@ class MainScreenState extends State<MainScreen> {
   @override
   void initState() {
     super.initState();
-    _buildPages(); 
+    _buildPages();
   }
 
   void _buildPages() {
@@ -43,46 +43,32 @@ class MainScreenState extends State<MainScreen> {
       const ProfileScreen(),
     ];
     // Reset flag setelah digunakan untuk membangun _pages
-    // agar tidak selalu terbuka saat SearchScreen di-rebuild karena alasan lain
     if (_triggerOpenFilterModalOnSearchScreen) {
        _triggerOpenFilterModalOnSearchScreen = false;
     }
   }
 
-  // Modifikasi method ini untuk menerima flag autoOpenFilter
   void changeTabAndPrepareSearch(
     int index, {
     String? keyword,
     Map<String, dynamic>? filters,
-    bool autoOpenFilter = false, // Parameter baru
+    bool autoOpenFilter = false,
   }) {
     final propertyProvider = Provider.of<PropertyProvider>(context, listen: false);
-    
+
     if (index == 1) { // Target adalah SearchScreen
       propertyProvider.prepareSearchParameters(keyword: keyword, filters: filters);
-      
-      bool needsRebuild = false;
-      if (_selectedIndex == index || autoOpenFilter) { // Jika sudah di SearchScreen atau diminta buka filter
-        _searchScreenKey = UniqueKey(); // Ganti key untuk memaksa rebuild SearchScreen
-        needsRebuild = true;
-      }
-      // Set flag untuk membuka modal jika diminta
+
+      // Selalu berikan key baru untuk memastikan SearchScreen di-rebuild dengan parameter baru
+      _searchScreenKey = UniqueKey();
       _triggerOpenFilterModalOnSearchScreen = autoOpenFilter;
 
-      if (needsRebuild) {
-        // Panggil _buildPages di dalam setState agar SearchScreen baru dibuat dengan flag yang benar
-        setState(() {
-          _selectedIndex = index;
-          _buildPages(); // Ini akan membangun ulang _pages dengan SearchScreen baru
-        });
-      } else {
-        setState(() {
-          _selectedIndex = index;
-          // Tidak perlu _buildPages() jika tidak ada key change atau flag autoOpen
-        });
-      }
+      setState(() {
+        _selectedIndex = index;
+        _buildPages(); // Bangun ulang _pages dengan SearchScreen baru
+      });
 
-    } else if (index == 0 && _selectedIndex != 0) { 
+    } else if (index == 0 && _selectedIndex != 0) {
         setState(() {
             _homeScreenKey = UniqueKey();
             _buildPages(); // Bangun ulang halaman
@@ -96,33 +82,32 @@ class MainScreenState extends State<MainScreen> {
   }
 
   void _onItemTapped(int index) {
+    // --- PERUBAHAN UTAMA UNTUK MERESET FILTER ---
+
+    // 1. Deteksi jika kita meninggalkan tab Search (indeks 1)
+    if (_selectedIndex == 1 && index != 1) {
+      Provider.of<PropertyProvider>(context, listen: false).resetSearchState();
+      print("MainScreen: Leaving search tab, state has been reset.");
+    }
+
+    // 2. Beri key baru ke SearchScreen setiap kali dipilih, agar initState-nya terpanggil kembali
+    // Ini memastikan UI-nya juga ikut ter-reset sesuai dengan state provider yang sudah bersih.
+    if (index == 1) {
+      _searchScreenKey = UniqueKey();
+    }
+
+    // Logika untuk merefresh HomeScreen jika dipilih kembali
     if (index == 0 && _selectedIndex != 0) {
-      setState(() {
-        _homeScreenKey = UniqueKey();
-        _triggerOpenFilterModalOnSearchScreen = false; // Pastikan reset flag jika ke home
-        _buildPages();
-        _selectedIndex = index;
-      });
-    } else if (index == 1) { // Jika tab Search diklik dari navbar
-      // Tidak auto open filter, reset parameter pencarian
-      Provider.of<PropertyProvider>(context, listen: false).prepareSearchParameters(keyword: null, filters: null);
-      bool needsRebuild = false;
-      if (_selectedIndex == index) { // Jika sudah di search screen, refresh dengan key baru
-         _searchScreenKey = UniqueKey();
-         needsRebuild = true;
-      }
-      setState(() {
-        _triggerOpenFilterModalOnSearchScreen = false; // Tidak auto open dari navbar tap
-        if(needsRebuild) _buildPages();
-        _selectedIndex = index;
-      });
+      _homeScreenKey = UniqueKey();
     }
-    else {
-      setState(() {
-        _triggerOpenFilterModalOnSearchScreen = false; // Pastikan reset flag jika ke tab lain
-        _selectedIndex = index;
-      });
-    }
+
+    // 3. Set state untuk mengganti halaman dan membangun ulang daftar halaman dengan key yang baru
+    setState(() {
+      _triggerOpenFilterModalOnSearchScreen = false; // Selalu reset flag ini
+      _buildPages(); // Penting untuk membangun ulang _pages dengan key yang baru
+      _selectedIndex = index;
+    });
+    // --- AKHIR PERUBAHAN ---
   }
 
   @override

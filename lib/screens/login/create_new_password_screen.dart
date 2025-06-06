@@ -4,11 +4,11 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:real/provider/auth_provider.dart';
 import 'package:real/widgets/textfield_login.dart';
-import 'package:real/screens/login/login.dart'; // Untuk navigasi kembali ke Login
+import 'package:real/screens/login/login.dart';
 
 class CreateNewPasswordScreen extends StatefulWidget {
   final String email;
-  final String code; // Kode yang sudah diverifikasi
+  final String code;
 
   const CreateNewPasswordScreen({
     super.key,
@@ -33,7 +33,7 @@ class _CreateNewPasswordScreenState extends State<CreateNewPasswordScreen> {
     setState(() => _isLoading = true);
 
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    final result = await authProvider.resetPasswordWithVerifiedCode( // Panggil method baru di AuthProvider
+    final result = await authProvider.resetPasswordWithVerifiedCode(
       email: widget.email,
       code: widget.code,
       newPassword: _newPasswordController.text,
@@ -45,16 +45,15 @@ class _CreateNewPasswordScreenState extends State<CreateNewPasswordScreen> {
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(result['message'] ?? 'Terjadi kesalahan.'),
+        content: Text(result['message'] ?? 'An error occurred.'), // ENGLISH
         backgroundColor: result['success'] ?? false ? Colors.green : Colors.red,
       ),
     );
 
     if (result['success'] == true) {
-      // Navigasi kembali ke halaman login dan hapus semua halaman sebelumnya dari stack
       Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(builder: (context) => const LoginScreen()),
-        (Route<dynamic> route) => false, // Hapus semua rute sebelumnya
+        (Route<dynamic> route) => false,
       );
     }
   }
@@ -76,15 +75,9 @@ class _CreateNewPasswordScreenState extends State<CreateNewPasswordScreen> {
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
-        // Tidak perlu tombol kembali jika kita pakai pushReplacement dari layar sebelumnya
-        // Jika ingin ada, pastikan logikanya sesuai
-        // leading: IconButton(
-        //   icon: const Icon(Icons.arrow_back_ios_new, color: Colors.black),
-        //   onPressed: () => Navigator.of(context).pop(),
-        // ),
-        automaticallyImplyLeading: false, // Sembunyikan tombol kembali default
+        automaticallyImplyLeading: false,
         title: Text(
-          'Buat Password Baru',
+          'Create New Password', // ENGLISH
           style: GoogleFonts.poppins(
             color: Colors.black,
             fontWeight: FontWeight.bold,
@@ -102,7 +95,7 @@ class _CreateNewPasswordScreenState extends State<CreateNewPasswordScreen> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Text(
-                  'Masukkan password baru Anda untuk akun:',
+                  'Enter your new password for account:', // ENGLISH
                   textAlign: TextAlign.center,
                   style: GoogleFonts.poppins(fontSize: 16, color: Colors.grey[700]),
                 ),
@@ -113,34 +106,34 @@ class _CreateNewPasswordScreenState extends State<CreateNewPasswordScreen> {
                 ),
                 const SizedBox(height: 30),
                 TextFieldLogin(
-                  label: 'Password Baru',
+                  label: 'New Password', // ENGLISH
                   controller: _newPasswordController,
-                  hintText: 'Minimal 6 karakter',
+                  hintText: 'Minimum 6 characters', // ENGLISH
                   prefixIcon: Icons.lock_outline,
                   isPassword: true,
                   validator: (value) {
                     if (value == null || value.isEmpty) {
-                      return 'Password baru tidak boleh kosong';
+                      return 'New password cannot be empty'; // ENGLISH
                     }
                     if (value.length < 6) {
-                      return 'Password minimal 6 karakter';
+                      return 'Password must be at least 6 characters'; // ENGLISH
                     }
                     return null;
                   },
                 ),
                 const SizedBox(height: 20),
                 TextFieldLogin(
-                  label: 'Konfirmasi Password Baru',
+                  label: 'Confirm New Password', // ENGLISH
                   controller: _confirmPasswordController,
-                  hintText: 'Ulangi password baru Anda',
+                  hintText: 'Repeat your new password', // ENGLISH
                   prefixIcon: Icons.lock_reset_outlined,
                   isPassword: true,
                   validator: (value) {
                     if (value == null || value.isEmpty) {
-                      return 'Konfirmasi password tidak boleh kosong';
+                      return 'Password confirmation cannot be empty'; // ENGLISH
                     }
                     if (value != _newPasswordController.text) {
-                      return 'Password tidak cocok';
+                      return 'Passwords do not match'; // ENGLISH
                     }
                     return null;
                   },
@@ -158,7 +151,7 @@ class _CreateNewPasswordScreenState extends State<CreateNewPasswordScreen> {
                           ),
                         ),
                         child: Text(
-                          'Simpan Password Baru',
+                          'Save New Password', // ENGLISH
                           style: GoogleFonts.poppins(
                             fontSize: 18,
                             fontWeight: FontWeight.w600,

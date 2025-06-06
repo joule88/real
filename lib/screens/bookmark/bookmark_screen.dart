@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
+import 'package:real/app/themes/app_themes.dart';
 import 'package:real/models/property.dart';
 import 'package:real/provider/auth_provider.dart';
 import 'package:real/provider/property_provider.dart';
@@ -25,16 +26,6 @@ class _BookmarkScreenState extends State<BookmarkScreen> {
   }
 
   Future<void> _loadBookmarks() async {
-    print("BookmarkScreen: _loadBookmarks() CALLED"); // <-- Tambahkan log ini
-    if (mounted) {
-      final authProvider = Provider.of<AuthProvider>(context, listen: false);
-      print("BookmarkScreen: User authenticated: \\${authProvider.isAuthenticated}, Token: \\${authProvider.token != null ? 'Exists' : 'NULL'}"); // <-- Tambahkan log ini
-      await Provider.of<PropertyProvider>(context, listen: false)
-          .fetchBookmarkedProperties(authProvider.token);
-    }
-  }
-
-  Future<void> _refreshBookmarks() async {
     if (mounted) {
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
       await Provider.of<PropertyProvider>(context, listen: false)
@@ -46,7 +37,7 @@ class _BookmarkScreenState extends State<BookmarkScreen> {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (BuildContext dialogContext) => const Center(child: CircularProgressIndicator()),
+      builder: (BuildContext dialogContext) => const Center(child: CircularProgressIndicator(color: AppTheme.nearlyBlack)),
     );
 
     final propertyProvider = Provider.of<PropertyProvider>(context, listen: false);
@@ -58,7 +49,7 @@ class _BookmarkScreenState extends State<BookmarkScreen> {
     );
 
     if (!mounted) return;
-    Navigator.pop(context); // Tutup dialog
+    Navigator.pop(context);
 
     if (freshPropertyData != null) {
       Navigator.push(
@@ -75,14 +66,15 @@ class _BookmarkScreenState extends State<BookmarkScreen> {
       );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Gagal memuat detail properti.')),
+        // ENGLISH
+        const SnackBar(content: Text('Failed to load property details.')),
       );
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final authProvider = Provider.of<AuthProvider>(context); // Listen to auth changes
+    final authProvider = Provider.of<AuthProvider>(context);
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -90,7 +82,7 @@ class _BookmarkScreenState extends State<BookmarkScreen> {
         backgroundColor: Colors.white,
         elevation: 1,
         title: Text(
-          "Bookmark",
+          "Bookmarks", // ENGLISH
           style: GoogleFonts.poppins(
               color: Colors.black, fontWeight: FontWeight.bold, fontSize: 20),
         ),
@@ -101,7 +93,7 @@ class _BookmarkScreenState extends State<BookmarkScreen> {
           : Consumer<PropertyProvider>(
               builder: (context, propertyProvider, child) {
                 if (propertyProvider.isLoadingBookmarkedProperties && propertyProvider.bookmarkedProperties.isEmpty) {
-                  return const Center(child: CircularProgressIndicator());
+                  return const Center(child: CircularProgressIndicator(color: AppTheme.nearlyBlack));
                 }
 
                 if (propertyProvider.bookmarkedPropertiesError != null && propertyProvider.bookmarkedProperties.isEmpty) {
@@ -114,14 +106,15 @@ class _BookmarkScreenState extends State<BookmarkScreen> {
                           Icon(Icons.error_outline, color: Colors.red[400], size: 50),
                           const SizedBox(height: 10),
                           Text(
-                            'Gagal memuat bookmark: ${propertyProvider.bookmarkedPropertiesError}',
+                            // ENGLISH
+                            'Failed to load bookmarks: ${propertyProvider.bookmarkedPropertiesError}',
                             textAlign: TextAlign.center,
                             style: GoogleFonts.poppins(fontSize: 16, color: Colors.grey[700]),
                           ),
                           const SizedBox(height: 20),
                           ElevatedButton.icon(
                             icon: const Icon(Icons.refresh),
-                            label: const Text("Coba Lagi"),
+                            label: const Text("Try Again"), // ENGLISH
                             onPressed: _loadBookmarks,
                           )
                         ],
@@ -154,25 +147,22 @@ class _BookmarkScreenState extends State<BookmarkScreen> {
           Icon(Icons.login_rounded, size: 80, color: Colors.grey[400]),
           const SizedBox(height: 20),
           Text(
-            "Silakan Login",
+            "Please Log In", // ENGLISH
             style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 10),
           Text(
-            "Untuk melihat dan menyimpan properti favorit Anda.",
+            "To view and save your favorite properties.", // ENGLISH
             textAlign: TextAlign.center,
             style: GoogleFonts.poppins(fontSize: 14, color: Colors.grey[600]),
           ),
           const SizedBox(height: 20),
           ElevatedButton(
             onPressed: () {
-              // Arahkan ke halaman login, Anda mungkin perlu menavigasi melalui MainScreen atau langsung.
-              // Untuk sederhana, kita anggap ada cara langsung ke LoginScreen atau melalui MainScreen.
-              // Jika dari MainScreen, Anda mungkin perlu method untuk mengganti tab.
-              Navigator.pushNamed(context, '/login'); // Asumsi '/login' adalah rute ke LoginScreen
+              Navigator.pushNamed(context, '/login');
             },
             style: ElevatedButton.styleFrom(backgroundColor: Theme.of(context).primaryColorDark),
-            child: Text("Login Sekarang", style: GoogleFonts.poppins(color: Colors.white)),
+            child: Text("Log In Now", style: GoogleFonts.poppins(color: Colors.white)), // ENGLISH
           )
         ],
       ),
@@ -186,7 +176,10 @@ class _BookmarkScreenState extends State<BookmarkScreen> {
         final property = properties[index];
         return GestureDetector(
           onTap: () => _navigateToDetail(property),
-          child: PropertyListItem(property: property),
+          child: PropertyListItem(
+            key: ValueKey(property.id),
+            property: property,
+          ),
         );
       },
     );
@@ -206,12 +199,12 @@ class _BookmarkScreenState extends State<BookmarkScreen> {
                   Icon(Icons.bookmark_outline_rounded, size: 80, color: Colors.grey[400]),
                   const SizedBox(height: 20),
                   Text(
-                    "Halaman Bookmark Anda Kosong",
+                    "Your Bookmarks are Empty", // ENGLISH
                     style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.w600),
                   ),
                   const SizedBox(height: 10),
                   Text(
-                    "Klik ikon bookmark pada properti untuk menyimpannya di sini.",
+                    "Tap the bookmark icon on a property to save it here.", // ENGLISH
                     textAlign: TextAlign.center,
                     style: GoogleFonts.poppins(fontSize: 14, color: Colors.grey[600]),
                   ),

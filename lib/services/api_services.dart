@@ -2,9 +2,9 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'api_constants.dart';
-import 'package:image_picker/image_picker.dart'; // For XFile
-import 'package:http_parser/http_parser.dart'; // For MediaType
-import 'package:flutter/foundation.dart' show kIsWeb; // For kIsWeb
+import 'package:image_picker/image_picker.dart';
+import 'package:http_parser/http_parser.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 
 class ApiService {
   static String get _laravelBaseUrl => ApiConstants.laravelApiBaseUrl;
@@ -30,6 +30,7 @@ class ApiService {
     return headers;
   }
 
+  // ENGLISH TRANSLATION: All messages are now in English
   static Future<Map<String, dynamic>> registerUser({
     required String name,
     required String email,
@@ -50,34 +51,32 @@ class ApiService {
           if (profileImage != null) 'profile_image': profileImage,
         }),
       );
-      print('ApiService Register - Status Code: ${response.statusCode}');
-      print('ApiService Register - Body: ${response.body}');
 
       final dynamic responseBody = jsonDecode(response.body);
       if (responseBody is Map<String, dynamic>) {
         if (response.statusCode == 201) {
           return {
             'success': true,
-            'message': responseBody['message'] ?? 'Registrasi berhasil',
+            'message': responseBody['message'] ?? 'Registration successful',
             'data': responseBody,
           };
         } else {
           return {
             'success': false,
-            'message': responseBody['message'] ?? responseBody['error'] ?? 'Registrasi gagal. Status: ${response.statusCode}',
+            'message': responseBody['message'] ?? responseBody['error'] ?? 'Registration failed. Status: ${response.statusCode}',
             'errors': responseBody['errors'],
             'data': null,
           };
         }
       } else {
-          return {'success': false, 'message': 'Respons registrasi tidak valid.', 'data': null};
+          return {'success': false, 'message': 'Invalid registration response.', 'data': null};
       }
     } catch (e) {
-      print('ApiService Network error during registerUser: $e');
-      return {'success': false, 'message': 'Kesalahan jaringan saat registrasi: $e', 'data': null};
+      return {'success': false, 'message': 'Network error during registration: $e', 'data': null};
     }
   }
 
+  // ENGLISH TRANSLATION: All messages are now in English
   static Future<Map<String, dynamic>> loginUser({
     required String email,
     required String password,
@@ -92,62 +91,58 @@ class ApiService {
           'password': password,
         }),
       );
-      print('ApiService Login - Status Code: ${response.statusCode}');
-      print('ApiService Login - Body: ${response.body}');
 
       final dynamic responseBody = jsonDecode(response.body);
       if (responseBody is Map<String, dynamic>) {
           if (response.statusCode == 200) {
               return {
                 'success': true,
-                'message': responseBody['message'] ?? 'Login berhasil',
+                'message': responseBody['message'] ?? 'Login successful',
                 'data': responseBody,
               };
           } else {
               return {
                 'success': false,
-                'message': responseBody['message'] ?? responseBody['error'] ?? 'Login gagal. Status: ${response.statusCode}',
+                'message': responseBody['message'] ?? responseBody['error'] ?? 'Login failed. Status: ${response.statusCode}',
                 'data': null,
               };
           }
       } else {
-          return {'success': false, 'message': 'Respons login tidak valid.', 'data': null};
+          return {'success': false, 'message': 'Invalid login response.', 'data': null};
       }
     } catch (e) {
-      print('ApiService Network error during loginUser: $e');
-      return {'success': false, 'message': 'Kesalahan jaringan saat login: $e', 'data': null};
+      return {'success': false, 'message': 'Network error during login: $e', 'data': null};
     }
   }
 
+  // ENGLISH TRANSLATION: All messages are now in English
   static Map<String, dynamic> _handleResponseProfile(http.Response response, String operation) {
-      print('ApiService $operation - Status Code: ${response.statusCode}');
-      print('ApiService $operation - Body: ${response.body}');
       try {
         final dynamic responseBody = jsonDecode(response.body);
         if (responseBody is Map<String, dynamic>) {
           if (response.statusCode >= 200 && response.statusCode < 300) {
             return {
               'success': responseBody['success'] ?? true,
-              'message': responseBody['message'] ?? '$operation berhasil',
+              'message': responseBody['message'] ?? '$operation successful',
               'data': responseBody['data'],
             };
           } else {
             return {
               'success': false,
-              'message': responseBody['message'] ?? responseBody['error'] ?? '$operation gagal. Status: ${response.statusCode}',
+              'message': responseBody['message'] ?? responseBody['error'] ?? '$operation failed. Status: ${response.statusCode}',
               'errors': responseBody['errors'],
               'data': null,
             };
           }
         } else {
-          return {'success': false, 'message': '$operation gagal. Respons tidak valid (bukan JSON Map).', 'data': null};
+          return {'success': false, 'message': '$operation failed. Invalid response (not a JSON Map).', 'data': null};
         }
       } catch (e) {
-        print('ApiService Error parsing response for $operation: $e');
-        return {'success': false, 'message': '$operation gagal. Respons tidak dapat diproses.', 'data': null};
+        return {'success': false, 'message': '$operation failed. Response could not be processed.', 'data': null};
       }
   }
 
+  // ENGLISH TRANSLATION: All messages are now in English
   static Future<Map<String, dynamic>> getCurrentUserProfile({
     required String token,
   }) async {
@@ -157,13 +152,13 @@ class ApiService {
         Uri.parse(url),
         headers: _getHeaders(token: token),
       );
-      return _handleResponseProfile(response, 'Ambil Profil Pengguna');
+      return _handleResponseProfile(response, 'Get User Profile');
     } catch (e) {
-      print('ApiService Network error during getCurrentUserProfile: $e');
-      return {'success': false, 'message': 'Kesalahan jaringan saat mengambil profil: $e', 'data': null};
+      return {'success': false, 'message': 'Network error while fetching profile: $e', 'data': null};
     }
   }
-
+  
+  // ENGLISH TRANSLATION: All messages are now in English
   static Future<Map<String, dynamic>> updateUserProfile({
     required String token,
     String? name,
@@ -182,7 +177,6 @@ class ApiService {
       if (bio != null) request.fields['bio'] = bio;
       if (phone != null) request.fields['phone'] = phone;
       
-      // Kirim '1' atau '0' sebagai string
       request.fields['remove_profile_image'] = removeProfileImage ? '1' : '0';
 
       if (profileImageFile != null) {
@@ -204,26 +198,19 @@ class ApiService {
           );
         }
         request.files.add(multipartFile);
-        print('ApiService: Added profile_image_file to request: \\${profileImageFile.name}');
-      } else {
-        print('ApiService: No new profile_image_file to upload.');
       }
       
-      print('ApiService updateUserProfile - Sending request to $url');
-      print('ApiService updateUserProfile - Fields: \\${request.fields}');
-      print('ApiService updateUserProfile - Files: \\${request.files.map((e) => e.filename)}');
-
       final streamedResponse = await request.send();
       final response = await http.Response.fromStream(streamedResponse);
       
-      return _handleResponseProfile(response, 'Update Profil Pengguna');
+      return _handleResponseProfile(response, 'Update User Profile');
 
     } catch (e) {
-      print('ApiService Network error during updateUserProfile: $e');
-      return {'success': false, 'message': 'Kesalahan jaringan saat update profil: $e', 'data': null};
+      return {'success': false, 'message': 'Network error while updating profile: $e', 'data': null};
     }
   }
 
+  // ENGLISH TRANSLATION: All messages are now in English
   static Future<Map<String, dynamic>> logoutUser({
       required String token,
   }) async {
@@ -233,32 +220,28 @@ class ApiService {
           Uri.parse(url),
           headers: _getHeaders(token: token),
         );
-        print('ApiService Logout - Status Code: ${response.statusCode}');
-        print('ApiService Logout - Body: ${response.body}');
         try {
             final dynamic responseBody = jsonDecode(response.body);
             if (responseBody is Map<String, dynamic>) {
                  return {
                     'success': responseBody['success'] ?? (response.statusCode == 200),
-                    'message': responseBody['message'] ?? 'Logout berhasil',
+                    'message': responseBody['message'] ?? 'Logout successful',
                  };
             } else {
-                 return {'success': false, 'message': 'Respons logout tidak valid.'};
+                 return {'success': false, 'message': 'Invalid logout response.'};
             }
         } catch (e) {
             if (response.statusCode == 200) {
-                return {'success': true, 'message': 'Logout berhasil (respons kosong).'} ;
+                return {'success': true, 'message': 'Logout successful (empty response).'} ;
             }
-            return {'success': false, 'message': 'Respons logout tidak dapat diproses.'};
+            return {'success': false, 'message': 'Could not process logout response.'};
         }
       } catch (e) {
-        print('ApiService Network error during logoutUser: $e');
-        return {'success': false, 'message': 'Kesalahan jaringan saat logout: $e'};
+        return {'success': false, 'message': 'Network error during logout: $e'};
       }
   }
 
-    // --- FUNGSI BARU UNTUK ALUR LUPA PASSWORD ---
-
+  // ENGLISH TRANSLATION: All messages are now in English
   static Future<Map<String, dynamic>> requestResetCode({required String email}) async {
     final String url = _laravelBaseUrl + ApiConstants.forgotPasswordEndpoint;
     try {
@@ -267,14 +250,13 @@ class ApiService {
         headers: _getHeaders(),
         body: jsonEncode({'email': email}),
       );
-      print('ApiService requestResetCode - Status: ${response.statusCode}, Body: ${response.body}');
       return jsonDecode(response.body);
     } catch (e) {
-      print('ApiService Network error during requestResetCode: $e');
-      return {'success': false, 'message': 'Kesalahan jaringan. Silakan coba lagi.'};
+      return {'success': false, 'message': 'Network error. Please try again.'};
     }
   }
 
+  // ENGLISH TRANSLATION: All messages are now in English
   static Future<Map<String, dynamic>> verifyResetCode({
     required String email,
     required String code,
@@ -286,14 +268,13 @@ class ApiService {
         headers: _getHeaders(),
         body: jsonEncode({'email': email, 'code': code}),
       );
-      print('ApiService verifyResetCode - Status: ${response.statusCode}, Body: ${response.body}');
       return jsonDecode(response.body);
     } catch (e) {
-      print('ApiService Network error during verifyResetCode: $e');
-      return {'success': false, 'message': 'Kesalahan Jaringan: $e'};
+      return {'success': false, 'message': 'Network Error: $e'};
     }
   }
 
+  // ENGLISH TRANSLATION: All messages are now in English
   static Future<Map<String, dynamic>> resetPasswordWithCode({
     required String email,
     required String code,
@@ -312,15 +293,13 @@ class ApiService {
           'password_confirmation': passwordConfirmation,
         }),
       );
-      print('ApiService resetPasswordWithCode - Status: ${response.statusCode}, Body: ${response.body}');
       return jsonDecode(response.body);
     } catch (e) {
-      print('ApiService Network error during resetPasswordWithCode: $e');
-      return {'success': false, 'message': 'Kesalahan Jaringan: $e'};
+      return {'success': false, 'message': 'Network Error: $e'};
     }
   }
   
-
+  // ENGLISH TRANSLATION: All messages are now in English
   static Future<Map<String, dynamic>> changeUserPassword({
     required String token,
     required String currentPassword,
@@ -328,7 +307,6 @@ class ApiService {
     required String newPasswordConfirmation,
   }) async {
     final String url = _laravelBaseUrl + (ApiConstants.changePasswordEndpoint);
-
     try {
       final response = await http.post(
         Uri.parse(url),
@@ -340,14 +318,11 @@ class ApiService {
         }),
       );
 
-      print('ApiService ChangePassword - Status Code: ${response.statusCode}');
-      print('ApiService ChangePassword - Body: ${response.body}');
-
       try {
           final dynamic responseBody = jsonDecode(response.body);
           if (responseBody is Map<String, dynamic>) {
             bool success = responseBody['success'] ?? (response.statusCode == 200);
-            String message = responseBody['message'] ?? (success ? 'Password berhasil diubah.' : 'Gagal mengubah password.');
+            String message = responseBody['message'] ?? (success ? 'Password changed successfully.' : 'Failed to change password.');
 
             return {
               'success': success,
@@ -355,74 +330,66 @@ class ApiService {
               'errors': responseBody['errors'],
             };
           } else {
-             return {'success': false, 'message': 'Respons ubah password tidak valid.'};
+             return {'success': false, 'message': 'Invalid change password response.'};
           }
       } catch (e) {
           if (response.statusCode == 200) {
-              return {'success': true, 'message': 'Password berhasil diubah (respons tidak terstruktur).'} ;
+              return {'success': true, 'message': 'Password changed successfully (unstructured response).'} ;
           }
-          print('ApiService Error parsing response for ChangePassword: $e');
-          return {'success': false, 'message': 'Respons ubah password tidak dapat diproses.'};
+          return {'success': false, 'message': 'Could not process change password response.'};
       }
     } catch (e) {
-      print('ApiService Network error during changeUserPassword: $e');
-      return {'success': false, 'message': 'Kesalahan jaringan saat mengubah password: $e'};
+      return {'success': false, 'message': 'Network error while changing password: $e'};
     }
   }
 
-  // === METHOD BARU UNTUK BOOKMARK ===
+  // ENGLISH TRANSLATION: All messages are now in English
   static Future<Map<String, dynamic>> toggleBookmark({
     required String token,
     required String propertyId,
   }) async {
     final String url = '$_laravelBaseUrl${ApiConstants.toggleBookmarkEndpoint}/$propertyId/toggle-bookmark';
-    print('ApiService: Toggle bookmark for $propertyId at $url');
     try {
       final response = await http.post(
         Uri.parse(url),
         headers: _getHeaders(token: token),
       );
-      print('ApiService toggleBookmark - Status: ${response.statusCode}, Body: ${response.body}');
       final dynamic responseBody = jsonDecode(response.body);
       if (response.statusCode == 200 || response.statusCode == 201) {
           return {
               'success': true,
-              'message': responseBody['message'] ?? 'Status bookmark diperbarui.',
+              'message': responseBody['message'] ?? 'Bookmark status updated.',
               'is_favorited_by_user': responseBody['data']?['is_favorited'] ?? false,
           };
       } else {
           return {
               'success': false,
-              'message': responseBody['message'] ?? 'Gagal memperbarui bookmark. Status: ${response.statusCode}',
+              'message': responseBody['message'] ?? 'Failed to update bookmark. Status: ${response.statusCode}',
           };
       }
     } catch (e) {
-      print('ApiService Network error during toggleBookmark: $e');
-      return {'success': false, 'message': 'Kesalahan jaringan: $e'};
+      return {'success': false, 'message': 'Network error: $e'};
     }
   }
 
-  // === METHOD BARU UNTUK MENGAMBIL BOOKMARK USER ===
+  // ENGLISH TRANSLATION: All messages are now in English
   static Future<Map<String, dynamic>> getBookmarkedProperties({
     required String token,
     int page = 1,
   }) async {
     final String url = '$_laravelBaseUrl${ApiConstants.getBookmarksEndpoint}?page=$page';
-    print('ApiService: Fetching bookmarked properties from $url');
     try {
       final response = await http.get(
         Uri.parse(url),
         headers: _getHeaders(token: token),
       );
-      print('ApiService getBookmarkedProperties - Status: \\${response.statusCode}');
-      print('ApiService getBookmarkedProperties - Body: \\${response.body}'); // <-- TAMBAHKAN LOG INI
       final dynamic responseBody = jsonDecode(response.body);
       if (response.statusCode == 200 && responseBody['success'] == true) {
            final Map<String, dynamic> paginatedData = responseBody['data'] is Map ? responseBody['data'] : {'data': responseBody['data'] ?? []};
              if (paginatedData.containsKey('data') && paginatedData['data'] is List) {
                 return {
                   'success': true,
-                  'message': responseBody['message'] ?? 'Properti bookmark berhasil diambil.',
+                  'message': responseBody['message'] ?? 'Bookmarked properties fetched successfully.',
                   'properties': List<Map<String, dynamic>>.from(paginatedData['data']),
                   'currentPage': paginatedData['current_page'] ?? 1,
                   'lastPage': paginatedData['last_page'] ?? 1,
@@ -431,28 +398,28 @@ class ApiService {
              }
              return {
                 'success': true,
-                'message': responseBody['message'] ?? 'Properti bookmark berhasil diambil (format non-standar).',
+                'message': responseBody['message'] ?? 'Bookmarked properties fetched successfully (non-standard format).',
                 'properties': [],
                 'currentPage': 1, 'lastPage': 1, 'total': 0
             };
       } else {
           return {
               'success': false,
-              'message': responseBody['message'] ?? 'Gagal mengambil bookmark. Status: \\${response.statusCode}',
+              'message': responseBody['message'] ?? 'Failed to fetch bookmarks. Status: ${response.statusCode}',
           };
       }
     } catch (e) {
-      print('ApiService Network error during getBookmarkedProperties: \\${e}');
-      return {'success': false, 'message': 'Kesalahan jaringan: \\${e}'};
+      return {'success': false, 'message': 'Network error: $e'};
     }
   }
 
+  // ENGLISH TRANSLATION: All messages are now in English
   static Future<Map<String, dynamic>> getPublicProperties({
     int page = 1,
     String? keyword,
     String? category,
     Map<String, dynamic>? filters,
-    String? authToken, // Tambahkan token untuk mengirim info user
+    String? authToken,
   }) async {
     String endpoint = ApiConstants.publicPropertiesEndpoint;
     Map<String, String> queryParameters = {'page': page.toString()};
@@ -466,7 +433,6 @@ class ApiService {
     }
     
     final uri = Uri.parse('$_laravelBaseUrl$endpoint').replace(queryParameters: queryParameters);
-    print('ApiService: Fetching public properties from $uri');
 
     try {
       final response = await http.get(uri, headers: _getHeaders(token: authToken));
@@ -479,7 +445,7 @@ class ApiService {
              if (paginatedData.containsKey('data') && paginatedData['data'] is List) {
                 return {
                   'success': true,
-                  'message': responseBody['message'] ?? 'Properti publik berhasil diambil.',
+                  'message': responseBody['message'] ?? 'Public properties fetched successfully.',
                   'properties': List<Map<String, dynamic>>.from(paginatedData['data']),
                   'currentPage': paginatedData['current_page'],
                   'lastPage': paginatedData['last_page'],
@@ -487,16 +453,14 @@ class ApiService {
                 };
              }
           }
-          return {'success': true, 'message': responseBody['message'] ?? 'Format data tidak standar.', 'properties': [], 'currentPage': 1, 'lastPage': 1, 'total': 0};
+          return {'success': true, 'message': responseBody['message'] ?? 'Non-standard data format.', 'properties': [], 'currentPage': 1, 'lastPage': 1, 'total': 0};
         } else {
-          return {'success': false, 'message': responseBody['message'] ?? 'Gagal ambil properti publik.'};
+          return {'success': false, 'message': responseBody['message'] ?? 'Failed to fetch public properties.'};
         }
       }
-      return {'success': false, 'message': 'Respons API tidak valid.'};
+      return {'success': false, 'message': 'Invalid API response.'};
     } catch (e) {
-      print('ApiService Network error during getPublicProperties: $e');
-      return {'success': false, 'message': 'Kesalahan jaringan: $e'};
+      return {'success': false, 'message': 'Network error: $e'};
     }
   }
-  // --- AKHIR MODIFIKASI ---
 }

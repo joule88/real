@@ -1,6 +1,8 @@
+// lib/widgets/bookmark_button.dart
 import 'package:flutter/material.dart';
 import 'package:eva_icons_flutter/eva_icons_flutter.dart';
 
+// DIKEMBALIKAN KE STATEFULWIDGET UNTUK MENGAKTIFKAN ANIMASI
 class BookmarkButton extends StatefulWidget {
   final bool isBookmarked;
   final VoidCallback onPressed;
@@ -18,35 +20,21 @@ class BookmarkButton extends StatefulWidget {
 class _BookmarkButtonState extends State<BookmarkButton>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
+  late Animation<double> _scaleAnimation;
 
   @override
   void initState() {
     super.initState();
     _controller = AnimationController(
-      duration: const Duration(milliseconds: 150),
+      duration: const Duration(milliseconds: 200),
       vsync: this,
-      lowerBound: 0.9,
-      upperBound: 1.1,
     );
-  }
-
-  void _handleTap() {
-    _controller.forward().then((_) => _controller.reverse());
-    widget.onPressed();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: _handleTap,
-      behavior: HitTestBehavior.opaque,
-      child: ScaleTransition(
-        scale: _controller.drive(CurveTween(curve: Curves.easeOut)),
-        child: Icon(
-          widget.isBookmarked ? EvaIcons.bookmark : EvaIcons.bookmarkOutline,
-          color: Colors.black,
-          size: 26,
-        ),
+    // Membuat animasi yang membesar lalu kembali ke ukuran normal
+    _scaleAnimation = Tween<double>(begin: 1.0, end: 1.3).animate(
+      CurvedAnimation(
+        parent: _controller,
+        curve: Curves.easeOut,
+        reverseCurve: Curves.easeIn,
       ),
     );
   }
@@ -55,5 +43,33 @@ class _BookmarkButtonState extends State<BookmarkButton>
   void dispose() {
     _controller.dispose();
     super.dispose();
+  }
+
+  void _handleTap() {
+    // Jalankan animasi maju-mundur
+    _controller.forward().then((_) {
+      _controller.reverse();
+    });
+    // Panggil fungsi utamanya
+    widget.onPressed();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: _handleTap,
+      behavior: HitTestBehavior.opaque,
+      child: Padding(
+        padding: const EdgeInsets.all(8.0),
+        child: ScaleTransition(
+          scale: _scaleAnimation,
+          child: Icon(
+            widget.isBookmarked ? EvaIcons.bookmark : EvaIcons.bookmarkOutline,
+            color: Colors.black,
+            size: 26,
+          ),
+        ),
+      ),
+    );
   }
 }

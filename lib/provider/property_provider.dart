@@ -8,6 +8,12 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 class PropertyProvider extends ChangeNotifier {
+  final ValueNotifier<int> listUpdateNotifier = ValueNotifier(0);
+
+  void _forceListUpdate() {
+    listUpdateNotifier.value++;
+  }
+
   List<Property> _userProperties = [];
   bool _isLoadingUserProperties = false;
   String? _userPropertiesError;
@@ -46,7 +52,6 @@ class PropertyProvider extends ChangeNotifier {
   String? get publicPropertiesError => _publicPropertiesError;
   bool get hasMorePublicProperties => _hasMorePublicProperties;
 
-  // --- State untuk Pencarian ---
   List<Property> _searchedProperties = [];
   bool _isLoadingSearch = false;
   String? _searchError;
@@ -67,7 +72,6 @@ class PropertyProvider extends ChangeNotifier {
   bool get needsSearchExecution => _needsSearchExecution;
 
 
-  // === STATE BARU UNTUK BOOKMARK ===
   List<Property> _bookmarkedProperties = [];
   bool _isLoadingBookmarkedProperties = false;
   String? _bookmarkedPropertiesError;
@@ -76,7 +80,6 @@ class PropertyProvider extends ChangeNotifier {
   bool get isLoadingBookmarkedProperties => _isLoadingBookmarkedProperties;
   String? get bookmarkedPropertiesError => _bookmarkedPropertiesError;
 
-  // Helper untuk menemukan properti di semua list yang relevan
   Property? _findPropertyAcrossLists(String propertyId) {
     Property? findInList(List<Property> list) {
       final index = list.indexWhere((p) => p.id == propertyId);
@@ -105,51 +108,58 @@ class PropertyProvider extends ChangeNotifier {
     }
   }
 
+  void _updatePropertyInAllLists(Property updatedProperty) {
+    int updateList(List<Property> list) {
+      int index = list.indexWhere((p) => p.id == updatedProperty.id);
+      if (index != -1) {
+        list[index] = updatedProperty;
+      }
+      return index;
+    }
+    updateList(_publicProperties);
+    updateList(_searchedProperties);
+    updateList(_bookmarkedProperties);
+    updateList(_userProperties);
+    updateList(_userApprovedProperties);
+    updateList(_userSoldProperties);
+  }
+
   Future<void> togglePropertyBookmark(String propertyId, String? token) async {
-    if (token == null) {
-      print("PropertyProvider: No token, cannot toggle bookmark.");
-      return;
-    }
+    if (token == null) return;
     Property? propertyToUpdate = _findPropertyAcrossLists(propertyId);
-    if (propertyToUpdate == null) {
-      print("PropertyProvider: Property $propertyId not found locally to toggle bookmark.");
-      return;
-    }
-    bool originalBookmarkStatus = propertyToUpdate.isFavorite;
-    propertyToUpdate.isFavorite = !originalBookmarkStatus;
-    _updateLocalBookmarkedList(propertyToUpdate, isBookmarked: propertyToUpdate.isFavorite);
+    if (propertyToUpdate == null) return;
+    
+    final originalStatus = propertyToUpdate.isFavorite;
+    final newStatus = !originalStatus;
+
+    Property newPropertyInstance = propertyToUpdate.copyWith(isFavorite: newStatus);
+    _updatePropertyInAllLists(newPropertyInstance);
+    _updateLocalBookmarkedList(newPropertyInstance, isBookmarked: newStatus);
     notifyListeners();
+    _forceListUpdate();
+    
     try {
-      final result = await ApiService.toggleBookmark(
-        token: token,
-        propertyId: propertyId,
-      );
-      if (result['success'] == true) {
-        bool serverIsBookmarked = result['is_favorited_by_user'] ?? propertyToUpdate.isFavorite;
-        if (propertyToUpdate.isFavorite != serverIsBookmarked) {
-          propertyToUpdate.isFavorite = serverIsBookmarked;
-          _updateLocalBookmarkedList(propertyToUpdate, isBookmarked: serverIsBookmarked);
-          notifyListeners();
-        }
-        print("PropertyProvider: Bookmark for $propertyId successfully synced with server. New status: $serverIsBookmarked");
-      } else {
-        propertyToUpdate.isFavorite = originalBookmarkStatus;
-        _updateLocalBookmarkedList(propertyToUpdate, isBookmarked: originalBookmarkStatus);
+      final result = await ApiService.toggleBookmark(token: token, propertyId: propertyId);
+      if (result['success'] != true) {
+        Property revertedProperty = newPropertyInstance.copyWith(isFavorite: originalStatus);
+        _updatePropertyInAllLists(revertedProperty);
+        _updateLocalBookmarkedList(revertedProperty, isBookmarked: originalStatus);
         notifyListeners();
-        print("PropertyProvider: Failed to update bookmark for $propertyId on server. Error: ${result['message']}");
+        _forceListUpdate();
       }
     } catch (e) {
-      propertyToUpdate.isFavorite = originalBookmarkStatus;
-      _updateLocalBookmarkedList(propertyToUpdate, isBookmarked: originalBookmarkStatus);
+      Property revertedProperty = newPropertyInstance.copyWith(isFavorite: originalStatus);
+      _updatePropertyInAllLists(revertedProperty);
+      _updateLocalBookmarkedList(revertedProperty, isBookmarked: originalStatus);
       notifyListeners();
-      print("PropertyProvider: Exception toggling bookmark for $propertyId: $e");
+      _forceListUpdate();
     }
   }
 
-  // Ini adalah versi yang lebih baru dan benar, yang mengambil dari API
   Future<void> fetchBookmarkedProperties(String? token) async {
     if (token == null) {
-      _bookmarkedPropertiesError = "Pengguna tidak terautentikasi.";
+      // ENGLISH TRANSLATION
+      _bookmarkedPropertiesError = "User is not authenticated.";
       _isLoadingBookmarkedProperties = false;
       _bookmarkedProperties = [];
       notifyListeners();
@@ -160,85 +170,50 @@ class PropertyProvider extends ChangeNotifier {
     notifyListeners();
     try {
       final result = await ApiService.getBookmarkedProperties(token: token);
-      print('PropertyProvider fetchBookmarkedProperties - API Result: \\${result}'); // <-- LOG HASIL API SERVICE
       if (result['success'] == true) {
         final List<dynamic> propertiesData = result['properties'] ?? [];
-        print('PropertyProvider fetchBookmarkedProperties - PropertiesData from API: \\${propertiesData}'); // <-- LOG DATA MENTAH
         _bookmarkedProperties = propertiesData.map((data) {
           final prop = Property.fromJson(data as Map<String, dynamic>);
-          // Pastikan isFavorite diset true karena ini dari daftar bookmark
           prop.isFavorite = true;
           return prop;
         }).toList();
-        print("PropertyProvider: Fetched \\${_bookmarkedProperties.length} bookmarked properties from server.");
-        print("PropertyProvider: First bookmarked item (if any): \\${_bookmarkedProperties.isNotEmpty ? _bookmarkedProperties.first.toJson() : 'None'}"); // <-- LOG ITEM PERTAMA
       } else {
-        _bookmarkedPropertiesError = result['message'] ?? 'Gagal mengambil daftar bookmark.';
+        // ENGLISH TRANSLATION
+        _bookmarkedPropertiesError = result['message'] ?? 'Failed to load bookmarks.';
         _bookmarkedProperties = [];
       }
     } catch (e) {
-      _bookmarkedPropertiesError = 'Terjadi kesalahan jaringan saat mengambil bookmark: \\${e}';
+      // ENGLISH TRANSLATION
+      _bookmarkedPropertiesError = 'A network error occurred while fetching bookmarks: ' + e.toString();
       _bookmarkedProperties = [];
-      print('PropertyProvider fetchBookmarkedProperties Exception: \\${e}');
     } finally {
       _isLoadingBookmarkedProperties = false;
       notifyListeners();
+      _forceListUpdate();
     }
   }
 
   Future<Property?> fetchPublicPropertyDetail(String propertyId, String? token) async {
     final url = Uri.parse('${ApiConstants.laravelApiBaseUrl}/properties/public/$propertyId');
-    print('PropertyProvider: Memanggil fetchPublicPropertyDetail untuk ID $propertyId dari $url');
-
     try {
-      final headers = {
-        'Accept': 'application/json',
-      };
+      final headers = {'Accept': 'application/json'};
       if (token != null) {
         headers['Authorization'] = 'Bearer $token';
       }
-
       final response = await http.get(url, headers: headers);
-      print('PropertyProvider: Status respons fetchPublicPropertyDetail: ${response.statusCode}');
-
       if (response.statusCode == 200) {
         final responseData = jsonDecode(response.body);
         if (responseData['success'] == true && responseData['data'] != null) {
           final property = Property.fromJson(responseData['data'] as Map<String, dynamic>);
-          print('PropertyProvider: Properti publik ${property.id} berhasil diambil. Pengunggah: ${property.uploaderInfo?.name}, Views: ${property.viewsCount}');
-          _updatePropertyInLocalLists(property);
+          _updatePropertyInAllLists(property);
           return property;
-        } else {
-          print('PropertyProvider: Gagal mengambil detail properti publik - Pesan dari server: ${responseData['message']}');
-          return null;
         }
-      } else {
-        print('PropertyProvider: Error mengambil detail properti publik - Status: ${response.statusCode}, Body: ${response.body}');
-        return null;
       }
     } catch (e) {
-      print('PropertyProvider: Exception saat mengambil detail properti publik - $e');
-      return null;
+      print('PropertyProvider: Exception while fetching public property detail - $e');
     }
+    return null;
   }
-
-  void _updatePropertyInLocalLists(Property updatedProperty) {
-    int indexInPublic = _publicProperties.indexWhere((p) => p.id == updatedProperty.id);
-    if (indexInPublic != -1) {
-      _publicProperties[indexInPublic] = updatedProperty;
-    }
-    int indexInSearch = _searchedProperties.indexWhere((p) => p.id == updatedProperty.id);
-    if (indexInSearch != -1) {
-      _searchedProperties[indexInSearch] = updatedProperty;
-    }
-    int indexInBookmarks = _bookmarkedProperties.indexWhere((p) => p.id == updatedProperty.id);
-    if (indexInBookmarks != -1) {
-        _bookmarkedProperties[indexInBookmarks] = updatedProperty;
-    }
-    // notifyListeners(); // Tidak selalu perlu, tergantung kebutuhan UI
-  }
-
-  // HAPUS DEFINISI fetchBookmarkedProperties YANG LAMA DARI SINI (yang menggunakan data lokal)
 
   Future<void> fetchUserManageableProperties(String token) async {
     _isLoadingUserProperties = true;
@@ -254,10 +229,12 @@ class PropertyProvider extends ChangeNotifier {
         List<dynamic> propertiesData = result['properties'] ?? [];
         _userProperties = propertiesData.map((data) => Property.fromJson(data as Map<String, dynamic>)).toList();
       } else {
-        _userPropertiesError = result['message'] ?? 'Gagal mengambil properti kelolaan pengguna.';
+        // ENGLISH TRANSLATION
+        _userPropertiesError = result['message'] ?? 'Failed to fetch manageable properties.';
       }
     } catch (e) {
-      _userPropertiesError = 'Terjadi kesalahan: $e';
+      // ENGLISH TRANSLATION
+      _userPropertiesError = 'An error occurred: $e';
     } finally {
       _isLoadingUserProperties = false;
       notifyListeners();
@@ -275,10 +252,12 @@ class PropertyProvider extends ChangeNotifier {
         List<dynamic> propertiesData = result['properties'] ?? [];
         _userApprovedProperties = propertiesData.map((data) => Property.fromJson(data as Map<String, dynamic>)).toList();
       } else {
-        _userApprovedPropertiesError = result['message'] ?? 'Gagal mengambil properti approved.';
+        // ENGLISH TRANSLATION
+        _userApprovedPropertiesError = result['message'] ?? 'Failed to fetch approved properties.';
       }
     } catch (e) {
-      _userApprovedPropertiesError = 'Terjadi kesalahan: $e';
+      // ENGLISH TRANSLATION
+      _userApprovedPropertiesError = 'An error occurred: $e';
     } finally {
       _isLoadingUserApprovedProperties = false;
       notifyListeners();
@@ -296,10 +275,12 @@ class PropertyProvider extends ChangeNotifier {
         List<dynamic> propertiesData = result['properties'] ?? [];
         _userSoldProperties = propertiesData.map((data) => Property.fromJson(data as Map<String, dynamic>)).toList();
       } else {
-        _userSoldPropertiesError = result['message'] ?? 'Gagal mengambil properti sold.';
+        // ENGLISH TRANSLATION
+        _userSoldPropertiesError = result['message'] ?? 'Failed to fetch sold properties.';
       }
     } catch (e) {
-      _userSoldPropertiesError = 'Terjadi kesalahan: $e';
+      // ENGLISH TRANSLATION
+      _userSoldPropertiesError = 'An error occurred: $e';
     } finally {
       _isLoadingUserSoldProperties = false;
       notifyListeners();
@@ -366,13 +347,14 @@ class PropertyProvider extends ChangeNotifier {
             _hasMorePublicProperties = false;
         }
       } else {
-        _publicPropertiesError = result['message'] ?? 'Gagal mengambil properti publik.';
+        // ENGLISH TRANSLATION
+        _publicPropertiesError = result['message'] ?? 'Failed to fetch public properties.';
         _hasMorePublicProperties = false;
       }
     } catch (e) {
-      _publicPropertiesError = 'Terjadi kesalahan jaringan: $e';
+      // ENGLISH TRANSLATION
+      _publicPropertiesError = 'A network error occurred: $e';
       _hasMorePublicProperties = false;
-      print('PropertyProvider fetchPublicProperties Exception: $e');
     } finally {
       _isLoadingPublicProperties = false;
       notifyListeners();
@@ -427,21 +409,19 @@ class PropertyProvider extends ChangeNotifier {
         } else {
           _hasMoreSearchResults = false;
         }
-
-        if (_searchedProperties.isEmpty && !loadMore) {
-          print('PropertyProvider: Tidak ada properti ditemukan untuk keyword: "$keywordToSearch", filters: $filtersToApply');
-        }
       } else {
-        _searchError = result['message'] ?? 'Gagal melakukan pencarian properti.';
+        // ENGLISH TRANSLATION
+        _searchError = result['message'] ?? 'Failed to perform property search.';
         _hasMoreSearchResults = false;
       }
     } catch (e) {
-      _searchError = 'Terjadi kesalahan jaringan saat pencarian: $e';
+      // ENGLISH TRANSLATION
+      _searchError = 'A network error occurred during search: ' + e.toString();
       _hasMoreSearchResults = false;
-      print('PropertyProvider performKeywordSearch Exception: $e');
     } finally {
       _isLoadingSearch = false;
       notifyListeners();
+      _forceListUpdate();
     }
   }
 
@@ -449,20 +429,31 @@ class PropertyProvider extends ChangeNotifier {
     _pendingSearchKeyword = keyword ?? "";
     _pendingSearchFilters = filters ?? {};
     _needsSearchExecution = true;
-
     _searchedProperties = [];
     _searchError = null;
     _searchResultCurrentPage = 1;
     _searchResultLastPage = 1;
     _hasMoreSearchResults = true;
     _isLoadingSearch = false;
-
-    print("PropertyProvider: PrepareSearch. Keyword: $_pendingSearchKeyword, Filters: $_pendingSearchFilters");
     notifyListeners();
   }
 
   void clearSearchResults() {
     prepareSearchParameters(keyword: null, filters: null);
+  }
+
+  void resetSearchState() {
+    _searchedProperties = [];
+    _isLoadingSearch = false;
+    _searchError = null;
+    _searchResultCurrentPage = 1;
+    _searchResultLastPage = 1;
+    _hasMoreSearchResults = true;
+    _pendingSearchKeyword = "";
+    _pendingSearchFilters = {};
+    _needsSearchExecution = false;
+    notifyListeners();
+    _forceListUpdate();
   }
 
   void updatePropertyListsState(Property updatedProperty) {
@@ -478,7 +469,6 @@ class PropertyProvider extends ChangeNotifier {
     } else {
       if (indexInUserProperties != -1) _userProperties.removeAt(indexInUserProperties);
     }
-
     int indexInApprovedProperties = _userApprovedProperties.indexWhere((p) => p.id == updatedProperty.id);
     if (updatedProperty.status == PropertyStatus.approved) {
       if (indexInApprovedProperties != -1) _userApprovedProperties[indexInApprovedProperties] = updatedProperty;
@@ -486,7 +476,6 @@ class PropertyProvider extends ChangeNotifier {
     } else {
       if (indexInApprovedProperties != -1) _userApprovedProperties.removeAt(indexInApprovedProperties);
     }
-
     int indexInSoldProperties = _userSoldProperties.indexWhere((p) => p.id == updatedProperty.id);
     if (updatedProperty.status == PropertyStatus.sold) {
       if (indexInSoldProperties != -1) _userSoldProperties[indexInSoldProperties] = updatedProperty;
@@ -494,17 +483,13 @@ class PropertyProvider extends ChangeNotifier {
     } else {
       if (indexInSoldProperties != -1) _userSoldProperties.removeAt(indexInSoldProperties);
     }
-
     int publicIndex = _publicProperties.indexWhere((p) => p.id == updatedProperty.id);
     if (publicIndex != -1) _publicProperties[publicIndex] = updatedProperty;
-
     int searchedIndex = _searchedProperties.indexWhere((p) => p.id == updatedProperty.id);
     if (searchedIndex != -1) _searchedProperties[searchedIndex] = updatedProperty;
-
-    // Memanggil _updateLocalBookmarkedList untuk sinkronisasi dengan _bookmarkedProperties
     _updateLocalBookmarkedList(updatedProperty, isBookmarked: updatedProperty.isFavorite);
-
     notifyListeners();
+    _forceListUpdate();
   }
 
   Future<Map<String, dynamic>> updatePropertyStatus(String propertyId, PropertyStatus newStatus, String token) async {
@@ -519,8 +504,8 @@ class PropertyProvider extends ChangeNotifier {
         if (soldIdx != -1) propertyToUpdate = _userSoldProperties[soldIdx];
       }
     }
-
-    if (propertyToUpdate == null) return {'success': false, 'message': 'Properti tidak ditemukan.'};
+    // ENGLISH TRANSLATION
+    if (propertyToUpdate == null) return {'success': false, 'message': 'Property not found.'};
 
     Property propertyWithNewStatus = propertyToUpdate.copyWith(
       status: newStatus,
@@ -551,6 +536,7 @@ class PropertyProvider extends ChangeNotifier {
     _searchedProperties.removeWhere((p) => p.id == propertyId);
     _bookmarkedProperties.removeWhere((p) => p.id == propertyId);
     notifyListeners();
+    _forceListUpdate();
   }
 
   Future<Map<String, dynamic>?> fetchPropertyStatistics(String propertyId, String? token) async {
@@ -574,11 +560,13 @@ class PropertyProvider extends ChangeNotifier {
     final result = await _propertyService.deletePropertyApi(propertyId, token);
     if (result['success'] == true) {
       removePropertyById(propertyId);
-      return {'success': true, 'message': result['message'] ?? 'Properti berhasil dihapus.'};
+      // ENGLISH TRANSLATION
+      return {'success': true, 'message': result['message'] ?? 'Property successfully deleted.'};
     } else {
       _userPropertiesError = result['message'];
       notifyListeners();
-      return {'success': false, 'message': result['message'] ?? 'Gagal menghapus properti.'};
+      // ENGLISH TRANSLATION
+      return {'success': false, 'message': result['message'] ?? 'Failed to delete property.'};
     }
   }
 }

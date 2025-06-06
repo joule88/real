@@ -2,12 +2,13 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'dart:io'; // For File if not on web
-import 'package:flutter/foundation.dart' show kIsWeb; // To check platform
+import 'dart:io';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:image_picker/image_picker.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:real/models/user_model.dart';
 import 'package:real/provider/auth_provider.dart';
+import 'package:real/helpers/notification_helper.dart';
 
 class EditProfileScreen extends StatefulWidget {
   final User currentUser;
@@ -26,7 +27,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   bool _isSaving = false;
 
-  // Controller dan state untuk dialog ubah password
   final _passwordFormKey = GlobalKey<FormState>();
   late TextEditingController _currentPasswordController;
   late TextEditingController _newPasswordController;
@@ -43,6 +43,41 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   bool _removeCurrentImage = false;
 
   final ImagePicker _picker = ImagePicker();
+
+  Future<void> _pickImageDirectlyFromGallery() async {
+    try {
+      final XFile? pickedFile = await _picker.pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 70,
+        maxWidth: 800,
+      );
+      if (pickedFile != null && mounted) {
+        setState(() {
+          _pickedImageFile = pickedFile;
+          _removeCurrentImage = false;
+        });
+      }
+    } catch (e) {
+      if(mounted) {
+        // ENGLISH TRANSLATION
+        showTopNotification(context, 'Failed to pick image: $e', isError: true);
+      }
+    }
+  }
+
+  void _triggerRemoveImage() {
+      if (widget.currentUser.profileImage.isNotEmpty || _pickedImageFile != null) {
+          setState(() {
+            _pickedImageFile = null;
+            _removeCurrentImage = true;
+          });
+          // ENGLISH TRANSLATION
+          showTopNotification(context, 'Profile photo will be removed upon saving.');
+      } else {
+          // ENGLISH TRANSLATION
+          showTopNotification(context, 'No profile photo to remove.', isError: true);
+      }
+  }
 
   @override
   void initState() {
@@ -66,75 +101,38 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     super.dispose();
   }
 
-  Future<void> _pickImageDirectlyFromGallery() async {
-    try {
-      final XFile? pickedFile = await _picker.pickImage(
-        source: ImageSource.gallery,
-        imageQuality: 70,
-        maxWidth: 800,
-      );
-      if (pickedFile != null && mounted) {
-        setState(() {
-          _pickedImageFile = pickedFile;
-          _removeCurrentImage = false;
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Gagal memilih gambar: $e')),
-        );
-      }
-    }
-  }
-
-  void _triggerRemoveImage() {
-    if (widget.currentUser.profileImage.isNotEmpty || _pickedImageFile != null) {
-      setState(() {
-        _pickedImageFile = null;
-        _removeCurrentImage = true;
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Foto profil akan dihapus saat disimpan.')),
-      );
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Tidak ada foto profil untuk dihapus.')),
-      );
-    }
-  }
-
   Future<void> _submitForm() async {
     if (_isSaving) return;
     if (_formKey.currentState?.validate() ?? false) {
       setState(() => _isSaving = true);
       
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
-      final result = await authProvider.updateUserProfile(
-        name: _nameController.text.trim(),
-        bio: _bioController.text.trim(),
-        phone: _phoneController.text.trim(),
-        profileImageFile: _pickedImageFile,
-        removeProfileImage: _removeCurrentImage,
-      );
-
+      final newName = _nameController.text.trim();
+      final newBio = _bioController.text.trim();
+      final newPhone = _phoneController.text.trim();
+      Map<String, dynamic>? result;
+      try {
+        result = await authProvider.updateUserProfile(
+          name: newName,
+          bio: newBio,
+          phone: newPhone,
+          profileImageFile: _pickedImageFile,
+          removeProfileImage: _removeCurrentImage,
+        );
+      } catch (e) {
+        // ENGLISH TRANSLATION
+        result = {'success': false, 'message': 'An error occurred: $e'};
+      }
       if (!mounted) return;
 
       if (result['success'] == true) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(result['message'] ?? 'Profil berhasil diperbarui!'),
-            backgroundColor: Colors.green,
-          ),
-        );
+        // ENGLISH TRANSLATION
+        showTopNotification(context, result['message'] ?? 'Profile updated successfully!');
         Navigator.pop(context, true);
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(result['message'] ?? 'Gagal memperbarui profil.'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        // ENGLISH TRANSLATION
+        final String errorMessage = result['message'] ?? 'Failed to update profile.';
+        showTopNotification(context, errorMessage, isError: true);
       }
       setState(() => _isSaving = false);
     }
@@ -148,7 +146,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     }
 
     FocusScope.of(context).unfocus();
-    setState(() => _isChangingPassword = true);
+
+    setState(() {
+      _isChangingPassword = true;
+    });
 
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final result = await authProvider.changePassword(
@@ -158,26 +159,24 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     );
 
     if (!mounted) return;
-    Navigator.of(context).pop(); 
+
+    Navigator.of(context).pop();
 
     if (result['success'] == true) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(result['message'] ?? 'Password berhasil diubah!'),
-          backgroundColor: Colors.green,
-        ),
-      );
+      // ENGLISH TRANSLATION
+      showTopNotification(context, result['message'] ?? 'Password changed successfully!');
+      _currentPasswordController.clear();
+      _newPasswordController.clear();
+      _confirmPasswordController.clear();
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(result['message'] ?? 'Gagal mengubah password.'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      // ENGLISH TRANSLATION
+      showTopNotification(context, result['message'] ?? 'Failed to change password.', isError: true);
     }
-    
-    if (mounted) {
-      setState(() => _isChangingPassword = false);
+
+    if(mounted){
+        setState(() {
+            _isChangingPassword = false;
+        });
     }
   }
 
@@ -197,7 +196,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         return StatefulBuilder(
           builder: (context, setDialogState) {
             return AlertDialog(
-              title: Text('Ubah Password', style: GoogleFonts.poppins(fontWeight: FontWeight.bold)),
+              // ENGLISH TRANSLATION
+              title: Text('Change Password', style: GoogleFonts.poppins(fontWeight: FontWeight.bold)),
               contentPadding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
               content: SingleChildScrollView(
                 child: Form(
@@ -208,33 +208,51 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       TextFormField(
                         controller: _currentPasswordController,
                         decoration: InputDecoration(
-                          labelText: 'Password Lama',
+                          labelText: 'Current Password', // ENGLISH
+                          hintText: 'Enter your current password', // ENGLISH
                           prefixIcon: const Icon(Icons.lock_outline),
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+                          filled: true,
+                          fillColor: Colors.grey[100],
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                           suffixIcon: IconButton(
                             icon: Icon(_obscureCurrentPassword ? Icons.visibility_off_outlined : Icons.visibility_outlined),
                             onPressed: () => setDialogState(() => _obscureCurrentPassword = !_obscureCurrentPassword),
                           ),
                         ),
                         obscureText: _obscureCurrentPassword,
-                        validator: (v) => v == null || v.isEmpty ? 'Password lama tidak boleh kosong' : null,
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Current password cannot be empty'; // ENGLISH
+                          }
+                          return null;
+                        },
+                        textInputAction: TextInputAction.next,
                       ),
                       const SizedBox(height: 16),
                       TextFormField(
                         controller: _newPasswordController,
                         decoration: InputDecoration(
-                          labelText: 'Password Baru',
+                          labelText: 'New Password', // ENGLISH
+                          hintText: 'Minimum 6 characters', // ENGLISH
                           prefixIcon: const Icon(Icons.lock_person_outlined),
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+                          filled: true,
+                          fillColor: Colors.grey[100],
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                           suffixIcon: IconButton(
                             icon: Icon(_obscureNewPassword ? Icons.visibility_off_outlined : Icons.visibility_outlined),
                             onPressed: () => setDialogState(() => _obscureNewPassword = !_obscureNewPassword),
                           ),
                         ),
                         obscureText: _obscureNewPassword,
-                        validator: (v) {
-                          if (v == null || v.isEmpty) return 'Password baru tidak boleh kosong';
-                          if (v.length < 6) return 'Password minimal 6 karakter';
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'New password cannot be empty'; // ENGLISH
+                          }
+                          if (value.length < 6) {
+                            return 'New password must be at least 6 characters'; // ENGLISH
+                          }
                           return null;
                         },
                       ),
@@ -242,20 +260,36 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       TextFormField(
                         controller: _confirmPasswordController,
                         decoration: InputDecoration(
-                          labelText: 'Konfirmasi Password Baru',
+                          labelText: 'Confirm New Password', // ENGLISH
+                          hintText: 'Repeat your new password', // ENGLISH
                           prefixIcon: const Icon(Icons.lock_person_outlined),
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-                          suffixIcon: IconButton(
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+                          filled: true,
+                          fillColor: Colors.grey[100],
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                           suffixIcon: IconButton(
                             icon: Icon(_obscureConfirmPassword ? Icons.visibility_off_outlined : Icons.visibility_outlined),
                             onPressed: () => setDialogState(() => _obscureConfirmPassword = !_obscureConfirmPassword),
                           ),
                         ),
                         obscureText: _obscureConfirmPassword,
-                        validator: (v) {
-                          if (v != _newPasswordController.text) return 'Password tidak cocok';
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Password confirmation cannot be empty'; // ENGLISH
+                          }
+                          if (value != _newPasswordController.text) {
+                            return 'Passwords do not match'; // ENGLISH
+                          }
                           return null;
                         },
+                        textInputAction: TextInputAction.done,
+                        onFieldSubmitted: (_) {
+                           if (!_isChangingPassword) {
+                             _submitChangePasswordForm();
+                           }
+                        },
                       ),
+                       const SizedBox(height: 10),
                     ],
                   ),
                 ),
@@ -263,13 +297,29 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               actions: <Widget>[
                 TextButton(
                   onPressed: _isChangingPassword ? null : () => Navigator.of(dialogContext).pop(),
-                  child: Text('Batal'),
+                  child: Text('Cancel', style: GoogleFonts.poppins(color: Colors.grey[700], fontWeight: FontWeight.w500)), // ENGLISH
                 ),
                 ElevatedButton(
-                  onPressed: _isChangingPassword ? null : _submitChangePasswordForm,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: themeColor,
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    elevation: 2,
+                  ),
+                  onPressed: _isChangingPassword ? null : () {
+                     _submitChangePasswordForm().then((_) {
+                        if (dialogContext.mounted && _isChangingPassword) {
+                           setDialogState(() {});
+                        }
+                     });
+                  },
                   child: _isChangingPassword
-                      ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2.5))
-                      : const Text('Simpan'),
+                      ? SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2.5, color: textOnThemeColor),
+                        )
+                      : Text('Save', style: GoogleFonts.poppins(color: textOnThemeColor, fontWeight: FontWeight.w600)), // ENGLISH
                 ),
               ],
             );
@@ -293,22 +343,40 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           : Image.file(File(_pickedImageFile!.path), width: 100, height: 100, fit: BoxFit.cover);
     } else if (!_removeCurrentImage && widget.currentUser.profileImage.isNotEmpty) {
       profileImageWidget = CachedNetworkImage(
+        key: ValueKey(widget.currentUser.profileImage),
         imageUrl: widget.currentUser.profileImage,
-        width: 100, height: 100, fit: BoxFit.cover,
-        placeholder: (context, url) => const CircularProgressIndicator(),
-        errorWidget: (context, url, error) => const Icon(Icons.person, size: 50),
+        width: 100,
+        height: 100,
+        fit: BoxFit.cover,
+        placeholder: (context, url) => Container(
+          width: 100, height: 100, color: Colors.grey[200],
+          child: const Center(child: CircularProgressIndicator()),
+        ),
+        errorWidget: (context, url, error) {
+          return Container(
+            width: 100, height: 100, color: Colors.grey[200],
+            child: Icon(Icons.person, size: 50, color: Colors.grey[400]),
+          );
+        },
       );
     } else {
       profileImageWidget = Container(
-        width: 100, height: 100,
-        decoration: BoxDecoration(color: Colors.grey[200], shape: BoxShape.circle),
+        width: 100,
+        height: 100,
+        decoration: BoxDecoration(
+          color: Colors.grey[200],
+          shape: BoxShape.circle,
+        ),
         child: Icon(Icons.person, size: 50, color: Colors.grey[400]),
       );
     }
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('Edit Profil Saya', style: GoogleFonts.poppins(fontWeight: FontWeight.bold, color: Colors.black87)),
+        title: Text(
+          'Edit My Profile', // ENGLISH
+          style: GoogleFonts.poppins(fontWeight: FontWeight.bold, color: Colors.black87),
+        ),
         backgroundColor: Colors.white,
         iconTheme: const IconThemeData(color: Colors.black87),
         elevation: 1,
@@ -324,17 +392,27 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: <Widget>[
+              Text(
+                "Profile Photo", // ENGLISH
+                style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w600, color: const Color(0xFF182420)),
+              ),
+              const SizedBox(height: 8),
               Center(
                 child: Stack(
                   children: [
                     ClipOval(child: profileImageWidget),
                     Positioned(
-                      bottom: 0, right: 0,
+                      bottom: 0,
+                      right: 0,
                       child: InkWell(
                         onTap: _pickImageDirectlyFromGallery,
                         child: Container(
                           padding: const EdgeInsets.all(6),
-                          decoration: BoxDecoration(color: themeColor, shape: BoxShape.circle, border: Border.all(color: Colors.white, width: 2)),
+                          decoration: BoxDecoration(
+                            color: themeColor,
+                            shape: BoxShape.circle,
+                            border: Border.all(color: Colors.white, width: 2)
+                          ),
                           child: Icon(Icons.camera_alt, color: textOnThemeColor, size: 20),
                         ),
                       ),
@@ -343,19 +421,26 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 ),
               ),
               if (widget.currentUser.profileImage.isNotEmpty || _pickedImageFile != null)
-                Center(
-                  child: TextButton.icon(
-                    icon: Icon(Icons.delete_outline, color: Colors.red[700], size: 18),
-                    label: Text('Hapus Foto Profil', style: GoogleFonts.poppins(color: Colors.red[700], fontSize: 13)),
-                    onPressed: _triggerRemoveImage,
+                Padding(
+                  padding: const EdgeInsets.only(top: 8.0, bottom: 20.0),
+                  child: Center(
+                    child: TextButton.icon(
+                      icon: Icon(Icons.delete_outline, color: Colors.red[700], size: 18),
+                      label: Text('Remove Profile Photo', style: GoogleFonts.poppins(color: Colors.red[700], fontSize: 13)), // ENGLISH
+                      onPressed: _triggerRemoveImage,
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5)
+                      ),
+                    ),
                   ),
                 ),
-              const SizedBox(height: 30),
+
               Card(
-                elevation: 0,
+                elevation: 1.5,
+                shadowColor: Colors.grey.withOpacity(0.3),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10),
-                  side: BorderSide(color: Colors.grey[300]!)
+                  side: BorderSide.none,
                 ),
                 margin: const EdgeInsets.only(bottom: 24),
                 child: Padding(
@@ -363,58 +448,108 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Email (Tidak dapat diubah)', style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey[700], fontWeight: FontWeight.w600)),
+                      Text(
+                        'Email (Cannot be changed)', // ENGLISH
+                        style: GoogleFonts.poppins(
+                          fontSize: 12,
+                          color: Colors.grey[700],
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                       const SizedBox(height: 6),
                       Text(widget.currentUser.email, style: GoogleFonts.poppins(fontSize: 15, color: Colors.black54)),
                     ],
                   ),
                 ),
               ),
-              Text("Nama Pengguna", style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w600)),
+
+              Text(
+                "Username", // ENGLISH
+                style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w600, color: const Color(0xFF182420)),
+              ),
               const SizedBox(height: 8),
               TextFormField(
                 controller: _nameController,
                 decoration: InputDecoration(
-                  hintText: 'Masukkan nama pengguna Anda',
-                  prefixIcon: const Icon(Icons.person_outline),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-                  filled: true, fillColor: Colors.grey[100],
+                  hintText: 'Enter your username', // ENGLISH
+                  prefixIcon: Icon(Icons.person_outline, color: Colors.grey[600]),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+                  filled: true,
+                  fillColor: Colors.grey[100],
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                 ),
-                validator: (v) => v == null || v.trim().isEmpty ? 'Nama tidak boleh kosong' : null,
+                style: GoogleFonts.poppins(fontSize: 15, fontWeight: FontWeight.w500),
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return 'Name cannot be empty'; // ENGLISH
+                  }
+                  if (value.trim().length < 3) {
+                      return 'Name must be at least 3 characters'; // ENGLISH
+                  }
+                  return null;
+                },
+                textInputAction: TextInputAction.next,
               ),
               const SizedBox(height: 20),
-              Text("Bio", style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w600)),
+
+              Text(
+                "Phone Number", // ENGLISH
+                style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w600, color: const Color(0xFF182420)),
+              ),
+              const SizedBox(height: 8),
+              TextFormField(
+                controller: _phoneController,
+                decoration: InputDecoration(
+                  hintText: 'Enter your phone number', // ENGLISH
+                  prefixIcon: Icon(Icons.phone_android, color: Colors.grey[600]),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+                  filled: true,
+                  fillColor: Colors.grey[100],
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                ),
+                style: GoogleFonts.poppins(fontSize: 15, fontWeight: FontWeight.w500),
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return 'Phone number cannot be empty'; // ENGLISH
+                  }
+                  return null;
+                },
+                textInputAction: TextInputAction.next,
+              ),
+              const SizedBox(height: 20),
+              
+              Text(
+                "Bio", // ENGLISH
+                style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w600, color: const Color(0xFF182420)),
+              ),
               const SizedBox(height: 8),
               TextFormField(
                 controller: _bioController,
                 decoration: InputDecoration(
-                  hintText: 'Ceritakan tentang diri Anda...',
-                  prefixIcon: const Icon(Icons.info_outline),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-                  filled: true, fillColor: Colors.grey[100],
+                  hintText: 'Tell us about yourself...', // ENGLISH
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+                  filled: true,
+                  fillColor: Colors.grey[100],
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                 ),
-                maxLines: 4, maxLength: 200,
+                style: GoogleFonts.poppins(fontSize: 15, fontWeight: FontWeight.w500),
+                maxLines: 4,
+                maxLength: 200,
+                validator: (value) {
+                  return null;
+                },
+                textInputAction: TextInputAction.done,
+                onFieldSubmitted: (_) {
+                  if (!_isSaving) _submitForm();
+                },
               ),
               const SizedBox(height: 20),
-              Text("Nomor Telepon", style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w600)),
-              const SizedBox(height: 8),
-              TextFormField(
-                controller: _phoneController,
-                keyboardType: TextInputType.phone,
-                decoration: InputDecoration(
-                  hintText: 'Masukkan nomor telepon Anda',
-                  prefixIcon: const Icon(Icons.phone_android),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-                  filled: true, fillColor: Colors.grey[100],
-                ),
-                validator: (v) => v == null || v.trim().isEmpty ? 'Nomor telepon tidak boleh kosong' : null,
-              ),
-              const SizedBox(height: 30),
+
               _isSaving
                   ? Center(child: CircularProgressIndicator(color: themeColor))
                   : ElevatedButton.icon(
-                      icon: const Icon(Icons.save_alt_outlined),
-                      label: const Text('Simpan Perubahan'),
+                      icon: const Icon(Icons.save_alt_outlined, color: Colors.black87),
+                      label: Text('Save Changes', style: GoogleFonts.poppins(color: Colors.black87, fontWeight: FontWeight.w600)), // ENGLISH
                       onPressed: _isSaving ? null : _submitForm,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: themeColor,
@@ -423,10 +558,19 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       ),
                     ),
               const SizedBox(height: 16),
-              OutlinedButton.icon(
-                icon: const Icon(Icons.lock_outline),
-                label: const Text('Ubah Password'),
+
+              ElevatedButton.icon(
+                icon: Icon(Icons.lock_outline, color: Colors.grey[700]),
+                label: Text('Change Password', style: GoogleFonts.poppins(color: Colors.grey[700], fontWeight: FontWeight.w600)), // ENGLISH
                 onPressed: _isSaving ? null : _handleChangePassword,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.grey[200],
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                  elevation: 1,
+                ),
               ),
             ],
           ),

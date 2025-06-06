@@ -4,8 +4,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:real/models/property.dart';
-import 'package:real/provider/auth_provider.dart';     // Pastikan import ini ada
-import 'package:real/provider/property_provider.dart'; // Pastikan import ini ada
+import 'package:real/provider/auth_provider.dart';
+import 'package:real/provider/property_provider.dart';
 import 'package:real/screens/detail/detailpost.dart';
 import 'package:real/widgets/bookmark_button.dart';
 
@@ -20,21 +20,20 @@ class PropertyCard extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) { // 'context' tersedia di sini
+  Widget build(BuildContext context) {
     final currencyFormatter = NumberFormat.currency(locale: 'ar_AE', symbol: 'AED ', decimalDigits: 0);
     final cardWidth = isHorizontalVariant ? 320.0 : double.infinity;
     final imageHeight = isHorizontalVariant ? 160.0 : 180.0;
 
     return GestureDetector(
       onTap: () async {
-        print("PropertyCard diklik, ID properti: ${property.id}");
         final propertyProvider = Provider.of<PropertyProvider>(context, listen: false);
         final authProvider = Provider.of<AuthProvider>(context, listen: false);
 
         showDialog(
-          context: context, // 'context' dari build method digunakan di sini
+          context: context,
           barrierDismissible: false,
-          builder: (BuildContext dialogContext) { // Ini adalah context baru untuk dialog
+          builder: (BuildContext dialogContext) {
             return const Center(child: CircularProgressIndicator());
           },
         );
@@ -44,14 +43,10 @@ class PropertyCard extends StatelessWidget {
           authProvider.token
         );
 
-        // Gunakan `context.mounted` untuk mengecek apakah widget masih ada di tree
-        if (!context.mounted) return; // Jika tidak, jangan lanjutkan
-
-        Navigator.pop(context); // Tutup dialog loading
+        if (!context.mounted) return;
+        Navigator.pop(context);
 
         if (freshPropertyData != null) {
-          print("Navigating to PropertyDetailPage with fresh data for ${freshPropertyData.id}. Total Views: ${freshPropertyData.viewsCount}");
-          // Pastikan lagi context mounted sebelum navigasi
           if (!context.mounted) return;
           Navigator.push(
             context, 
@@ -66,11 +61,10 @@ class PropertyCard extends StatelessWidget {
             ),
           );
         } else {
-          print("Failed to fetch fresh property data for ${property.id}");
-          // Pastikan lagi context mounted sebelum menampilkan SnackBar
           if (!context.mounted) return;
+          // ENGLISH TRANSLATION
           ScaffoldMessenger.of(context).showSnackBar( 
-            const SnackBar(content: Text('Gagal memuat detail properti. Coba lagi nanti.')),
+            const SnackBar(content: Text('Failed to load property details. Please try again later.')),
           );
         }
       },
@@ -115,7 +109,7 @@ class PropertyCard extends StatelessWidget {
                             return _imageLoadingPlaceholder(imgContext, imageHeight, loadingProgress);
                           },
                         )
-                      : _imageErrorPlaceholder(context, imageHeight, iconSize: 60),
+                      : _imageErrorPlaceholder(context, imageHeight, iconSize: 60, customText: "Main image unavailable"), // ENGLISH TRANSLATION
                 ),
               ],
             ),
@@ -151,7 +145,8 @@ class PropertyCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    property.address.isNotEmpty ? property.address : "Alamat tidak tersedia",
+                    // ENGLISH TRANSLATION
+                    property.address.isNotEmpty ? property.address : "Address not available",
                     style: GoogleFonts.poppins(
                       fontSize: 11.5,
                       color: Colors.grey[700],
@@ -162,11 +157,12 @@ class PropertyCard extends StatelessWidget {
                   const SizedBox(height: 10),
                   Row(
                     children: [
+                      // ENGLISH TRANSLATION
                       _buildDetailItem(context, Icons.king_bed_outlined,
-                          '${property.bedrooms} Kamar'),
+                          '${property.bedrooms} Beds'),
                       _buildDetailSeparator(),
                       _buildDetailItem(context, Icons.bathtub_outlined,
-                          '${property.bathrooms} WC'),
+                          '${property.bathrooms} Baths'),
                       _buildDetailSeparator(),
                       _buildDetailItem(context, Icons.aspect_ratio_outlined,
                           '${property.areaSqft.toStringAsFixed(0)} sqft'),
@@ -226,14 +222,22 @@ class PropertyCard extends StatelessWidget {
     );
   }
 
-  Widget _imageErrorPlaceholder(BuildContext context, double height, {double iconSize = 50}){
+  Widget _imageErrorPlaceholder(BuildContext context, double height, {double iconSize = 50, String customText = "Image unavailable"}){
       return Container(
         height: height,
         width: double.infinity,
         color: Colors.grey[200],
         child: Center(
-            child: Icon(Icons.apartment_rounded, // Menggunakan ikon yang lebih relevan
-                size: iconSize, color: Theme.of(context).disabledColor.withOpacity(0.5))),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.apartment_rounded,
+                  size: iconSize, color: Theme.of(context).disabledColor.withOpacity(0.5)),
+              const SizedBox(height: 8),
+              Text(customText, style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey[600]), textAlign: TextAlign.center),
+            ],
+          )
+        ),
     );
   }
 }

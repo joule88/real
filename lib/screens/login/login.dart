@@ -1,12 +1,12 @@
 // lib/screens/login/login.dart
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:real/app/themes/app_themes.dart';
 import 'package:real/provider/auth_provider.dart';
 import 'package:real/screens/login/register.dart';
-import 'package:real/widgets/textfield_login.dart'; // Pastikan ini sudah diimpor
+import 'package:real/widgets/textfield_login.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:real/screens/login/forgot_password_screen.dart';
-// import 'package:real/screens/main_screen.dart'; // Tidak perlu jika navigasi via Consumer
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -20,10 +20,10 @@ class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _passwordController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
 
-  bool _isLoginButtonLoading = false; // State loading lokal
+  bool _isLoginButtonLoading = false;
 
   final Color themeColor = const Color.fromARGB(255, 209, 247, 43);
-  final Color textOnThemeColor = Colors.black87; // Warna teks di atas themeColor
+  final Color textOnThemeColor = Colors.black87;
 
   @override
   void dispose() {
@@ -49,7 +49,6 @@ class _LoginScreenState extends State<LoginScreen> {
     }
 
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    print('Login.dart: Memanggil authProvider.login...');
 
     Map<String, dynamic>? loginResult;
 
@@ -58,24 +57,19 @@ class _LoginScreenState extends State<LoginScreen> {
         _emailController.text.trim(),
         _passwordController.text.trim(),
       );
-      print('Login.dart: Hasil dari authProvider.login TELAH DITERIMA: $loginResult');
     } catch (e) {
-      print('Login.dart: Exception saat memanggil authProvider.login: $e');
-      loginResult = {'success': false, 'message': 'Terjadi kesalahan: $e'};
+      // ENGLISH TRANSLATION
+      loginResult = {'success': false, 'message': 'An error occurred: $e'};
     }
 
-    // PENANGANAN UI SETELAH AWAIT, GUNAKAN addPostFrameCallback
     if (mounted) {
-      WidgetsBinding.instance.addPostFrameCallback((_) { // Menggunakan addPostFrameCallback
+      WidgetsBinding.instance.addPostFrameCallback((_) { 
         if (!mounted) return;
 
         if (loginResult != null) {
-          if (loginResult['success'] == true) {
-            print('Login.dart (postFrame): Login SUKSES. Pesan: ${loginResult['message']}');
-            // TIDAK ADA SNACKBAR SUKSES DI SINI.
-          } else {
-            final String errorMessage = loginResult['message'] ?? 'Login gagal atau hasil tidak diketahui.';
-            print('Login.dart (postFrame): Login GAGAL. Pesan: $errorMessage');
+          if (loginResult['success'] != true) {
+            // ENGLISH TRANSLATION
+            final String errorMessage = loginResult['message'] ?? 'Login failed or result unknown.';
             if (mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
@@ -86,11 +80,11 @@ class _LoginScreenState extends State<LoginScreen> {
             }
           }
         } else {
-          print('Login.dart (postFrame): Hasil login tidak diketahui.');
            if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
+              // ENGLISH TRANSLATION
               const SnackBar(
-                content: Text('Proses login gagal karena kesalahan tidak diketahui (postFrame).'),
+                content: Text('Login process failed due to an unknown error.'),
                 backgroundColor: Colors.orange,
               ),
             );
@@ -123,7 +117,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   Text(
-                    'Selamat Datang Kembali!',
+                    'Welcome Back!', // ENGLISH
                     textAlign: TextAlign.center,
                     style: GoogleFonts.poppins(
                       fontSize: 28,
@@ -133,7 +127,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Masuk untuk melanjutkan',
+                    'Sign in to continue', // ENGLISH
                     textAlign: TextAlign.center,
                     style: GoogleFonts.poppins(
                       fontSize: 16,
@@ -149,10 +143,10 @@ class _LoginScreenState extends State<LoginScreen> {
                     keyboardType: TextInputType.emailAddress,
                     validator: (value) {
                       if (value == null || value.isEmpty) {
-                        return 'Email tidak boleh kosong';
+                        return 'Email cannot be empty'; // ENGLISH
                       }
                       if (!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(value)) {
-                        return 'Masukkan email yang valid';
+                        return 'Please enter a valid email'; // ENGLISH
                       }
                       return null;
                     },
@@ -161,20 +155,19 @@ class _LoginScreenState extends State<LoginScreen> {
                   TextFieldLogin(
                     label: 'Password',
                     controller: _passwordController,
-                    hintText: 'Password Anda',
+                    hintText: 'Your Password',
                     prefixIcon: Icons.lock_outline,
                     isPassword: true,
                     validator: (value) {
                       if (value == null || value.isEmpty) {
-                        return 'Password tidak boleh kosong';
+                        return 'Password cannot be empty'; // ENGLISH
                       }
                       if (value.length < 6) {
-                        return 'Password minimal 6 karakter';
+                        return 'Password must be at least 6 characters'; // ENGLISH
                       }
                       return null;
                     },
                   ),
-                  // POSISI LUPA PASSWORD YANG BENAR
                   Row(
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: [
@@ -186,7 +179,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           );
                         },
                         child: Text(
-                          'Lupa Password?',
+                          'Forgot Password?', // ENGLISH
                           style: GoogleFonts.poppins(
                             fontWeight: FontWeight.w600,
                             color: const Color(0xFF5C5C5C),
@@ -196,9 +189,8 @@ class _LoginScreenState extends State<LoginScreen> {
                     ],
                   ),
                   const SizedBox(height: 20),
-                  // TOMBOL MASUK YANG SUDAH DIPERBAIKI
                   _isLoginButtonLoading
-                      ? Center(child: CircularProgressIndicator(color: themeColor))
+                      ? const Center(child: CircularProgressIndicator(color: AppTheme.nearlyBlack))
                       : ElevatedButton(
                           onPressed: _isLoginButtonLoading ? null : _login,
                           style: ElevatedButton.styleFrom(
@@ -209,9 +201,8 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                             elevation: 3,
                           ),
-                          // Widget Text 'Masuk' dipindahkan ke dalam child
                           child: Text(
-                            'Masuk',
+                            'Sign In', // ENGLISH
                             style: GoogleFonts.poppins(
                               fontSize: 18,
                               fontWeight: FontWeight.w600,
@@ -224,7 +215,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(
-                        'Belum punya akun?',
+                        "Don't have an account?", // ENGLISH
                         style: GoogleFonts.poppins(color: Colors.grey[700]),
                       ),
                       TextButton(
@@ -236,7 +227,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           );
                         },
                         child: Text(
-                          'Daftar di sini',
+                          'Register here', // ENGLISH
                           style: GoogleFonts.poppins(
                             fontWeight: FontWeight.bold,
                             color: const Color.fromARGB(255, 0, 0, 0)

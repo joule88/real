@@ -26,7 +26,7 @@ class _SplashScreenState extends State<SplashScreen> {
     final screenWidth = MediaQuery.of(context).size.width;
     final logoSize = screenWidth * 0.35;
 
-    print("SplashScreen: build() dijalankan. ScreenWidth: $screenWidth, LogoSize: $logoSize");
+    print("SplashScreen: build() dijalankan. Mencoba memuat 'assets/images/nestora_logo.png'");
     return Scaffold(
       backgroundColor: backgroundColor,
       body: Center(
@@ -34,59 +34,54 @@ class _SplashScreenState extends State<SplashScreen> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Image.asset(
-              'images/nestora_logo.png', // Path yang sudah benar
-              width: logoSize, // Menggunakan ukuran logo yang dinamis
-              height: logoSize, // Menggunakan ukuran logo yang dinamis
-              fit: BoxFit.contain, // Agar gambar tidak terdistorsi
+              'assets/images/nestora_logo.png', // Path standar untuk platform native
+              width: logoSize,
+              height: logoSize,
+              fit: BoxFit.contain,
               errorBuilder: (context, error, stackTrace) {
-                print("SplashScreen Error dari errorBuilder: Tidak dapat memuat gambar 'images/nestora_logo.png'. Error: $error");
-                // Fallback jika path 'images/nestora_logo.png' juga gagal, coba path asli lagi untuk debug
-                return Image.asset(
-                  'assets/images/nestora_logo.png', // Path asli untuk fallback error message
-                  width: logoSize, // Ukuran dinamis juga untuk errorBuilder
-                  height: logoSize,
-                  fit: BoxFit.contain,
-                  errorBuilder: (ctx, err, st) {
-                    print("SplashScreen Error dari errorBuilder (fallback): Tidak dapat memuat gambar 'assets/images/nestora_logo.png'. Error: $err");
-                    // Konten errorBuilder yang lebih adaptif
-                    return Container(
-                      width: logoSize * 0.8, // Buat kontainer error sedikit lebih kecil dari logoSize
-                      height: logoSize * 0.8,
-                      padding: const EdgeInsets.all(8.0), // Tambahkan padding
-                      decoration: BoxDecoration(
-                        color: Colors.red.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(8), // Tambahkan border radius
-                      ),
-                      child: FittedBox( // Agar konten di dalamnya skala menyesuaikan
-                        fit: BoxFit.scaleDown,
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Icon(Icons.error_outline, color: Colors.red, size: 40),
-                            const SizedBox(height: 8),
-                            Text(
-                              "Gagal memuat logo",
-                              textAlign: TextAlign.center,
-                              style: GoogleFonts.poppins(color: Colors.red.shade800, fontSize: 12),
-                            ),
-                            Text(
-                              "(Cek path aset)", // Pesan lebih singkat
-                              textAlign: TextAlign.center,
-                              style: GoogleFonts.poppins(color: Colors.red.shade700, fontSize: 9),
-                            ),
-                          ],
+                // Pesan error yang lebih detail di konsol
+                print("----------------------------------------------------------------------");
+                print("SplashScreen FATAL ERROR: Tidak dapat memuat aset gambar.");
+                print("Path yang dicoba: 'assets/images/nestora_logo.png'");
+                print("Error object: $error");
+                print("StackTrace: $stackTrace");
+                print("----------------------------------------------------------------------");
+                
+                // UI untuk pengguna
+                return Container(
+                  width: logoSize * 0.9, // Sesuaikan ukuran container error
+                  height: logoSize * 0.9,
+                  padding: const EdgeInsets.all(8.0),
+                  decoration: BoxDecoration(
+                    color: Colors.red.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.red.shade300, width: 1),
+                  ),
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.no_photography_outlined, color: Colors.red.shade700, size: 40),
+                        const SizedBox(height: 8),
+                        Text(
+                          "Logo Gagal Dimuat",
+                          textAlign: TextAlign.center,
+                          style: GoogleFonts.poppins(color: Colors.red.shade800, fontWeight: FontWeight.bold, fontSize: 12),
                         ),
-                      ),
-                    );
-                  }
+                        const SizedBox(height: 4),
+                        Text(
+                          "1. Cek path di kode.\n2. Cek nama file & folder 'assets/images/'.\n3. Pastikan 'pubspec.yaml' benar & sudah 'flutter pub get'.\n4. Lakukan 'flutter clean' & restart aplikasi.",
+                          textAlign: TextAlign.center,
+                          style: GoogleFonts.poppins(color: Colors.red.shade700, fontSize: 9, height: 1.3),
+                        ),
+                      ],
+                    ),
+                  ),
                 );
               },
             ),
-            
-            const SizedBox(height: 40),
-            const CircularProgressIndicator(
-              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-            ),
+            // Teks "Nestora" dan CircularProgressIndicator sudah dihapus sebelumnya
           ],
         ),
       ),

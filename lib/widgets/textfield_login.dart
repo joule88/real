@@ -46,15 +46,19 @@ class _TextFieldLoginState extends State<TextFieldLogin> {
         ),
         const SizedBox(height: 8),
         Container(
-          height: 51,
+          height: 52, // Sedikit disesuaikan untuk bayangan
           padding: const EdgeInsets.symmetric(horizontal: 12),
           decoration: BoxDecoration(
-            color: Colors.grey[100],
-            border: Border.all(
-              color: const Color(0xFF5C5C5C),
-              width: 1,
-            ),
+            color: Colors.white, // Latar belakang putih agar bayangan terlihat
             borderRadius: BorderRadius.circular(10),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.grey.withOpacity(0.2),
+                spreadRadius: 1,
+                blurRadius: 5,
+                offset: const Offset(0, 2), // changes position of shadow
+              ),
+            ],
           ),
           child: Row(
             children: [

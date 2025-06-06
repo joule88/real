@@ -1,9 +1,8 @@
 // lib/widgets/filter_modal_content.dart
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:real/widgets/custom_form_field.dart'; // Pastikan path ini benar
+import 'package:real/widgets/custom_form_field.dart';
 
-// Definisikan callback type untuk filter
 typedef OnApplyFilters = void Function(Map<String, dynamic> appliedFilters);
 typedef OnResetFilters = void Function();
 
@@ -12,23 +11,22 @@ class FilterModalContent extends StatefulWidget {
   final OnApplyFilters onApplyFilters;
   final OnResetFilters onResetFilters;
 
-  // Opsi-opsi untuk dropdown bisa di-pass dari luar atau didefinisikan di sini
-  // Untuk kesederhanaan, kita definisikan di sini dulu, tapi idealnya di-pass
+  // ENGLISH TRANSLATION: Options translated to English
   final List<String> propertyTypeOptions = const [
-    'Rumah', 'Apartemen', 'Villa', 'Ruko', 'Tanah', 'Gudang', 'Kantor', 'Lainnya'
+    'House', 'Apartment', 'Villa', 'Shop', 'Land', 'Warehouse', 'Office', 'Other'
   ];
   final List<String> furnishingOptions = const ['YES', 'NO', 'PARTLY'];
   final List<String> pemandanganUtamaOptions = const [
-    'Pemandangan Laut', 'Pemandangan Burj Khalifa', 'Pemandangan Golf',
-    'Pemandangan Komunitas', 'Pemandangan Kota', 'Pemandangan Danau',
-    'Pemandangan Kolam Renang', 'Pemandangan Sungai', 'Lainnya / Tidak Spesifik',
+    'Sea View', 'Burj Khalifa View', 'Golf View',
+    'Community View', 'City View', 'Lake View',
+    'Pool View', 'River View', 'Other / Not Specific',
   ];
   final List<String> usiaPropertiOptions = const [
-    'Kurang dari 3 bulan', '3-6 Bulan', 'Lebih dari 6 Bulan',
+    'Less than 3 months', '3-6 Months', 'More than 6 Months',
   ];
   final List<String> labelPropertiOptions = const [
     'Luxury', 'Furnished', 'Spacious', 'Prime Location', 'Studio',
-    'Penthouse', 'Investment', 'Villa', 'Downtown', 'Tidak Ada Keyword Spesifik',
+    'Penthouse', 'Investment', 'Villa', 'Downtown', 'No Specific Keyword',
   ];
 
 
@@ -44,7 +42,6 @@ class FilterModalContent extends StatefulWidget {
 }
 
 class _FilterModalContentState extends State<FilterModalContent> {
-  // State internal untuk nilai filter di modal
   late String? _modalFilterPropertyType;
   late TextEditingController _modalFilterMinPriceController;
   late TextEditingController _modalFilterMaxPriceController;
@@ -62,7 +59,6 @@ class _FilterModalContentState extends State<FilterModalContent> {
   @override
   void initState() {
     super.initState();
-    // Inisialisasi state modal dari initialFilters
     _modalFilterPropertyType = widget.initialFilters['propertyType'] as String?;
     _modalFilterMinPriceController = TextEditingController(text: widget.initialFilters['minPrice']?.toString() ?? '');
     _modalFilterMaxPriceController = TextEditingController(text: widget.initialFilters['maxPrice']?.toString() ?? '');
@@ -110,7 +106,7 @@ class _FilterModalContentState extends State<FilterModalContent> {
     newFilters.removeWhere((key, value) => value == null || (value is String && value.isEmpty) || ((key.contains('Bedrooms') || key.contains('Bathrooms')) && (value is num && value == 0)));
     
     widget.onApplyFilters(newFilters);
-    Navigator.pop(context); // Tutup modal
+    Navigator.pop(context);
   }
 
   void _resetInternalFiltersAndCallback() {
@@ -129,8 +125,8 @@ class _FilterModalContentState extends State<FilterModalContent> {
       _modalFilterUsiaProperti = null;
       _modalFilterLabelProperti = null;
     });
-    widget.onResetFilters(); // Panggil callback reset dari parent
-    Navigator.pop(context); // Tutup modal
+    widget.onResetFilters();
+    Navigator.pop(context);
   }
 
   Widget _buildStyledDropdown<T>({
@@ -176,6 +172,9 @@ class _FilterModalContentState extends State<FilterModalContent> {
 
   @override
   Widget build(BuildContext context) {
+    const Color navbarBgColor = Color(0xFF182420);
+    const Color lemonGreenColor = Color(0xFFDDEF6D);
+
     return Padding(
       padding: EdgeInsets.only(
         bottom: MediaQuery.of(context).viewInsets.bottom + 20,
@@ -189,51 +188,53 @@ class _FilterModalContentState extends State<FilterModalContent> {
             Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(10)))),
             const SizedBox(height: 15),
             Text(
-              widget.initialFilters.containsKey('_title') ? widget.initialFilters['_title'] as String : "Filter Properti", // Judul bisa di-pass
+              // ENGLISH TRANSLATION
+              widget.initialFilters.containsKey('_title') ? widget.initialFilters['_title'] as String : "Filter Properties",
               style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87)
             ),
             const SizedBox(height: 20),
 
+            // ENGLISH TRANSLATION for labels and hints
             _buildStyledDropdown<String?>(
-              label: "Tipe Properti", currentValue: _modalFilterPropertyType, hintText: "Semua Tipe",
-              items: [ const DropdownMenuItem<String?>(value: null, child: Text("Semua Tipe")), ...widget.propertyTypeOptions.map((opt) => DropdownMenuItem<String?>(value: opt, child: Text(opt)))].toList(),
+              label: "Property Type", currentValue: _modalFilterPropertyType, hintText: "All Types",
+              items: [ const DropdownMenuItem<String?>(value: null, child: Text("All Types")), ...widget.propertyTypeOptions.map((opt) => DropdownMenuItem<String?>(value: opt, child: Text(opt)))].toList(),
               onChanged: (val) => setState(() => _modalFilterPropertyType = val),
             ),
-            CustomTextFormField(label: "Lokasi (Filter Tambahan)", controller: _modalFilterLokasiController, hint: "Persempit lokasi...", validator: null),
+            CustomTextFormField(label: "Location", controller: _modalFilterLokasiController, hint: "Enter Location", validator: null),
             Row(children: [
-              Expanded(child: CustomTextFormField(label: "Min Harga (AED)", controller: _modalFilterMinPriceController, keyboardType: TextInputType.number, validator: null)),
+              Expanded(child: CustomTextFormField(label: "Min Price (AED)", controller: _modalFilterMinPriceController, keyboardType: TextInputType.number, validator: null)),
               const SizedBox(width: 10),
-              Expanded(child: CustomTextFormField(label: "Max Harga (AED)", controller: _modalFilterMaxPriceController, keyboardType: TextInputType.number, validator: null)),
+              Expanded(child: CustomTextFormField(label: "Max Price (AED)", controller: _modalFilterMaxPriceController, keyboardType: TextInputType.number, validator: null)),
             ]),
             Row(children: [
-              Expanded(child: NumberInputWithControls(label: "Min Kamar Tidur", controller: _modalFilterMinBedroomsController, minValue: 0, maxValue: 20)),
+              Expanded(child: NumberInputWithControls(label: "Min Bedrooms", controller: _modalFilterMinBedroomsController, minValue: 0, maxValue: 20)),
               const SizedBox(width: 10),
-              Expanded(child: NumberInputWithControls(label: "Max Kamar Tidur", controller: _modalFilterMaxBedroomsController, minValue: 0, maxValue: 20)),
+              Expanded(child: NumberInputWithControls(label: "Max Bedrooms", controller: _modalFilterMaxBedroomsController, minValue: 0, maxValue: 20)),
             ]),
             Row(children: [
-              Expanded(child: NumberInputWithControls(label: "Min Kamar Mandi", controller: _modalFilterMinBathroomsController, minValue: 0, maxValue: 20)),
+              Expanded(child: NumberInputWithControls(label: "Min Bathrooms", controller: _modalFilterMinBathroomsController, minValue: 0, maxValue: 20)),
               const SizedBox(width: 10),
-              Expanded(child: NumberInputWithControls(label: "Max Kamar Mandi", controller: _modalFilterMaxBathroomsController, minValue: 0, maxValue: 20)),
+              Expanded(child: NumberInputWithControls(label: "Max Bathrooms", controller: _modalFilterMaxBathroomsController, minValue: 0, maxValue: 20)),
             ]),
             _buildStyledDropdown<String?>(
-              label: "Kondisi Furnishing", currentValue: _modalFilterFurnishing, hintText: "Semua Kondisi",
-              items: [const DropdownMenuItem<String?>(value: null, child: Text("Semua Kondisi")), ...widget.furnishingOptions.map((opt) => DropdownMenuItem<String?>(value: opt, child: Text(opt)))].toList(),
+              label: "Furnishing Condition", currentValue: _modalFilterFurnishing, hintText: "All Conditions",
+              items: [const DropdownMenuItem<String?>(value: null, child: Text("All Conditions")), ...widget.furnishingOptions.map((opt) => DropdownMenuItem<String?>(value: opt, child: Text(opt)))].toList(),
               onChanged: (val) => setState(() => _modalFilterFurnishing = val),
             ),
-            CustomTextFormField(label: "Minimal Luas (sqft)", controller: _modalFilterMinAreaController, keyboardType: TextInputType.number, validator: null),
+            CustomTextFormField(label: "Minimum Area (sqft)", controller: _modalFilterMinAreaController, keyboardType: TextInputType.number, validator: null),
             _buildStyledDropdown<String?>(
-              label: "Pemandangan Utama", currentValue: _modalFilterPemandanganUtama, hintText: "Semua Pemandangan",
-              items: [const DropdownMenuItem<String?>(value: null, child: Text("Semua Pemandangan")), ...widget.pemandanganUtamaOptions.map((opt) => DropdownMenuItem<String?>(value: opt, child: Text(opt)))].toList(),
+              label: "Main View", currentValue: _modalFilterPemandanganUtama, hintText: "All Views",
+              items: [const DropdownMenuItem<String?>(value: null, child: Text("All Views")), ...widget.pemandanganUtamaOptions.map((opt) => DropdownMenuItem<String?>(value: opt, child: Text(opt)))].toList(),
               onChanged: (val) => setState(() => _modalFilterPemandanganUtama = val),
             ),
             _buildStyledDropdown<String?>(
-              label: "Usia Listing Properti", currentValue: _modalFilterUsiaProperti, hintText: "Semua Usia",
-              items: [const DropdownMenuItem<String?>(value: null, child: Text("Semua Usia")), ...widget.usiaPropertiOptions.map((opt) => DropdownMenuItem<String?>(value: opt, child: Text(opt)))].toList(),
+              label: "Property Listing Age", currentValue: _modalFilterUsiaProperti, hintText: "All Ages",
+              items: [const DropdownMenuItem<String?>(value: null, child: Text("All Ages")), ...widget.usiaPropertiOptions.map((opt) => DropdownMenuItem<String?>(value: opt, child: Text(opt)))].toList(),
               onChanged: (val) => setState(() => _modalFilterUsiaProperti = val),
             ),
             _buildStyledDropdown<String?>(
-              label: "Label Properti (Tag)", currentValue: _modalFilterLabelProperti, hintText: "Semua Label",
-              items: [const DropdownMenuItem<String?>(value: null, child: Text("Semua Label")), ...widget.labelPropertiOptions.map((opt) => DropdownMenuItem<String?>(value: opt, child: Text(opt)))].toList(),
+              label: "Property Label (Tag)", currentValue: _modalFilterLabelProperti, hintText: "All Labels",
+              items: [const DropdownMenuItem<String?>(value: null, child: Text("All Labels")), ...widget.labelPropertiOptions.map((opt) => DropdownMenuItem<String?>(value: opt, child: Text(opt)))].toList(),
               onChanged: (val) => setState(() => _modalFilterLabelProperti = val),
             ),
             
@@ -242,13 +243,20 @@ class _FilterModalContentState extends State<FilterModalContent> {
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
                 TextButton(
-                  child: Text("Reset Filter", style: GoogleFonts.poppins(color: Colors.grey[700], fontWeight: FontWeight.w500)),
+                  // ENGLISH TRANSLATION
+                  child: Text("Reset Filters", style: GoogleFonts.poppins(color: Colors.grey[700], fontWeight: FontWeight.w500)),
                   onPressed: _resetInternalFiltersAndCallback,
                 ),
                 const SizedBox(width: 10),
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(backgroundColor: Theme.of(context).primaryColor, padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12)),
-                  child: Text("Terapkan", style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.w500)),
+                ElevatedButton.icon(
+                  icon: const Icon(Icons.check_circle_outline, color: lemonGreenColor),
+                  // ENGLISH TRANSLATION
+                  label: Text("Apply", style: GoogleFonts.poppins(color: lemonGreenColor, fontWeight: FontWeight.w600)),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: navbarBgColor,
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))
+                  ),
                   onPressed: _applyFilters,
                 ),
               ],

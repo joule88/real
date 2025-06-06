@@ -9,7 +9,7 @@ import 'package:real/screens/profile/edit_profile_screen.dart';
 import 'package:real/widgets/property_card_profile.dart';
 import 'package:real/screens/my_drafts/my_drafts_screen.dart';
 import 'package:real/screens/profile/my_property_detail_screen.dart';
-import 'package:cached_network_image/cached_network_image.dart'; // For better image handling
+import 'package:cached_network_image/cached_network_image.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -30,27 +30,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Future<void> _loadInitialData({bool isRefresh = false}) async {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     if (authProvider.isAuthenticated && authProvider.token != null) {
-      print('ProfileScreen: Loading initial data...');
       try {
         await Future.wait([
-          authProvider.fetchUserProfile(), // Always fetch profile
+          authProvider.fetchUserProfile(),
           Provider.of<PropertyProvider>(context, listen: false)
               .fetchUserApprovedProperties(authProvider.token!),
         ]);
         if (isRefresh && mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Data profil diperbarui.'), duration: Duration(seconds: 2)),
+            // ENGLISH
+            const SnackBar(content: Text('Profile data updated.'), duration: Duration(seconds: 2)),
           );
         }
       } catch (error) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Gagal memuat data: $error')),
+            // ENGLISH
+            SnackBar(content: Text('Failed to load data: $error')),
           );
         }
       }
-    } else {
-      print('ProfileScreen: User not authenticated or token is null. Skipping fetches.');
     }
   }
 
@@ -59,17 +58,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     try {
       await authProvider.logout();
-      print('ProfileScreen: Logout berhasil.');
        if (mounted) {
          ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Anda telah logout.')),
+          // ENGLISH
+          const SnackBar(content: Text('You have been logged out.')),
         );
        }
     } catch (e) {
-      print('ProfileScreen: Error saat logout: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Gagal logout: $e')),
+          // ENGLISH
+          SnackBar(content: Text('Failed to log out: $e')),
         );
       }
     }
@@ -90,7 +89,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         backgroundColor: Colors.white,
         elevation: 0,
         title: Text(
-          "Profil Saya",
+          "My Profile", // ENGLISH
           style: GoogleFonts.poppins(
             color: Colors.black,
             fontWeight: FontWeight.bold,
@@ -113,11 +112,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Text('Data pengguna tidak dapat dimuat.'),
+                      // ENGLISH
+                      const Text('User data could not be loaded.'),
                       const SizedBox(height: 10),
                       ElevatedButton(
                         onPressed: () => _loadInitialData(isRefresh: true),
-                        child: const Text('Coba Lagi'),
+                        child: const Text('Try Again'),
                       )
                     ],
                   ),
@@ -135,11 +135,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             child: user.profileImage.isNotEmpty
                                 ? ClipOval(
                                     child: CachedNetworkImage(
-                                      key: ValueKey(user.profileImage), // Gunakan URL gambar sebagai key
-                                      imageUrl: user.profileImage, // Fallback to profileImage if fullProfileImageUrl is not available
+                                      key: ValueKey(user.profileImage),
+                                      imageUrl: user.profileImage,
                                       placeholder: (context, url) => const CircularProgressIndicator(),
                                       errorWidget: (context, url, error) {
-                                        print("Error loading profile image in ProfileScreen: $error, URL: $url");
                                         return Icon(Icons.person, size: 40, color: Colors.grey[400]);
                                       },
                                       width: 80,
@@ -163,7 +162,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   overflow: TextOverflow.ellipsis,
                                 ),
                                 const SizedBox(height: 4),
-                                if (user.phone.isNotEmpty) // Display phone
+                                if (user.phone.isNotEmpty)
                                   Row(
                                     children: [
                                       Icon(Icons.phone_outlined, size: 14, color: Colors.grey[600]),
@@ -177,10 +176,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   ),
                                 if (user.phone.isNotEmpty) const SizedBox(height: 2),
                                 Text(
-                                  user.bio.isNotEmpty ? user.bio : 'Belum ada bio.',
+                                  user.bio.isNotEmpty ? user.bio : 'No bio yet.', // ENGLISH
                                   style: GoogleFonts.poppins(
                                       fontSize: 14, color: Colors.grey[600]),
-                                  maxLines: 2, // Limit bio lines here
+                                  maxLines: 2,
                                   overflow: TextOverflow.ellipsis,
                                 ),
                               ],
@@ -194,26 +193,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           Expanded(
                             child: ElevatedButton.icon(
                               icon: Icon(Icons.edit_outlined, color: textOnThemeColor, size: 20),
-                              label: Text("Edit Profil",
+                              label: Text("Edit Profile", // ENGLISH
                                   style: GoogleFonts.poppins(
                                       fontWeight: FontWeight.w600,
                                       color: textOnThemeColor)),
                               onPressed: () async {
-                                final bool? profileWasUpdated = await Navigator.push<bool>(
+                                await Navigator.push<bool>(
                                   context,
                                   MaterialPageRoute(
                                     builder: (context) =>
                                         EditProfileScreen(currentUser: user),
                                   ),
                                 );
-                                if (profileWasUpdated == true && mounted) {
-                                  // AuthProvider would have updated the user object
-                                  // and notified listeners, so the UI rebuilds automatically.
-                                  // If specific parts didn't update, ensure Consumer is used or call setState.
-                                  print('ProfileScreen: Kembali dari Edit Profil dengan update.');
-                                  // Optionally, force a specific data refresh if needed:
-                                  // await authProvider.fetchUserProfile();
-                                }
                               },
                               style: ElevatedButton.styleFrom(
                                   backgroundColor: themeColor,
@@ -227,7 +218,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           Expanded(
                             child: ElevatedButton.icon(
                               icon: Icon(Icons.article_outlined, color: textOnThemeColor, size: 20),
-                              label: Text("Kelola Iklan",
+                              label: Text("Manage Listings", // ENGLISH
                                   style: GoogleFonts.poppins(
                                       fontWeight: FontWeight.w600,
                                       color: textOnThemeColor)),
@@ -251,7 +242,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       const SizedBox(height: 30),
 
                       Text(
-                        "Properti Saya (Tayang)",
+                        "My Properties (Live)", // ENGLISH
                         style: GoogleFonts.poppins(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
@@ -283,7 +274,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                             .fetchUserApprovedProperties(authProvider.token!);
                                          }
                                       },
-                                      child: const Text('Coba Lagi'),
+                                      child: const Text('Try Again'),
                                     )
                                   ],
                                 ),
@@ -300,7 +291,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                     Icon(Icons.home_work_outlined,
                                         size: 60, color: Colors.grey[400]),
                                     const SizedBox(height: 15),
-                                    Text("Belum ada properti Anda yang tayang.",
+                                    Text("You have no live properties yet.", // ENGLISH
                                         style: GoogleFonts.poppins(
                                             fontSize: 15, color: Colors.grey[700])),
                                   ],

@@ -2,9 +2,10 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
+import 'package:real/app/themes/app_themes.dart';
 import 'package:real/provider/auth_provider.dart';
 import 'package:real/widgets/textfield_login.dart';
-import 'package:real/screens/login/verify_code_screen.dart'; // Pastikan import ini ada
+import 'package:real/screens/login/verify_code_screen.dart';
 
 class ForgotPasswordScreen extends StatefulWidget {
   const ForgotPasswordScreen({super.key});
@@ -26,20 +27,19 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       final result = await authProvider.requestResetCode(_emailController.text.trim());
 
       if (!mounted) return;
-
-      // Tampilkan SnackBar dulu
+      
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(result['message'] ?? 'Terjadi kesalahan.'),
+          // ENGLISH TRANSLATION
+          content: Text(result['message'] ?? 'An error occurred.'),
           backgroundColor: result['success'] ?? false ? Colors.green : Colors.red,
         ),
       );
       
-      setState(() => _isLoading = false); // Baru set isLoading false
+      setState(() => _isLoading = false);
 
-      if (result['success'] == true) { // Jika permintaan kode berhasil
+      if (result['success'] == true) { 
         final String email = _emailController.text.trim();
-        // Navigasi ke VerifyCodeScreen, BUKAN pop()
         Navigator.push(
           context,
           MaterialPageRoute(
@@ -71,7 +71,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           onPressed: () => Navigator.of(context).pop(),
         ),
         title: Text(
-          'Reset Password',
+          'Reset Password', // ENGLISH
           style: GoogleFonts.poppins(
             color: Colors.black,
             fontWeight: FontWeight.bold,
@@ -89,7 +89,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Text(
-                  'Masukkan email akun Anda',
+                  'Enter your account\'s email', // ENGLISH
                   textAlign: TextAlign.center,
                   style: GoogleFonts.poppins(fontSize: 18, color: Colors.grey[700]),
                 ),
@@ -102,17 +102,17 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                   keyboardType: TextInputType.emailAddress,
                   validator: (value) {
                     if (value == null || value.isEmpty) {
-                      return 'Email tidak boleh kosong';
+                      return 'Email cannot be empty'; // ENGLISH
                     }
                     if (!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(value)) {
-                      return 'Masukkan email yang valid';
+                      return 'Please enter a valid email'; // ENGLISH
                     }
                     return null;
                   },
                 ),
                 const SizedBox(height: 30),
                 _isLoading
-                    ? Center(child: CircularProgressIndicator(color: themeColor))
+                    ? const Center(child: CircularProgressIndicator(color: AppTheme.nearlyBlack))
                     : ElevatedButton(
                         onPressed: _sendResetLink,
                         style: ElevatedButton.styleFrom(
@@ -123,7 +123,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                           ),
                         ),
                         child: Text(
-                          'Kirim Kode Reset', // Teks tombol sudah sesuai
+                          'Send Reset Code', // ENGLISH
                           style: GoogleFonts.poppins(
                             fontSize: 18,
                             fontWeight: FontWeight.w600,

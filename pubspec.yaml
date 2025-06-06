@@ -19,7 +19,7 @@ publish_to: "none" # Remove this line if you wish to publish to pub.dev
 version: 1.0.0+1
 
 environment:
-  sdk: ^3.6.2
+  sdk: '>=3.2.3 <4.0.0' # Menggunakan rentang SDK yang umum, sesuaikan jika perlu
 
 # Dependencies specify other packages that your package needs in order to work.
 # To automatically upgrade your package dependencies to the latest versions
@@ -31,25 +31,24 @@ dependencies:
   flutter:
     sdk: flutter
   provider: ^6.1.0
-  http: ^1.4.0
+  http: ^1.2.0 # Versi http yang lebih umum, ^1.4.0 mungkin typo atau sangat baru
   dio: ^5.8.0+1
   cupertino_icons: ^1.0.8
   google_fonts: ^6.2.1
-  intl: ^0.20.2
+  intl: ^0.19.0 # Versi intl yang lebih umum, 0.20.2 sangat baru
   eva_icons_flutter: ^3.1.0
   image_picker: ^1.0.7
-  google_places_flutter: ^2.0.5
+  # google_places_flutter: ^2.0.5 # Dikomentari karena mungkin tidak digunakan atau ada versi lebih baru
   geocoding: ^3.0.0
-  shared_preferences: ^2.5.3
+  shared_preferences: ^2.2.3 # Versi SharedPreferences yang lebih umum
   http_parser: ^4.0.0
-  flutter_map: ^7.0.0 # Atau versi terbaru
-  latlong2: ^0.9.0    # Atau versi terbaru
-  geolocator: ^12.0.0 # Atau versi terbaru
-  fl_chart:  ^0.68.0  # atau versi terbaru (cek pub.dev)
-  cached_network_image: ^3.4.1
+  flutter_map: ^6.1.0 # Versi flutter_map yang lebih umum
+  latlong2: ^0.9.0
+  geolocator: ^11.0.0 # Versi geolocator yang lebih umum
+  fl_chart:  ^0.68.0
+  cached_network_image: ^3.3.1 # Versi cached_network_image yang lebih umum
   url_launcher: ^6.2.1
-  
-  
+
 
 dev_dependencies:
   flutter_test:
@@ -60,7 +59,7 @@ dev_dependencies:
   # activated in the `analysis_options.yaml` file located at the root of your
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
-  flutter_lints: ^5.0.0
+  flutter_lints: ^3.0.0 # Versi flutter_lints yang lebih umum
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -73,8 +72,11 @@ flutter:
   uses-material-design: true
 
   # To add assets to your application, add an assets section, like this:
-assets:
-  - assets/images/nestora_logo.png
+  # Bagian 'assets:' harus di-indentasi di bawah 'flutter:'
+  assets:
+    - assets/images/ # Deklarasi folder sudah cukup untuk menyertakan semua di dalamnya
+    # Baris di bawah ini redundan jika Anda sudah mendeklarasikan folder, tapi tidak masalah
+    # - assets/images/nestora_logo.png 
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

@@ -1,36 +1,33 @@
-// lib/widgets/contact_agent_widget.dart
+// lib/widgets/contact.dart
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:real/models/user_model.dart'; // Impor User model
-import 'package:url_launcher/url_launcher.dart'; // Impor url_launcher
-import 'package:cached_network_image/cached_network_image.dart'; // Impor cached_network_image
+import 'package:real/models/user_model.dart'; // Import User model
+import 'package:url_launcher/url_launcher.dart'; // Import url_launcher
+import 'package:cached_network_image/cached_network_image.dart'; // Import cached_network_image
 
 class ContactAgentWidget extends StatelessWidget {
-  final User? owner; // Ubah menjadi User?
+  final User? owner; // Changed to User?
 
   const ContactAgentWidget({super.key, required this.owner});
 
   Future<void> _launchWhatsApp(BuildContext context, String? phoneNumber) async {
     if (phoneNumber == null || phoneNumber.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Nomor WhatsApp pemilik tidak tersedia.')),
+        // ENGLISH TRANSLATION
+        const SnackBar(content: Text('Owner\'s WhatsApp number is not available.')),
       );
       return;
     }
 
-    // Pembersihan dasar nomor telepon:
-    String cleanedPhone = phoneNumber.replaceAll(RegExp(r'\D'), ''); // Hapus semua selain digit
+    // Basic phone number cleaning:
+    String cleanedPhone = phoneNumber.replaceAll(RegExp(r'\D'), ''); // Remove all non-digits
     if (cleanedPhone.startsWith('0')) {
-      cleanedPhone = '62${cleanedPhone.substring(1)}'; // Ganti 0 di depan dengan 62 (untuk Indonesia)
+      cleanedPhone = '62${cleanedPhone.substring(1)}'; // Replace leading 0 with 62 (for Indonesia)
     } else if (!cleanedPhone.startsWith('62')) {
-      // Jika nomor tidak diawali 0 atau 62, mungkin sudah format internasional atau butuh kode negara.
-      // Untuk Indonesia, jika nomornya adalah 8xxxxxxxx, tambahkan 62.
       if (cleanedPhone.length >= 9 && cleanedPhone.length <= 13 && !cleanedPhone.startsWith('+')) {
-         // Cukup berisiko jika tidak ada standar, tapi ini salah satu pendekatan
-         // cleanedPhone = '62$cleanedPhone';
+         // This logic is specific to Indonesian numbers
       }
     }
-    // Pastikan tidak ada '+' atau spasi
     cleanedPhone = cleanedPhone.replaceAll('+', '');
 
     final Uri whatsappUri = Uri.parse('https://wa.me/$cleanedPhone');
@@ -41,14 +38,16 @@ class ContactAgentWidget extends StatelessWidget {
       } else {
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Tidak dapat membuka WhatsApp. Pastikan aplikasi terinstal.')),
+            // ENGLISH TRANSLATION
+            const SnackBar(content: Text('Could not open WhatsApp. Please ensure it is installed.')),
           );
         }
       }
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Error membuka WhatsApp: $e')),
+            // ENGLISH TRANSLATION
+            SnackBar(content: Text('Error opening WhatsApp: $e')),
         );
       }
     }
@@ -56,38 +55,37 @@ class ContactAgentWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Fallback UI jika data pemilik tidak ada
     if (owner == null) {
       return Container(
         margin: const EdgeInsets.all(16),
         padding: const EdgeInsets.symmetric(horizontal: 16),
-        height: 60, // Kembalikan tinggi semula
+        height: 60,
         decoration: BoxDecoration(
-          color: const Color(0xFFDDEF6D), // Warna asli
-          borderRadius: BorderRadius.circular(10), // Radius asli
+          color: const Color(0xFFDDEF6D),
+          borderRadius: BorderRadius.circular(10),
         ),
         child: Center(
           child: Text(
-            "Informasi pemilik tidak tersedia.",
-            style: GoogleFonts.poppins(color: Colors.black54), // Pastikan teks terbaca
+            // ENGLISH TRANSLATION
+            "Owner information is not available.",
+            style: GoogleFonts.poppins(color: Colors.black54),
           ),
         ),
       );
     }
 
-    // UI utama jika data pemilik ada
     return Container(
-      margin: const EdgeInsets.all(16), // Margin asli dari file Anda
-      padding: const EdgeInsets.symmetric(horizontal: 16), // Padding asli
-      height: 60, // Tinggi asli dari file Anda (bisa disesuaikan jika bio panjang)
+      margin: const EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      height: 60,
       decoration: BoxDecoration(
-        color: const Color(0xFFDDEF6D), // Warna utama dikembalikan
-        borderRadius: BorderRadius.circular(10), // Radius asli
+        color: const Color(0xFFDDEF6D),
+        borderRadius: BorderRadius.circular(10),
       ),
       child: Row(
         children: [
           CircleAvatar(
-            radius: 20, // Radius asli
+            radius: 20,
             backgroundColor: Colors.grey[300],
             child: owner!.profileImage.isNotEmpty
                 ? ClipOval(
@@ -102,30 +100,32 @@ class ContactAgentWidget extends StatelessWidget {
                   )
                 : const Icon(Icons.person_outline, size: 20, color: Colors.black54),
           ),
-          const SizedBox(width: 12), // Jarak asli
+          const SizedBox(width: 12),
           Expanded(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  owner!.name.isNotEmpty ? owner!.name : "Pemilik Properti",
+                  // ENGLISH TRANSLATION
+                  owner!.name.isNotEmpty ? owner!.name : "Property Owner",
                   style: GoogleFonts.poppins(
-                      fontWeight: FontWeight.bold, fontSize: 14, color: Colors.black87), // Warna teks disesuaikan
+                      fontWeight: FontWeight.bold, fontSize: 14, color: Colors.black87),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
                 if (owner!.bio.isNotEmpty) ...[
                   Text(
                     owner!.bio,
-                    style: GoogleFonts.poppins(fontSize: 11, color: Colors.black54), // Warna teks disesuaikan
-                    maxLines: 1, // Batasi bio agar pas di height 60
+                    style: GoogleFonts.poppins(fontSize: 11, color: Colors.black54),
+                    maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
                 ] else ...[
                   Text(
-                    "Agen Properti",
-                    style: GoogleFonts.poppins(fontSize: 12, color: Colors.black54), // Warna teks disesuaikan
+                    // ENGLISH TRANSLATION
+                    "Property Agent",
+                    style: GoogleFonts.poppins(fontSize: 12, color: Colors.black54),
                   ),
                 ],
               ],
@@ -133,9 +133,10 @@ class ContactAgentWidget extends StatelessWidget {
           ),
           const SizedBox(width: 10),
           IconButton(
-            icon: Icon(Icons.chat_bubble_outline, size: 22, color: Colors.black54), // Warna ikon disesuaikan
+            icon: Icon(Icons.chat_bubble_outline, size: 22, color: Colors.black54),
             onPressed: () => _launchWhatsApp(context, owner!.phone),
-            tooltip: 'Hubungi via WhatsApp',
+            // ENGLISH TRANSLATION
+            tooltip: 'Contact via WhatsApp',
           ),
         ],
       ),
