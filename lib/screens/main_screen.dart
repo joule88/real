@@ -22,6 +22,8 @@ class MainScreenState extends State<MainScreen> {
 
   // Flag untuk memberi tahu SearchScreen agar membuka modal filter
   bool _triggerOpenFilterModalOnSearchScreen = false;
+  // Flag baru untuk memberi tahu SearchScreen agar fokus ke text field
+  bool _triggerAutoFocusOnSearchScreen = false;
 
   late List<Widget> _pages;
 
@@ -36,15 +38,18 @@ class MainScreenState extends State<MainScreen> {
       HomeScreen(key: _homeScreenKey),
       SearchScreen(
         key: _searchScreenKey,
-        // Kirim flag ke SearchScreen
         autoOpenFilterModal: _triggerOpenFilterModalOnSearchScreen,
+        autoFocusSearch: _triggerAutoFocusOnSearchScreen, // <-- Kirim flag
       ),
       const BookmarkScreen(),
       const ProfileScreen(),
     ];
-    // Reset flag setelah digunakan untuk membangun _pages
+    // Reset flag setelah digunakan
     if (_triggerOpenFilterModalOnSearchScreen) {
        _triggerOpenFilterModalOnSearchScreen = false;
+    }
+    if (_triggerAutoFocusOnSearchScreen) {
+      _triggerAutoFocusOnSearchScreen = false;
     }
   }
 
@@ -53,15 +58,16 @@ class MainScreenState extends State<MainScreen> {
     String? keyword,
     Map<String, dynamic>? filters,
     bool autoOpenFilter = false,
+    bool autoFocusSearch = false, // <-- Parameter baru
   }) {
     final propertyProvider = Provider.of<PropertyProvider>(context, listen: false);
 
     if (index == 1) { // Target adalah SearchScreen
       propertyProvider.prepareSearchParameters(keyword: keyword, filters: filters);
 
-      // Selalu berikan key baru untuk memastikan SearchScreen di-rebuild dengan parameter baru
       _searchScreenKey = UniqueKey();
       _triggerOpenFilterModalOnSearchScreen = autoOpenFilter;
+      _triggerAutoFocusOnSearchScreen = autoFocusSearch; // <-- Set flag
 
       setState(() {
         _selectedIndex = index;
@@ -71,7 +77,7 @@ class MainScreenState extends State<MainScreen> {
     } else if (index == 0 && _selectedIndex != 0) {
         setState(() {
             _homeScreenKey = UniqueKey();
-            _buildPages(); // Bangun ulang halaman
+            _buildPages();
             _selectedIndex = index;
         });
     } else {
@@ -82,32 +88,25 @@ class MainScreenState extends State<MainScreen> {
   }
 
   void _onItemTapped(int index) {
-    // --- PERUBAHAN UTAMA UNTUK MERESET FILTER ---
-
-    // 1. Deteksi jika kita meninggalkan tab Search (indeks 1)
     if (_selectedIndex == 1 && index != 1) {
       Provider.of<PropertyProvider>(context, listen: false).resetSearchState();
       print("MainScreen: Leaving search tab, state has been reset.");
     }
 
-    // 2. Beri key baru ke SearchScreen setiap kali dipilih, agar initState-nya terpanggil kembali
-    // Ini memastikan UI-nya juga ikut ter-reset sesuai dengan state provider yang sudah bersih.
     if (index == 1) {
       _searchScreenKey = UniqueKey();
     }
 
-    // Logika untuk merefresh HomeScreen jika dipilih kembali
     if (index == 0 && _selectedIndex != 0) {
       _homeScreenKey = UniqueKey();
     }
 
-    // 3. Set state untuk mengganti halaman dan membangun ulang daftar halaman dengan key yang baru
     setState(() {
-      _triggerOpenFilterModalOnSearchScreen = false; // Selalu reset flag ini
-      _buildPages(); // Penting untuk membangun ulang _pages dengan key yang baru
+      _triggerOpenFilterModalOnSearchScreen = false; 
+      _triggerAutoFocusOnSearchScreen = false; // <-- Selalu reset flag
+      _buildPages();
       _selectedIndex = index;
     });
-    // --- AKHIR PERUBAHAN ---
   }
 
   @override

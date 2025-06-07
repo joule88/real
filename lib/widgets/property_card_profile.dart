@@ -1,29 +1,22 @@
-// lib/widgets/property_card.dart
+// lib/widgets/property_card_profile.dart
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
-// Tetap perlukan ini jika BookmarkButton pakai Provider
 import 'package:real/models/property.dart';
-// import 'package:real/screens/detail/detailpost.dart'; // Hapus import ini
-import 'package:real/widgets/bookmark_button.dart';
 import 'package:eva_icons_flutter/eva_icons_flutter.dart';
-// Import halaman edit jika ikon edit ingin langsung navigasi
-// import 'package:real/screens/my_drafts/add_property_form_screen.dart';
 
 class PropertyCardProfile extends StatelessWidget {
   final Property property;
   final bool isHorizontalVariant;
   final bool showEditIcon;
-  // final VoidCallback? onEditPressed; // Bisa dihapus jika tap ikon edit juga pakai onTap umum
-  final VoidCallback? onTap; // <<-- TAMBAHKAN Parameter callback onTap
+  final VoidCallback? onTap;
 
   const PropertyCardProfile({
     super.key,
     required this.property,
     this.isHorizontalVariant = true,
     this.showEditIcon = false,
-    // this.onEditPressed,
-    this.onTap, // <<-- Tambahkan di konstruktor
+    this.onTap,
   });
 
   @override
@@ -33,10 +26,8 @@ class PropertyCardProfile extends StatelessWidget {
     final cardWidth = isHorizontalVariant ? 320.0 : double.infinity;
     final imageHeight = isHorizontalVariant ? 160.0 : 180.0;
 
-    // --- PERUBAHAN DI SINI ---
     return GestureDetector(
-      onTap: onTap, // Gunakan callback onTap yang di-pass dari luar
-      // --- AKHIR PERUBAHAN ---
+      onTap: onTap,
       child: Container(
         width: cardWidth,
         margin: EdgeInsets.only(
@@ -49,7 +40,7 @@ class PropertyCardProfile extends StatelessWidget {
           boxShadow: [
             BoxShadow(
               color:
-                  Colors.grey.withOpacity(0.15), // Shadow sedikit lebih halus
+                  Colors.grey.withOpacity(0.15),
               spreadRadius: 1,
               blurRadius: 4,
               offset: const Offset(0, 2),
@@ -106,10 +97,9 @@ class PropertyCardProfile extends StatelessWidget {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     crossAxisAlignment: CrossAxisAlignment
-                        .start, // Agar ikon sejajar atas dengan harga
+                        .start,
                     children: [
                       Expanded(
-                        // Harga
                         child: Text(
                           currencyFormatter.format(property.price),
                           style: GoogleFonts.poppins(
@@ -121,32 +111,27 @@ class PropertyCardProfile extends StatelessWidget {
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
-                      // Ikon Bookmark atau Edit (JANGAN pasang onTap di sini jika sudah ada di GestureDetector luar)
+                      // ==========================================================
+                      //         PERUBAHAN DIMULAI DI SINI
+                      // ==========================================================
                       if (showEditIcon)
                         Padding(
-                          // Beri sedikit padding agar tidak terlalu mepet
                           padding: const EdgeInsets.only(left: 8.0),
                           child: Icon(
                             EvaIcons.editOutline,
                             color: Colors.black,
-                            size: 24, // Sedikit lebih kecil mungkin?
+                            size: 24,
                           ),
                         )
-                      else
-                        // BookmarkButton bisa tetap pakai logic internalnya atau diubah juga
-                        BookmarkButton(
-                          isBookmarked: property.isFavorite,
-                          onPressed: () {
-                            // Idealnya, aksi bookmark juga dikelola di level state yang lebih tinggi
-                            // Tapi untuk sementara, toggle lokal bisa jalan
-                            property.toggleFavorite();
-                          },
-                        ),
+                      // Blok "else" yang berisi BookmarkButton telah dihapus
+                      // ==========================================================
+                      //          PERUBAHAN SELESAI DI SINI
+                      // ==========================================================
                     ],
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    property.address, // Langsung gunakan property.address
+                    property.address,
                     style: GoogleFonts.poppins(
                       fontSize: 12,
                       color: Colors.grey[700],
@@ -156,14 +141,13 @@ class PropertyCardProfile extends StatelessWidget {
                   ),
                   const SizedBox(height: 8),
                   Row(
-                    // Detail Kamar, dll.
-                    mainAxisAlignment: MainAxisAlignment.start, // Rata kiri
+                    mainAxisAlignment: MainAxisAlignment.start,
                     children: [
                       _buildDetailItem(Icons.king_bed_outlined,
-                          '${property.bedrooms}'), // Lebih singkat
-                      const SizedBox(width: 12), // Jarak antar detail
+                          '${property.bedrooms} Beds'),
+                      const SizedBox(width: 12),
                       _buildDetailItem(Icons.bathtub_outlined,
-                          '${property.bathrooms}'), // Lebih singkat
+                          '${property.bathrooms} Baths'),
                       const SizedBox(width: 12),
                       _buildDetailItem(Icons.straighten_outlined,
                           '${property.areaSqft.toStringAsFixed(0)} sqft'),

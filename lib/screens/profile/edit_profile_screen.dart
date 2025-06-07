@@ -523,6 +523,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w600, color: const Color(0xFF182420)),
               ),
               const SizedBox(height: 8),
+              // ==========================================================
+              //         PERUBAHAN VALIDATOR DIMULAI DI SINI
+              // ==========================================================
               TextFormField(
                 controller: _bioController,
                 decoration: InputDecoration(
@@ -534,8 +537,16 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 ),
                 style: GoogleFonts.poppins(fontSize: 15, fontWeight: FontWeight.w500),
                 maxLines: 4,
-                maxLength: 200,
+                // maxLength: 200, // Dihapus karena diganti dengan validasi kata
                 validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return null; // Bio boleh kosong
+                  }
+                  // Menghitung jumlah kata
+                  final words = value.trim().split(RegExp(r'\s+')).where((s) => s.isNotEmpty);
+                  if (words.length > 30) {
+                    return 'Bio tidak boleh lebih dari 30 kata.';
+                  }
                   return null;
                 },
                 textInputAction: TextInputAction.done,
@@ -543,6 +554,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   if (!_isSaving) _submitForm();
                 },
               ),
+              // ==========================================================
+              //          PERUBAHAN VALIDATOR SELESAI DI SINI
+              // ==========================================================
               const SizedBox(height: 20),
 
               _isSaving
@@ -555,6 +569,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                         backgroundColor: themeColor,
                         foregroundColor: textOnThemeColor,
                         padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
                       ),
                     ),
               const SizedBox(height: 16),

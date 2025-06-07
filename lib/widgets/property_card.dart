@@ -160,10 +160,10 @@ class PropertyCard extends StatelessWidget {
                       // ENGLISH TRANSLATION
                       _buildDetailItem(context, Icons.king_bed_outlined,
                           '${property.bedrooms} Beds'),
-                      _buildDetailSeparator(),
+                          const SizedBox(width: 12),
                       _buildDetailItem(context, Icons.bathtub_outlined,
                           '${property.bathrooms} Baths'),
-                      _buildDetailSeparator(),
+                          const SizedBox(width: 12),
                       _buildDetailItem(context, Icons.aspect_ratio_outlined,
                           '${property.areaSqft.toStringAsFixed(0)} sqft'),
                     ],
@@ -216,7 +216,14 @@ class PropertyCard extends StatelessWidget {
                     loadingProgress.expectedTotalBytes!
                 : null,
             strokeWidth: 2.0,
-            color: Theme.of(context).primaryColor.withOpacity(0.6),
+            // ==========================================================
+            //         PERUBAHAN DIMULAI DI SINI
+            // ==========================================================
+            // Properti 'color' dihapus agar widget menggunakan warna dari tema
+            // color: Theme.of(context).primaryColor.withOpacity(0.6), 
+            // ==========================================================
+            //          PERUBAHAN SELESAI DI SINI
+            // ==========================================================
         ),
         ),
     );

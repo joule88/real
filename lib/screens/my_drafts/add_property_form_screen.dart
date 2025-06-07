@@ -655,20 +655,29 @@ class _AddPropertyFormScreenState extends State<AddPropertyFormScreen> {
     );
   }
 
+  // ==========================================================
+  //         PERUBAHAN LOGIKA WARNA DIMULAI DI SINI
+  // ==========================================================
   Color _getStatusColorForChip(PropertyStatus status) {
+    // Logika ini disalin dari my_drafts_screen.dart untuk memastikan konsistensi
     switch (status) {
+      case PropertyStatus.draft:
+        return Colors.blueGrey[600]!;
       case PropertyStatus.pendingVerification:
         return colorLemonGreen;
+      case PropertyStatus.approved:
+        return Colors.green[600]!;
+      case PropertyStatus.rejected:
+        return Colors.red[700]!;
+      case PropertyStatus.archived:
+        return Colors.grey[700]!;
       case PropertyStatus.sold:
         return colorNavbarBg;
-      case PropertyStatus.approved:
-        return Colors.green.shade600;
-      case PropertyStatus.archived:
-        return Colors.grey.shade700;
-      case PropertyStatus.rejected:
-        return Colors.red.shade600;
       default:
-        return Colors.blueGrey.shade700;
+        return Colors.grey;
     }
   }
+  // ==========================================================
+  //          PERUBAHAN LOGIKA WARNA SELESAI DI SINI
+  // ==========================================================
 }

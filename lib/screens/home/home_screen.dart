@@ -7,7 +7,6 @@ import 'package:real/models/property.dart';
 import 'package:real/provider/property_provider.dart';
 import 'package:real/screens/main_screen.dart';
 import 'package:real/widgets/property_card.dart';
-import 'package:real/widgets/filter_modal_content.dart';
 import 'package:real/provider/auth_provider.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -212,10 +211,12 @@ class _HomeScreenState extends State<HomeScreen> {
                             Expanded(
                               child: GestureDetector(
                                 onTap: () {
-                                  Provider.of<PropertyProvider>(context, listen: false)
-                                      .prepareSearchParameters(keyword: null, filters: null);
+                                  // --- PERUBAHAN AKSI KLIK SEARCH BAR ---
                                   final mainScreenState = context.findAncestorStateOfType<MainScreenState>();
-                                  mainScreenState?.changeTabAndPrepareSearch(1);
+                                  mainScreenState?.changeTabAndPrepareSearch(
+                                    1, // Pindah ke tab Search (indeks 1)
+                                    autoFocusSearch: true, // Beri perintah untuk fokus
+                                  );
                                 },
                                 child: Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 12),
@@ -243,15 +244,12 @@ class _HomeScreenState extends State<HomeScreen> {
                                 // ENGLISH TRANSLATION
                                 tooltip: 'Filter Properties',
                                 onPressed: () {
+                                  // --- PERUBAHAN AKSI KLIK TOMBOL FILTER ---
                                   final mainScreenState = context.findAncestorStateOfType<MainScreenState>();
-                                  Provider.of<PropertyProvider>(context, listen: false).prepareSearchParameters(
-                                      keyword: null,
-                                      filters: _activeFilters,
-                                  );
                                   mainScreenState?.changeTabAndPrepareSearch(
-                                    1,
+                                    1, // Pindah ke tab Search (indeks 1)
                                     filters: _activeFilters,
-                                    autoOpenFilter: true,
+                                    autoOpenFilter: true, // Beri perintah untuk buka modal
                                   );
                                 },
                               ),
@@ -293,7 +291,16 @@ class _HomeScreenState extends State<HomeScreen> {
                         scrollDirection: Axis.horizontal,
                         padding: const EdgeInsets.symmetric(horizontal: 20.0),
                         itemCount: featuredProps.length,
-                        itemBuilder: (context, index) => PropertyCard(property: featuredProps[index], isHorizontalVariant: true),
+                        itemBuilder: (context, index) => Padding(
+                          padding: EdgeInsets.only(
+                            right: index == featuredProps.length - 1 ? 0 : 15.0,
+                            // Hindari padding bottom di sini!
+                          ),
+                          child: PropertyCard(
+                            property: featuredProps[index],
+                            isHorizontalVariant: true,
+                          ),
+                        ),
                       ),
                     ),
                   if (featuredProps.isNotEmpty) const SizedBox(height: 25),

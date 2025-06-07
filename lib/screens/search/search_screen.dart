@@ -12,10 +12,12 @@ import 'package:real/widgets/filter_modal_content.dart';
 class SearchScreen extends StatefulWidget {
   final Key? key;
   final bool autoOpenFilterModal;
+  final bool autoFocusSearch;
 
   const SearchScreen({
     this.key,
     this.autoOpenFilterModal = false,
+    this.autoFocusSearch = false,
   }) : super(key: key);
 
   @override
@@ -25,6 +27,7 @@ class SearchScreen extends StatefulWidget {
 class _SearchScreenState extends State<SearchScreen> {
   final TextEditingController _searchController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
+  final FocusNode _searchFocusNode = FocusNode();
   Map<String, dynamic> _activeSearchScreenFilters = {};
   bool _hasSearchedAtLeastOnce = false;
 
@@ -37,11 +40,11 @@ class _SearchScreenState extends State<SearchScreen> {
       _searchController.text = propertyProvider.pendingSearchKeyword;
       _activeSearchScreenFilters = Map.from(propertyProvider.pendingSearchFilters);
       bool shouldSearchNow = propertyProvider.needsSearchExecution;
-      if (shouldSearchNow) {
-        setState(() {
-          _hasSearchedAtLeastOnce = true;
-        });
+      
+      if (widget.autoFocusSearch) {
+        _searchFocusNode.requestFocus();
       }
+
       if (widget.autoOpenFilterModal) {
         Future.delayed(const Duration(milliseconds: 50), () {
           if (mounted) _showSearchFilterModal();
@@ -72,18 +75,20 @@ class _SearchScreenState extends State<SearchScreen> {
   void dispose() {
     _searchController.dispose();
     _scrollController.dispose();
+    _searchFocusNode.dispose();
     super.dispose();
   }
 
   void _triggerSearchFromSearchBar() {
-    if(mounted) {
+    String keyword = _searchController.text.trim();
+    if (keyword.isEmpty) return; // <-- Tambahkan ini
+    if (mounted) {
       setState(() {
         _hasSearchedAtLeastOnce = true;
       });
     }
     final propertyProvider = Provider.of<PropertyProvider>(context, listen: false);
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    String keyword = _searchController.text.trim();
     propertyProvider.prepareSearchParameters(keyword: keyword, filters: _activeSearchScreenFilters);
     propertyProvider.performKeywordSearch(authToken: authProvider.token);
   }
@@ -198,7 +203,6 @@ class _SearchScreenState extends State<SearchScreen> {
         backgroundColor: Colors.white,
         elevation: 1,
         automaticallyImplyLeading: false,
-        // ENGLISH TRANSLATION
         title: Text("Search Properties", style: GoogleFonts.poppins(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 20)),
         centerTitle: true,
       ),
@@ -207,66 +211,69 @@ class _SearchScreenState extends State<SearchScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // ==========================================================
+            //         PERUBAHAN TAMPILAN DIMULAI DI SINI
+            // ==========================================================
             Row(
               children: [
                 Expanded(
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 0),
                     decoration: BoxDecoration(
-                      color: Colors.white, 
-                      borderRadius: BorderRadius.circular(12),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.grey.withOpacity(0.2),
-                          spreadRadius: 1,
-                          blurRadius: 5,
-                        )
-                      ]
+                      color: Colors.grey[200], // Diganti seperti di home screen
+                      borderRadius: BorderRadius.circular(10), // Diganti seperti di home screen
                     ),
                     child: TextField(
                       controller: _searchController,
+                      focusNode: _searchFocusNode,
                       decoration: InputDecoration(
-                        // ENGLISH TRANSLATION
                         hintText: 'Type property name, location...',
-                        icon: Icon(Icons.search, color: Colors.grey[600]),
+                        prefixIcon: Icon(Icons.search, color: Colors.grey[600]),
                         border: InputBorder.none,
-                        hintStyle: GoogleFonts.poppins(color: Colors.grey[600], fontSize: 15),
+                        hintStyle: GoogleFonts.poppins(
+                          color: Colors.grey[600],
+                          fontSize: 15,
+                          height: 1.2, // Atur tinggi baris hint agar lebih presisi
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 0), // Atur padding vertikal
                         suffixIcon: _searchController.text.isNotEmpty
-                          ? IconButton(icon: Icon(Icons.clear, color: Colors.grey[600]), onPressed: () {
-                              _searchController.clear();
-                              Provider.of<PropertyProvider>(context, listen: false).prepareSearchParameters(keyword: "", filters: _activeSearchScreenFilters);
-                              Provider.of<PropertyProvider>(context, listen: false).performKeywordSearch();
-                            })
+                          ? IconButton(
+                              icon: Icon(Icons.clear, color: Colors.grey[600]),
+                              onPressed: () {
+                                _searchController.clear();
+                                Provider.of<PropertyProvider>(context, listen: false)
+                                    .prepareSearchParameters(keyword: "", filters: _activeSearchScreenFilters);
+                                Provider.of<PropertyProvider>(context, listen: false)
+                                    .performKeywordSearch();
+                              })
                           : null,
                       ),
                       style: GoogleFonts.poppins(fontSize: 15),
                       textInputAction: TextInputAction.search,
-                      onSubmitted: (value) => _triggerSearchFromSearchBar(),
+                      onSubmitted: (value) {
+                        if (value.trim().isNotEmpty) {
+                          _triggerSearchFromSearchBar();
+                        }
+                      },
                     ),
                   ),
                 ),
                 const SizedBox(width: 10),
                 Container(
                   decoration: BoxDecoration(
-                    color: Colors.white, 
-                    borderRadius: BorderRadius.circular(12),
-                    boxShadow: [
-                        BoxShadow(
-                          color: Colors.grey.withOpacity(0.2),
-                          spreadRadius: 1,
-                          blurRadius: 5,
-                        )
-                      ]
+                    color: Colors.grey[200], // Diganti seperti di home screen
+                    borderRadius: BorderRadius.circular(10), // Diganti seperti di home screen
                   ),
                   child: IconButton(
                     icon: Icon(Icons.filter_list_rounded, color: Colors.grey[700]),
-                    // ENGLISH TRANSLATION
                     tooltip: 'Search Filters',
                     onPressed: _showSearchFilterModal,
                   ),
                 ),
               ],
             ),
+            // ==========================================================
+            //          PERUBAHAN TAMPILAN SELESAI DI SINI
+            // ==========================================================
             const SizedBox(height: 15),
 
             if (_activeSearchScreenFilters.isNotEmpty)
@@ -275,7 +282,6 @@ class _SearchScreenState extends State<SearchScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                     // ENGLISH TRANSLATION
                      Text("Active Filters:", style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey[600], fontWeight: FontWeight.w500)),
                      const SizedBox(height: 4),
                      Wrap(
@@ -310,7 +316,6 @@ class _SearchScreenState extends State<SearchScreen> {
                   return Padding(
                     padding: const EdgeInsets.only(bottom: 15.0, top: 5.0),
                     child: Text(
-                      // ENGLISH TRANSLATION
                       propertyProvider.isLoadingSearch && propertyProvider.searchedProperties.isEmpty
                           ? "Searching for properties..."
                           : "Search Results",
@@ -346,7 +351,6 @@ class _SearchScreenState extends State<SearchScreen> {
                                 children: [
                                   Icon(Icons.manage_search_rounded, size: 80, color: Colors.grey[300]),
                                   const SizedBox(height:15),
-                                  // ENGLISH TRANSLATION
                                   Text('Type a keyword or use filters to search for properties.', textAlign: TextAlign.center, style: GoogleFonts.poppins(fontSize: 16, color: Colors.grey[700]))
                                 ]
                               )
@@ -362,10 +366,8 @@ class _SearchScreenState extends State<SearchScreen> {
                                 children: [
                                   Icon(Icons.search_off_rounded, size: 80, color: Colors.grey[300]),
                                   const SizedBox(height:15),
-                                  // ENGLISH TRANSLATION
                                   Text('No Properties Found', style: GoogleFonts.poppins(fontSize: 17, fontWeight: FontWeight.w500)),
                                   const SizedBox(height:8),
-                                  // ENGLISH TRANSLATION
                                   Text('Try a different keyword or filter.', textAlign: TextAlign.center, style: GoogleFonts.poppins(fontSize: 14, color: Colors.grey[600]))
                                 ]
                               )
@@ -402,7 +404,6 @@ class _SearchScreenState extends State<SearchScreen> {
   }
 
   String _formatFilterKey(String key) {
-    // ENGLISH TRANSLATION
     switch (key) {
       case 'propertyType': return 'Type';
       case 'lokasi': return 'Location';

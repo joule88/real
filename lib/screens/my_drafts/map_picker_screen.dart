@@ -256,7 +256,7 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
                         child: ElevatedButton.icon(
                           // ENGLISH TRANSLATION
                           label: Text("Use This Address", style: GoogleFonts.poppins(fontWeight: FontWeight.bold)),
-                          icon: const Icon(Icons.check_circle),
+                          icon: const Icon(Icons.check_circle, color: Colors.white),
                           onPressed: (_selectedLocation == null || _isLoadingAddress) ? null : _onMapConfirm,
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Theme.of(context).primaryColor,
