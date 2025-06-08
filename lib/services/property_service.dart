@@ -142,7 +142,7 @@ class PropertyService {
     required int viewType,
     required int titleKeyword,
   }) async {
-    final String predictUrl = '${ApiConstants.flaskApiBaseUrl}${ApiConstants.predictPriceEndpoint}';
+    const String predictUrl = '${ApiConstants.flaskApiBaseUrl}${ApiConstants.predictPriceEndpoint}';
     final payload = {
       'bathrooms': bathrooms, 'bedrooms': bedrooms, 'furnishing': furnishing,
       'sizeMin': sizeMin, 'verified': verified, 'listing_age_category': listingAgeCategory,

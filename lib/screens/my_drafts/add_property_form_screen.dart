@@ -239,7 +239,7 @@ class _AddPropertyFormScreenState extends State<AddPropertyFormScreen> {
           return;
         }
         
-        final defaultVerifiedStatusForPrediction = 0;
+        const defaultVerifiedStatusForPrediction = 0;
 
         final result = await _propertyService.predictPropertyPrice(
           bathrooms: bathrooms,

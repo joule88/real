@@ -301,7 +301,7 @@ class _PropertyDetailPageState extends State<PropertyDetailPage> {
                           Row(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Icon(Icons.location_on_outlined, size: 18, color: Colors.red),
+                              const Icon(Icons.location_on_outlined, size: 18, color: Colors.red),
                               const SizedBox(width: 6),
                               Expanded(
                                 child: Text(

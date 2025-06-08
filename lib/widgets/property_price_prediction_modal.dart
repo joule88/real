@@ -97,7 +97,7 @@ void showPredictionModal(BuildContext context, TextEditingController hargaManual
 
   // --- Variabel Terverifikasi tidak lagi diisi user dari modal ---
   // int? terverifikasiValue;
-  final int defaultVerifiedStatusForPrediction = 0; // Asumsi 0 = Tidak Terverifikasi
+  const int defaultVerifiedStatusForPrediction = 0; // Asumsi 0 = Tidak Terverifikasi
 
   int? kondisiFurnishingValue;
   int? pemandanganUtamaValue;
@@ -105,7 +105,7 @@ void showPredictionModal(BuildContext context, TextEditingController hargaManual
   int? labelPropertiValue;
 
   bool isPredicting = false;
-  final double kursAedKeIdr = 4350; // GANTI DENGAN NILAI TUKAR AKTUAL ATAU MEKANISME DINAMIS
+  const double kursAedKeIdr = 4350; // GANTI DENGAN NILAI TUKAR AKTUAL ATAU MEKANISME DINAMIS
 
   // Opsi dropdowns (Kecuali 'Terverifikasi')
   final List<Map<String, dynamic>> kondisiFurnishingOptions = [
@@ -232,8 +232,8 @@ void showPredictionModal(BuildContext context, TextEditingController hargaManual
                       width: double.infinity,
                       child: ElevatedButton.icon(
                         icon: isPredicting
-                            ? SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black87))
-                            : Icon(Icons.online_prediction_outlined, color: Colors.black87),
+                            ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black87))
+                            : const Icon(Icons.online_prediction_outlined, color: Colors.black87),
                         label: Text("Prediksi Harga", style: GoogleFonts.poppins(fontWeight: FontWeight.w600, color: Colors.black87, fontSize: 15)),
                         onPressed: isPredicting ? null : () async {
                           if (formKey.currentState!.validate()) {

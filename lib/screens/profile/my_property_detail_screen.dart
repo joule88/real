@@ -354,7 +354,7 @@ class _MyPropertyDetailScreenState extends State<MyPropertyDetailScreen>
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Icon(EvaIcons.pinOutline, color: Colors.red, size: 18),
+                      const Icon(EvaIcons.pinOutline, color: Colors.red, size: 18),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(

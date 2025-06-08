@@ -244,8 +244,9 @@ class _FilterModalContentState extends State<FilterModalContent> {
               children: [
                 TextButton(
                   // ENGLISH TRANSLATION
-                  child: Text("Reset Filters", style: GoogleFonts.poppins(color: Colors.grey[700], fontWeight: FontWeight.w500)),
                   onPressed: _resetInternalFiltersAndCallback,
+                  // ENGLISH TRANSLATION
+                  child: Text("Reset Filters", style: GoogleFonts.poppins(color: Colors.grey[700], fontWeight: FontWeight.w500)),
                 ),
                 const SizedBox(width: 10),
                 ElevatedButton.icon(

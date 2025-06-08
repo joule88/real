@@ -184,7 +184,7 @@ class PropertyProvider extends ChangeNotifier {
       }
     } catch (e) {
       // ENGLISH TRANSLATION
-      _bookmarkedPropertiesError = 'A network error occurred while fetching bookmarks: ' + e.toString();
+      _bookmarkedPropertiesError = 'A network error occurred while fetching bookmarks: $e';
       _bookmarkedProperties = [];
     } finally {
       _isLoadingBookmarkedProperties = false;
@@ -416,7 +416,7 @@ class PropertyProvider extends ChangeNotifier {
       }
     } catch (e) {
       // ENGLISH TRANSLATION
-      _searchError = 'A network error occurred during search: ' + e.toString();
+      _searchError = 'A network error occurred during search: $e';
       _hasMoreSearchResults = false;
     } finally {
       _isLoadingSearch = false;
@@ -464,22 +464,31 @@ class PropertyProvider extends ChangeNotifier {
     ].contains(updatedProperty.status);
 
     if (isInManageableGroup) {
-      if (indexInUserProperties != -1) _userProperties[indexInUserProperties] = updatedProperty;
-      else _userProperties.add(updatedProperty);
+      if (indexInUserProperties != -1) {
+        _userProperties[indexInUserProperties] = updatedProperty;
+      } else {
+        _userProperties.add(updatedProperty);
+      }
     } else {
       if (indexInUserProperties != -1) _userProperties.removeAt(indexInUserProperties);
     }
     int indexInApprovedProperties = _userApprovedProperties.indexWhere((p) => p.id == updatedProperty.id);
     if (updatedProperty.status == PropertyStatus.approved) {
-      if (indexInApprovedProperties != -1) _userApprovedProperties[indexInApprovedProperties] = updatedProperty;
-      else _userApprovedProperties.add(updatedProperty);
+      if (indexInApprovedProperties != -1) {
+        _userApprovedProperties[indexInApprovedProperties] = updatedProperty;
+      } else {
+        _userApprovedProperties.add(updatedProperty);
+      }
     } else {
       if (indexInApprovedProperties != -1) _userApprovedProperties.removeAt(indexInApprovedProperties);
     }
     int indexInSoldProperties = _userSoldProperties.indexWhere((p) => p.id == updatedProperty.id);
     if (updatedProperty.status == PropertyStatus.sold) {
-      if (indexInSoldProperties != -1) _userSoldProperties[indexInSoldProperties] = updatedProperty;
-      else _userSoldProperties.add(updatedProperty);
+      if (indexInSoldProperties != -1) {
+        _userSoldProperties[indexInSoldProperties] = updatedProperty;
+      } else {
+        _userSoldProperties.add(updatedProperty);
+      }
     } else {
       if (indexInSoldProperties != -1) _userSoldProperties.removeAt(indexInSoldProperties);
     }
@@ -495,11 +504,13 @@ class PropertyProvider extends ChangeNotifier {
   Future<Map<String, dynamic>> updatePropertyStatus(String propertyId, PropertyStatus newStatus, String token) async {
     Property? propertyToUpdate;
     int approvedIdx = _userApprovedProperties.indexWhere((p) => p.id == propertyId);
-    if (approvedIdx != -1) propertyToUpdate = _userApprovedProperties[approvedIdx];
-    else {
+    if (approvedIdx != -1) {
+      propertyToUpdate = _userApprovedProperties[approvedIdx];
+    } else {
       int manageableIdx = _userProperties.indexWhere((p) => p.id == propertyId);
-      if (manageableIdx != -1) propertyToUpdate = _userProperties[manageableIdx];
-      else {
+      if (manageableIdx != -1) {
+        propertyToUpdate = _userProperties[manageableIdx];
+      } else {
         int soldIdx = _userSoldProperties.indexWhere((p) => p.id == propertyId);
         if (soldIdx != -1) propertyToUpdate = _userSoldProperties[soldIdx];
       }

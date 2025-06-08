@@ -175,9 +175,9 @@ class _PropertyImagePickerState extends State<PropertyImagePicker> {
                     decoration: BoxDecoration(
                       color: Colors.white.withOpacity(0.9),
                       shape: BoxShape.circle,
-                      boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 2, offset: Offset(0,1))]
+                      boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 2, offset: Offset(0,1))]
                     ),
-                    child: Icon(Icons.cancel, color: Colors.redAccent, size: 22),
+                    child: const Icon(Icons.cancel, color: Colors.redAccent, size: 22),
                   ),
                 ),
               ),

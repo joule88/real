@@ -258,7 +258,7 @@ class _MyDraftsScreenState extends State<MyDraftsScreen> with SingleTickerProvid
           onPressed: () => Navigator.of(context).pop(),
         ),
         // ENGLISH TRANSLATION
-        title: Text("Manage My Listings"),
+        title: const Text("Manage My Listings"),
         centerTitle: true,
         bottom: TabBar(
           controller: _tabController,

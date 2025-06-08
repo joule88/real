@@ -80,8 +80,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final User? user = authProvider.user;
     final bool isLoadingUser = authProvider.isLoading;
 
-    final Color themeColor = const Color(0xFFDAF365);
-    final Color textOnThemeColor = Colors.black87;
+    const Color themeColor = Color(0xFFDAF365);
+    const Color textOnThemeColor = Colors.black87;
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -106,7 +106,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ],
       ),
       body: isLoadingUser && user == null
-          ? Center(child: CircularProgressIndicator(color: themeColor))
+          ? const Center(child: CircularProgressIndicator(color: themeColor))
           : user == null
               ? Center(
                   child: Column(
@@ -192,7 +192,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         children: [
                           Expanded(
                             child: ElevatedButton.icon(
-                              icon: Icon(Icons.edit_outlined, color: textOnThemeColor, size: 20),
+                              icon: const Icon(Icons.edit_outlined, color: textOnThemeColor, size: 20),
                               label: Text("Edit Profile", // ENGLISH
                                   style: GoogleFonts.poppins(
                                       fontWeight: FontWeight.w600,
@@ -217,7 +217,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           const SizedBox(width: 15),
                           Expanded(
                             child: ElevatedButton.icon(
-                              icon: Icon(Icons.article_outlined, color: textOnThemeColor, size: 20),
+                              icon: const Icon(Icons.article_outlined, color: textOnThemeColor, size: 20),
                               label: Text("Manage Listings", // ENGLISH
                                   style: GoogleFonts.poppins(
                                       fontWeight: FontWeight.w600,

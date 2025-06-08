@@ -10,6 +10,7 @@ import 'package:real/screens/detail/detailpost.dart';
 import 'package:real/widgets/filter_modal_content.dart';
 
 class SearchScreen extends StatefulWidget {
+  @override
   final Key? key;
   final bool autoOpenFilterModal;
   final bool autoFocusSearch;
@@ -288,7 +289,7 @@ class _SearchScreenState extends State<SearchScreen> {
                       spacing: 6.0,
                       runSpacing: 6.0,
                       children: _activeSearchScreenFilters.entries.where((entry) => entry.key != '_title').map((entry) {
-                        if (entry.value.toString().isEmpty && !(entry.value is bool)) return const SizedBox.shrink();
+                        if (entry.value.toString().isEmpty && entry.value is! bool) return const SizedBox.shrink();
                         return Chip(
                           label: Text('${_formatFilterKey(entry.key)}: ${entry.value}', style: GoogleFonts.poppins(fontSize: 10.5, color: Colors.black87)),
                           backgroundColor: Colors.grey[200],

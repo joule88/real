@@ -67,8 +67,8 @@ class _CreateNewPasswordScreenState extends State<CreateNewPasswordScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final Color themeColor = const Color(0xFFDAF365);
-    final Color textOnThemeColor = Colors.black87;
+    const Color themeColor = Color(0xFFDAF365);
+    const Color textOnThemeColor = Colors.black87;
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -140,7 +140,7 @@ class _CreateNewPasswordScreenState extends State<CreateNewPasswordScreen> {
                 ),
                 const SizedBox(height: 30),
                 _isLoading
-                    ? Center(child: CircularProgressIndicator(color: themeColor))
+                    ? const Center(child: CircularProgressIndicator(color: themeColor))
                     : ElevatedButton(
                         onPressed: _submitNewPassword,
                         style: ElevatedButton.styleFrom(

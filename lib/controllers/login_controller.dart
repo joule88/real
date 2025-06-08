@@ -11,7 +11,7 @@ class LoginController {
     );
     // Jika gagal
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Login Gagal! Cek username/password.')),
+      const SnackBar(content: Text('Login Gagal! Cek username/password.')),
     );
   }
 }

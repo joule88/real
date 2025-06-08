@@ -117,7 +117,7 @@ class Property extends ChangeNotifier { // Pastikan extends ChangeNotifier
       }
     }
 
-    final String laravelApiBaseUrl = ApiConstants.laravelApiBaseUrl;
+    const String laravelApiBaseUrl = ApiConstants.laravelApiBaseUrl;
     String parsedMainImageUrl = "";
     List<String> parsedAdditionalImageUrls = [];
 
