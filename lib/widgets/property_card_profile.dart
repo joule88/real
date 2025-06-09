@@ -115,8 +115,8 @@ class PropertyCardProfile extends StatelessWidget {
                       //         PERUBAHAN DIMULAI DI SINI
                       // ==========================================================
                       if (showEditIcon)
-                        Padding(
-                          padding: const EdgeInsets.only(left: 8.0),
+                        const Padding(
+                          padding: EdgeInsets.only(left: 8.0),
                           child: Icon(
                             EvaIcons.editOutline,
                             color: Colors.black,
