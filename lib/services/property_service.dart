@@ -142,8 +142,8 @@ class PropertyService {
     required int viewType,
     required int titleKeyword,
   }) async {
-    const String predictUrl = '${ApiConstants.flaskApiBaseUrl}${ApiConstants.predictPriceEndpoint}';
-    final payload = {
+// BENAR: Memanggil endpoint "predict" di Laravel
+const String predictUrl = '${ApiConstants.laravelApiBaseUrl}${ApiConstants.predictPriceEndpoint}';    final payload = {
       'bathrooms': bathrooms, 'bedrooms': bedrooms, 'furnishing': furnishing,
       'sizeMin': sizeMin, 'verified': verified, 'listing_age_category': listingAgeCategory,
       'view_type': viewType, 'title_keyword': titleKeyword,

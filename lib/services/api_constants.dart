@@ -1,6 +1,6 @@
 class ApiConstants {
-  static const String laravelApiBaseUrl = 'http://127.0.0.1:8000/api';
-  static const String flaskApiBaseUrl = 'http://127.0.0.1:5000';
+  static const String laravelApiBaseUrl = 'http://103.210.69.67:8080/api';
+  // static const String flaskApiBaseUrl = 'http://192.168.1.3:5000';
 
   // Endpoint untuk API Laravel
   static const String propertiesEndpoint = '/properties';
